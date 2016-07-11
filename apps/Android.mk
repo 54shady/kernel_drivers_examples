@@ -1,0 +1,14 @@
+LOCAL_PATH:= $(call my-dir)
+include $(CLEAR_VARS)
+
+ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 5.0)))
+LOCAL_CFLAGS += -DMMAP64
+endif
+
+LOCAL_SYSTEM_SHARED_LIBRARIES := libc
+LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
+LOCAL_MODULE_TAGS := debug
+LOCAL_SRC_FILES := test.c
+LOCAL_MODULE := test
+
+include $(BUILD_EXECUTABLE)
