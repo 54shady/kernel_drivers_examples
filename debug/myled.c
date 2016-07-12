@@ -71,6 +71,14 @@ static int myled_probe(struct platform_device *pdev)
 	return 0;
 }
 
+#if 0//需要在DT里root节点下添加myled的节点
+/{
+	myled {
+		compatible = "myled";
+	};
+
+}
+#endif
 static const struct of_device_id myled_dt_ids[] = {
 	{ .compatible = "myled", .data = NULL, },
 	{ /* sentinel */ }
