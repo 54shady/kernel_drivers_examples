@@ -8,9 +8,9 @@ static int __init call_notifier(void)
 	int err;
 	printk("Begin to notify:\n");
 
-
 	printk("==============================\n");
 	err = test_notifier_call_chain(1, NULL);
+	err = test_notifier_call_chain(2, "new_test");
 	printk("==============================\n");
 	if (err)
 		printk("notifier_call_chain error\n");

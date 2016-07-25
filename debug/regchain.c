@@ -6,18 +6,24 @@ extern int register_test_notifier(struct notifier_block *nb);
 
 static int test_event1(struct notifier_block *this, unsigned long event, void *ptr)
 {
+	if (NULL != ptr)
+		printk("ptr = %s\n", (char *)ptr);
 	printk("In Event 1: Event Number is %ld\n",event);
 	return 0;
 }
 
 static int test_event2(struct notifier_block *this, unsigned long event, void *ptr)
 {
+	if (NULL != ptr)
+		printk("ptr = %s\n", (char *)ptr);
 	printk("In Event 2: Event Number is %ld\n",event);
 	return 0;
 }
 
 static int test_event3(struct notifier_block *this, unsigned long event, void *ptr)
 {
+	if (NULL != ptr)
+		printk("ptr = %s\n", (char *)ptr);
 	printk("In Event 3: Event Number is %ld\n",event);
 	return 0;
 }
@@ -68,6 +74,7 @@ static int __init reg_notifier(void)
 
 	return err;
 }
+
 
 static void __exit unreg_notifier(void)
 {
