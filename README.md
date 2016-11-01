@@ -8,7 +8,7 @@ kernel 3.10.49 drivers test examples
 - debug 是驱动模板
 - script 是测试脚本
 
-# 使用方法
+# 使用方法(单独编译模块)或者放到内核目录中编译
 
 - make CC=your_compiler_path KERNELDIR=your_kernel_dir
 
