@@ -8,12 +8,11 @@ kernel 3.10.49 drivers test examples
 - debug 是驱动模板
 - script 是测试脚本
 
-# Usage
+# 使用方法
 
 - make CC=your_compiler_path KERNELDIR=your_kernel_dir
 
-## example(build the hello module)
+## 举例(以hello模块为例)
 
 - cd debug/hello
-
 - make CC=/home/zeroway/3288/src/3288_4.4/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-gcc KERNELDIR=/home/zeroway/3288/src/3288_4.4/kernel

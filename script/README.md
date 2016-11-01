@@ -48,7 +48,7 @@ uevent
 i=1
 while (( $i < 13 ))
 do
-for f in `ls regulator.$i`
+for f in `ls regulator.$i/`
 do
 if [ -f regulator.$i/$f ]
 then
