@@ -72,3 +72,15 @@ echo "$f =" `cat $f`
 fi
 done
 ```
+
+## 打印所有regulator.[1-12]下num_users里的信息
+
+```shell
+i=1
+cat_info="num_users"
+while (( $i < 13 ))
+do
+echo "regulator.$i/$cat_info =" `cat regulator.$i/$cat_info`
+(( i+=1 ))
+done
+```
