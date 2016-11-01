@@ -1,4 +1,6 @@
-# 查看目录下每个文件的内容
+# shell测试脚本(android ksh)
+
+## 查看目录下每个文件的内容
 
 有下面这样一个目录
 
@@ -56,5 +58,17 @@ echo "regulator.$i/$f =" `cat regulator.$i/$f`
 fi
 done
 (( i+= 1 ))
+done
+```
+
+## 查看某个目录下所有的文件的内容
+
+```shell
+for f in `ls`
+do
+if [ -f $f ]
+then
+echo "$f =" `cat $f`
+fi
 done
 ```
