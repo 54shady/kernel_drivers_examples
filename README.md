@@ -2,6 +2,12 @@
 
 kernel 3.10.49 drivers test examples
 
+# 目录说明
+
+- app 是测试驱动的应用程序
+- debug 是驱动模板
+- script 是测试脚本
+
 # Usage
 
 - make CC=your_compiler_path KERNELDIR=your_kernel_dir
