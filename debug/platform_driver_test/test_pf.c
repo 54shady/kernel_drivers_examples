@@ -21,17 +21,35 @@
 #include <linux/earlysuspend.h>
 #endif
 #include <linux/gpio.h>
+#include <linux/regulator/consumer.h>
 
 #if 0
 / {
 	my_test_node {
 		compatible = "test_platform";
+		VCC_TP-supply = <&ldo4_reg>;
 	};
 };
 #endif
+
+static struct regulator *supply;
 static int test_pf_probe(struct platform_device *pdev)
 {
+	int ret;
+
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	supply = devm_regulator_get(&pdev->dev, "VCC_TP");
+	if (IS_ERR(supply)) {
+		printk("regulator get of vdd_ana failed");
+		ret = PTR_ERR(supply);
+		supply = NULL;
+		return -1;
+	}
+
+	/* Enable the regulator */
+	ret = regulator_enable(supply);
+	printk("Enable regulator :) ret = %d\n", ret);
+
 	return 0;
 }
 
@@ -42,7 +60,12 @@ static const struct of_device_id test_pf_dt_ids[] = {
 
 static int test_pf_remove(struct platform_device *dev)
 {
+	int ret;
+
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	/* Disable the regulator */
+	ret = regulator_disable(supply);
+	printk("Disable regulator :( ret = %d\n", ret);
 	return 0;
 }
 
