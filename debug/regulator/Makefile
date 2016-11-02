@@ -15,6 +15,7 @@ DEBFLAGS = -O2
 endif
 
 obj-m := regulator.o
+obj-m += act8846.o
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 CC ?= gcc
 PWD := $(shell pwd)
