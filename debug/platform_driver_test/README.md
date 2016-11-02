@@ -1,6 +1,6 @@
 # Usage
 
-把dtsi文件包行到所使用的dts里
+把dtsi文件包含到所使用的dts里
 
 	#include "test_pf.dtsi"
 
