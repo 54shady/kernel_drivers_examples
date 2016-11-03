@@ -127,6 +127,7 @@ static struct of_regulator_match act8846_reg_matches[] = {
 	{ .name = "act_ldo6" } ,
 	{ .name = "act_ldo7" } ,
 	{ .name = "act_ldo8" } ,
+	{ .name = "act_ldo9" } ,
 };
 
 static struct act8846_board *act8846_parse_dt(struct act8846 *chip)

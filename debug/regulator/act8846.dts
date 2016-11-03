@@ -87,6 +87,8 @@ act8846@5a {
 			regulator-name = "act_ldo2";
 			regulator-min-microvolt = <0xf4240>;
 			regulator-max-microvolt = <0xf4240>;
+			linux,phandle = <0x10d>;
+			phandle = <0x10d>;
 		};
 
 		regulator@6 {
@@ -95,6 +97,8 @@ act8846@5a {
 			regulator-name = "act_ldo3";
 			regulator-min-microvolt = <0x325aa0>;
 			regulator-max-microvolt = <0x325aa0>;
+			linux,phandle = <0x10e>;
+			phandle = <0x10e>;
 		};
 
 		regulator@7 {
@@ -115,6 +119,8 @@ act8846@5a {
 			regulator-name = "act_ldo5";
 			regulator-min-microvolt = <0x325aa0>;
 			regulator-max-microvolt = <0x325aa0>;
+			linux,phandle = <0x10f>;
+			phandle = <0x10f>;
 		};
 
 		regulator@9 {
@@ -126,6 +132,8 @@ act8846@5a {
 			regulator-min-microvolt = <0xf4240>;
 			regulator-max-microvolt = <0xf4240>;
 			regulator-initial-state = <0x3>;
+			linux,phandle = <0x110>;
+			phandle = <0x110>;
 
 			regulator-state-mem {
 				regulator-state-enabled;
@@ -139,6 +147,8 @@ act8846@5a {
 			regulator-min-microvolt = <0x1b7740>;
 			regulator-max-microvolt = <0x1b7740>;
 			regulator-initial-state = <0x3>;
+			linux,phandle = <0x111>;
+			phandle = <0x111>;
 
 			regulator-state-mem {
 				regulator-state-enabled;
@@ -151,6 +161,18 @@ act8846@5a {
 			regulator-always-on;
 			regulator-boot-on;
 			regulator-name = "act_ldo8";
+			regulator-min-microvolt = <0x1b7740>;
+			regulator-max-microvolt = <0x1b7740>;
+			linux,phandle = <0x112>;
+			phandle = <0x112>;
+		};
+
+		regulator@12 {
+			reg = <0xc>;
+			regulator-compatible = "act_ldo9";
+			regulator-always-on;
+			regulator-boot-on;
+			regulator-name = "act_ldo9";
 			regulator-min-microvolt = <0x1b7740>;
 			regulator-max-microvolt = <0x1b7740>;
 		};
