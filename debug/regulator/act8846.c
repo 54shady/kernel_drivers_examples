@@ -22,52 +22,37 @@
 #include <linux/regmap.h>
 #include <asm/system_misc.h>
 
-#define REGISTER_NUMBERS 0xF5
-#define ACT8846_BUCK1_SET_VOL_BASE 0x10
-#define ACT8846_NUM_REGULATORS 12
+#include "act8846.h"
 
-#define ACT8846_DCDC1  0
-#define ACT8846_LDO1 4
-#define BUCK_VOL_MASK 0x3f
-#define LDO_VOL_MASK 0x3f
-#define VOL_MIN_IDX 0x00
-#define VOL_MAX_IDX 0x3f
-#define ACT8846_BUCK1_SET_VOL_BASE 0x10
-#define ACT8846_BUCK2_SET_VOL_BASE 0x20
-#define ACT8846_BUCK3_SET_VOL_BASE 0x30
-#define ACT8846_BUCK4_SET_VOL_BASE 0x40
+/*
+ * buck and ldo voltage map
+ * see Table 5 of the data sheet
+ */
+const static int buck_voltage_map[] = {
+	 600, 625, 650, 675, 700, 725, 750, 775,
+	 800, 825, 850, 875, 900, 925, 950, 975,
+	 1000, 1025, 1050, 1075, 1100, 1125, 1150,
+	 1175, 1200, 1250, 1300, 1350, 1400, 1450,
+	 1500, 1550, 1600, 1650, 1700, 1750, 1800,
+	 1850, 1900, 1950, 2000, 2050, 2100, 2150,
+	 2200, 2250, 2300, 2350, 2400, 2500, 2600,
+	 2700, 2800, 2900, 3000, 3100, 3200,
+	 3300, 3400, 3500, 3600, 3700, 3800, 3900,
+};
 
-#define ACT8846_BUCK2_SLP_VOL_BASE 0x21
-#define ACT8846_BUCK3_SLP_VOL_BASE 0x31
-#define ACT8846_BUCK4_SLP_VOL_BASE 0x41
+const static int ldo_voltage_map[] = {
+	 600, 625, 650, 675, 700, 725, 750, 775,
+	 800, 825, 850, 875, 900, 925, 950, 975,
+	 1000, 1025, 1050, 1075, 1100, 1125, 1150,
+	 1175, 1200, 1250, 1300, 1350, 1400, 1450,
+	 1500, 1550, 1600, 1650, 1700, 1750, 1800,
+	 1850, 1900, 1950, 2000, 2050, 2100, 2150,
+	 2200, 2250, 2300, 2350, 2400, 2500, 2600,
+	 2700, 2800, 2900, 3000, 3100, 3200,
+	 3300, 3400, 3500, 3600, 3700, 3800, 3900,
+};
 
-#define ACT8846_LDO1_SET_VOL_BASE 0x50
-#define ACT8846_LDO2_SET_VOL_BASE 0x58
-#define ACT8846_LDO3_SET_VOL_BASE 0x60
-#define ACT8846_LDO4_SET_VOL_BASE 0x68
-#define ACT8846_LDO5_SET_VOL_BASE 0x70
-#define ACT8846_LDO6_SET_VOL_BASE 0x80
-#define ACT8846_LDO7_SET_VOL_BASE 0x90
-#define ACT8846_LDO8_SET_VOL_BASE 0xa0
-
-#define ACT8846_BUCK1_CONTR_BASE 0x12
-#define ACT8846_BUCK2_CONTR_BASE 0x22
-#define ACT8846_BUCK3_CONTR_BASE 0x32
-#define ACT8846_BUCK4_CONTR_BASE 0x42
-
-#define ACT8846_LDO1_CONTR_BASE 0x51
-#define ACT8846_LDO2_CONTR_BASE 0x59
-#define ACT8846_LDO3_CONTR_BASE 0x61
-#define ACT8846_LDO4_CONTR_BASE 0x69
-#define ACT8846_LDO5_CONTR_BASE 0x71
-#define ACT8846_LDO6_CONTR_BASE 0x81
-#define ACT8846_LDO7_CONTR_BASE 0x91
-#define ACT8846_LDO8_CONTR_BASE 0xa1
-#define ACT8846_BUCK_SET_VOL_REG(x) (buck_set_vol_base_addr[x])
-#define ACT8846_BUCK_CONTR_REG(x) (buck_contr_base_addr[x])
-#define ACT8846_LDO_SET_VOL_REG(x) (ldo_set_vol_base_addr[x])
-#define ACT8846_LDO_CONTR_REG(x) (ldo_contr_base_addr[x])
-
+/* voltage register base addr */
 const static int ldo_set_vol_base_addr[] = {
 	ACT8846_LDO1_SET_VOL_BASE,
 	ACT8846_LDO2_SET_VOL_BASE,
@@ -78,6 +63,7 @@ const static int ldo_set_vol_base_addr[] = {
 	ACT8846_LDO7_SET_VOL_BASE,
 	ACT8846_LDO8_SET_VOL_BASE,
 };
+
 const static int ldo_contr_base_addr[] = {
 	ACT8846_LDO1_CONTR_BASE,
 	ACT8846_LDO2_CONTR_BASE,
@@ -95,37 +81,12 @@ const static int buck_set_vol_base_addr[] = {
 	ACT8846_BUCK3_SET_VOL_BASE,
 	ACT8846_BUCK4_SET_VOL_BASE,
 };
+
 const static int buck_contr_base_addr[] = {
 	ACT8846_BUCK1_CONTR_BASE,
 	ACT8846_BUCK2_CONTR_BASE,
 	ACT8846_BUCK3_CONTR_BASE,
 	ACT8846_BUCK4_CONTR_BASE,
-};
-
-/* 用来表示device tree里的信息, 用pdata表示 */
-struct act8846_board {
-	struct regulator_init_data *rid[ACT8846_NUM_REGULATORS];
-	struct device_node *np[ACT8846_NUM_REGULATORS];
-
-	/* pins */
-	int pmic_sleep_gpio;
-	int pmic_hold_gpio;
-
-	/* functions */
-	bool pmic_sleep;
-};
-
-/* 自定义数据结构,用chip表示 */
-struct act8846 {
-	int num_regulators;
-	struct regulator_dev **rdev;
-	struct device *dev;
-	struct i2c_client *client;
-	struct regmap *regmap;
-
-	/* pins */
-	int pmic_sleep_gpio;
-	int pmic_hold_gpio;
 };
 
 /* DEVICE TABLE */
@@ -142,11 +103,6 @@ static const struct i2c_device_id act8846_i2c_id[] = {
 MODULE_DEVICE_TABLE(i2c, act8846_i2c_id);
 
 /* regmap config */
-static bool is_volatile_reg(struct device *dev, unsigned int reg)
-{
-	return true;
-}
-
 static const struct regmap_config act8846_regmap_config = {
 	.reg_bits = 8,
 	.val_bits = 8,
@@ -239,34 +195,6 @@ static struct act8846_board *act8846_parse_dt(struct act8846 *chip)
 
 	return pdata;
 }
-
-/*
- * buck and ldo voltage map
- * see Table 5 of the data sheet
- */
-const static int buck_voltage_map[] = {
-	 600, 625, 650, 675, 700, 725, 750, 775,
-	 800, 825, 850, 875, 900, 925, 950, 975,
-	 1000, 1025, 1050, 1075, 1100, 1125, 1150,
-	 1175, 1200, 1250, 1300, 1350, 1400, 1450,
-	 1500, 1550, 1600, 1650, 1700, 1750, 1800,
-	 1850, 1900, 1950, 2000, 2050, 2100, 2150,
-	 2200, 2250, 2300, 2350, 2400, 2500, 2600,
-	 2700, 2800, 2900, 3000, 3100, 3200,
-	 3300, 3400, 3500, 3600, 3700, 3800, 3900,
-};
-
-const static int ldo_voltage_map[] = {
-	 600, 625, 650, 675, 700, 725, 750, 775,
-	 800, 825, 850, 875, 900, 925, 950, 975,
-	 1000, 1025, 1050, 1075, 1100, 1125, 1150,
-	 1175, 1200, 1250, 1300, 1350, 1400, 1450,
-	 1500, 1550, 1600, 1650, 1700, 1750, 1800,
-	 1850, 1900, 1950, 2000, 2050, 2100, 2150,
-	 2200, 2250, 2300, 2350, 2400, 2500, 2600,
-	 2700, 2800, 2900, 3000, 3100, 3200,
-	 3300, 3400, 3500, 3600, 3700, 3800, 3900,
-};
 
 /* dcdc ops */
 static int act8846_dcdc_set_voltage(struct regulator_dev *dev,
@@ -557,8 +485,6 @@ static int act8846_ldo_set_mode(struct regulator_dev *dev, unsigned int mode)
 		printk("error:pmu_act8846 only lowpower and nomal mode\n");
 		return -EINVAL;
 	}
-
-
 }
 
 static struct regulator_ops act8846_ldo_ops = {
