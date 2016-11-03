@@ -23,6 +23,7 @@
 #include <linux/regmap.h>
 #include <asm/system_misc.h>
 
+#define REGISTER_NUMBERS 0xF5
 #define ACT8846_BUCK1_SET_VOL_BASE 0x10
 //#define ACT8846_LDO8_CONTR_BASE 0xA1
 #define ACT8846_NUM_REGULATORS 12
@@ -148,18 +149,14 @@ MODULE_DEVICE_TABLE(i2c, act8846_i2c_id);
 /* regmap config */
 static bool is_volatile_reg(struct device *dev, unsigned int reg)
 {
-
-	if ((reg >= ACT8846_BUCK1_SET_VOL_BASE) && (reg <= ACT8846_LDO8_CONTR_BASE)) {
-		return true;
-	}
 	return true;
 }
 
 static const struct regmap_config act8846_regmap_config = {
 	.reg_bits = 8,
 	.val_bits = 8,
-	.volatile_reg = is_volatile_reg,
-	.max_register = ACT8846_NUM_REGULATORS - 1,
+	//.volatile_reg = is_volatile_reg,
+	.max_register = REGISTER_NUMBERS,
 	.cache_type = REGCACHE_RBTREE,
 };
 
@@ -868,14 +865,7 @@ static int act8846_i2c_probe(struct i2c_client *client, const struct i2c_device_
 	printk("act8846 reg[0x22] = %d\n", rval);
 
 	/* enable pwm function of gpio3  */
-#if 0//Error in caching of register
 	ret = regmap_write(chip->regmap, 0xf4, 1);
-	if (ret < 0) {
-		printk("act8846 set 0xf4 error!\n");
-		return -1;
-	}
-#endif
-	ret = act8846_set_bits(chip, 0xf4,(0x1<<7),(0x0<<7));
 	if (ret < 0) {
 		printk("act8846 set 0xf4 error!\n");
 		return -1;
