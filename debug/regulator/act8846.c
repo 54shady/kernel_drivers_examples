@@ -354,7 +354,10 @@ static int act8846_set_bits(struct act8846 *act8846, u8 reg, u16 mask, u16 val)
 	return 0;//ret;
 }
 
-/* buck and ldo voltage map */
+/*
+ * buck and ldo voltage map
+ * see Table 5 of the data sheet
+ */
 const static int buck_voltage_map[] = {
 	 600, 625, 650, 675, 700, 725, 750, 775,
 	 800, 825, 850, 875, 900, 925, 950, 975,
@@ -940,7 +943,6 @@ static int act8846_i2c_probe(struct i2c_client *client, const struct i2c_device_
 
 			rcfg.init_data = rid;
 			act_rdev = devm_regulator_register(chip->dev, &regulators[i], &rcfg);
-			//act_rdev = regulator_register(&regulators[i], &rcfg);
 			if (IS_ERR(act_rdev)) {
 				printk("failed to register %d regulator\n",i);
 				ret = -1;
