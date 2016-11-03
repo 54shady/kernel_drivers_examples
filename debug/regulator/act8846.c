@@ -1,18 +1,110 @@
+#include <linux/bug.h>
 #include <linux/err.h>
 #include <linux/i2c.h>
 #include <linux/kernel.h>
+#include <linux/regulator/driver.h>
+//#include <linux/regulator/act8846.h>
+#include <linux/delay.h>
 #include <linux/slab.h>
+#include <linux/mutex.h>
+#include <linux/mfd/core.h>
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif
+#include <linux/interrupt.h>
 #include <linux/module.h>
-#include <linux/regmap.h>
-#include <linux/regulator/of_regulator.h>
+#include <linux/of_irq.h>
 #include <linux/of_gpio.h>
+#include <linux/of.h>
 #include <linux/of_device.h>
+#include <linux/regulator/of_regulator.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
+#include <linux/regmap.h>
+#include <asm/system_misc.h>
 
 #define ACT8846_BUCK1_SET_VOL_BASE 0x10
-#define ACT8846_LDO8_CONTR_BASE 0xA1
+//#define ACT8846_LDO8_CONTR_BASE 0xA1
 #define ACT8846_NUM_REGULATORS 12
+
+#define ACT8846_DCDC1  0
+#define ACT8846_LDO1 4
+#define BUCK_VOL_MASK 0x3f
+#define LDO_VOL_MASK 0x3f
+#define VOL_MIN_IDX 0x00
+#define VOL_MAX_IDX 0x3f
+#define ACT8846_BUCK1_SET_VOL_BASE 0x10
+#define ACT8846_BUCK2_SET_VOL_BASE 0x20
+#define ACT8846_BUCK3_SET_VOL_BASE 0x30
+#define ACT8846_BUCK4_SET_VOL_BASE 0x40
+
+#define ACT8846_BUCK2_SLP_VOL_BASE 0x21
+#define ACT8846_BUCK3_SLP_VOL_BASE 0x31
+#define ACT8846_BUCK4_SLP_VOL_BASE 0x41
+
+#define ACT8846_LDO1_SET_VOL_BASE 0x50
+#define ACT8846_LDO2_SET_VOL_BASE 0x58
+#define ACT8846_LDO3_SET_VOL_BASE 0x60
+#define ACT8846_LDO4_SET_VOL_BASE 0x68
+#define ACT8846_LDO5_SET_VOL_BASE 0x70
+#define ACT8846_LDO6_SET_VOL_BASE 0x80
+#define ACT8846_LDO7_SET_VOL_BASE 0x90
+#define ACT8846_LDO8_SET_VOL_BASE 0xa0
+//#define ACT8846_LDO9_SET_VOL_BASE 0xb1
+
+#define ACT8846_BUCK1_CONTR_BASE 0x12
+#define ACT8846_BUCK2_CONTR_BASE 0x22
+#define ACT8846_BUCK3_CONTR_BASE 0x32
+#define ACT8846_BUCK4_CONTR_BASE 0x42
+
+#define ACT8846_LDO1_CONTR_BASE 0x51
+#define ACT8846_LDO2_CONTR_BASE 0x59
+#define ACT8846_LDO3_CONTR_BASE 0x61
+#define ACT8846_LDO4_CONTR_BASE 0x69
+#define ACT8846_LDO5_CONTR_BASE 0x71
+#define ACT8846_LDO6_CONTR_BASE 0x81
+#define ACT8846_LDO7_CONTR_BASE 0x91
+#define ACT8846_LDO8_CONTR_BASE 0xa1
+#define ACT8846_BUCK_SET_VOL_REG(x) (buck_set_vol_base_addr[x])
+#define ACT8846_BUCK_CONTR_REG(x) (buck_contr_base_addr[x])
+#define ACT8846_LDO_SET_VOL_REG(x) (ldo_set_vol_base_addr[x])
+#define ACT8846_LDO_CONTR_REG(x) (ldo_contr_base_addr[x])
+
+const static int ldo_set_vol_base_addr[] = {
+	ACT8846_LDO1_SET_VOL_BASE,
+	ACT8846_LDO2_SET_VOL_BASE,
+	ACT8846_LDO3_SET_VOL_BASE,
+	ACT8846_LDO4_SET_VOL_BASE,
+	ACT8846_LDO5_SET_VOL_BASE,
+	ACT8846_LDO6_SET_VOL_BASE,
+	ACT8846_LDO7_SET_VOL_BASE,
+	ACT8846_LDO8_SET_VOL_BASE,
+//	ACT8846_LDO9_SET_VOL_BASE,
+};
+const static int ldo_contr_base_addr[] = {
+	ACT8846_LDO1_CONTR_BASE,
+	ACT8846_LDO2_CONTR_BASE,
+	ACT8846_LDO3_CONTR_BASE,
+	ACT8846_LDO4_CONTR_BASE,
+	ACT8846_LDO5_CONTR_BASE,
+	ACT8846_LDO6_CONTR_BASE,
+	ACT8846_LDO7_CONTR_BASE,
+	ACT8846_LDO8_CONTR_BASE,
+//	ACT8846_LDO9_CONTR_BASE,
+};
+
+const static int buck_set_vol_base_addr[] = {
+	ACT8846_BUCK1_SET_VOL_BASE,
+	ACT8846_BUCK2_SET_VOL_BASE,
+	ACT8846_BUCK3_SET_VOL_BASE,
+	ACT8846_BUCK4_SET_VOL_BASE,
+};
+const static int buck_contr_base_addr[] = {
+	ACT8846_BUCK1_CONTR_BASE,
+	ACT8846_BUCK2_CONTR_BASE,
+	ACT8846_BUCK3_CONTR_BASE,
+	ACT8846_BUCK4_CONTR_BASE,
+};
 
 /* 用来表示device tree里的信息, 用pdata表示 */
 struct act8846_board {
@@ -216,6 +308,20 @@ static int act8846_i2c_write(struct i2c_client *i2c, char reg, int count, const 
 	ret = i2c_transfer(adap, &msg, 1);
 	return ret;
 }
+
+static u8 act8846_reg_read(struct act8846 *chip, u8 reg)
+{
+	u16 val = 0;
+	int ret;
+
+	ret = act8846_i2c_read(chip->client, reg, 1, &val);
+	if(ret < 0){
+		return ret;
+	}
+
+	return val & 0xff;
+}
+
 static int act8846_set_bits(struct act8846 *act8846, u8 reg, u16 mask, u16 val)
 {
 	u16 tmp;
@@ -277,14 +383,55 @@ const static int ldo_voltage_map[] = {
 static int act8846_dcdc_set_voltage(struct regulator_dev *dev,
 				  int min_uV, int max_uV,unsigned *selector)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
+	struct act8846 *chip = rdev_get_drvdata(dev);
+	int buck = rdev_get_id(dev) - ACT8846_DCDC1;
+	int min_vol = min_uV / 1000, max_vol = max_uV / 1000;
+	const int *vol_map = buck_voltage_map;
+	u16 val;
+	int ret = 0;
+
+	/* 设置的电压是否超出上下界限判断 */
+	if (min_vol < vol_map[VOL_MIN_IDX] ||
+	    min_vol > vol_map[VOL_MAX_IDX])
+		return -EINVAL;
+
+	for (val = VOL_MIN_IDX; val <= VOL_MAX_IDX; val++)
+	{
+		if (vol_map[val] >= min_vol)
+			break;
+    }
+
+	if (vol_map[val] > max_vol)
+		printk("WARNING:this voltage is not support!voltage set is %d mv\n",vol_map[val]);
+
+	#ifdef CONFIG_ACT8846_SUPPORT_RESET
+	ret = act8846_set_bits(chip, (ACT8846_BUCK_SET_VOL_REG(buck) +0x1),BUCK_VOL_MASK, val);
+	#else
+	ret = act8846_set_bits(chip, ACT8846_BUCK_SET_VOL_REG(buck) ,BUCK_VOL_MASK, val);
+	#endif
+
+	if(ret < 0)
+		printk("##################:set voltage error!voltage set is %d mv\n",vol_map[val]);
+
+	return ret;
 }
 
-static int act8846_dcdc_get_voltage(struct regulator_dev *dev)
+/* bit[0:5]表示电压值 */
+static int act8846_dcdc_get_voltage(struct regulator_dev *rdev)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
+	struct act8846 *chip = rdev_get_drvdata(rdev);
+	int buck = rdev_get_id(rdev) - ACT8846_DCDC1;
+	u16 reg = 0;
+	int val;
+
+	#ifdef CONFIG_ACT8846_SUPPORT_RESET
+	reg = act8846_reg_read(chip, (ACT8846_BUCK_SET_VOL_REG(buck)+0x1));
+	#else
+	reg = act8846_reg_read(chip, ACT8846_BUCK_SET_VOL_REG(buck));
+	#endif
+	reg &= BUCK_VOL_MASK;
+	val = 1000 * buck_voltage_map[reg];
+	return val;
 }
 
 /* 根据index返回一个电压值 */
@@ -295,48 +442,120 @@ static int act8846_dcdc_list_voltage(struct regulator_dev *dev, unsigned index)
 	return 1000 * buck_voltage_map[index];
 }
 
-static int act8846_dcdc_is_enabled(struct regulator_dev *dev)
+/* 读bit7判断是否使能regulator */
+static int act8846_dcdc_is_enabled(struct regulator_dev *rdev)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
+	struct act8846 *chip = rdev_get_drvdata(rdev);
+	int buck = rdev_get_id(rdev) - ACT8846_DCDC1;
+	u16 val;
+	u16 mask = 0x80;
+	val = act8846_reg_read(chip, ACT8846_BUCK_CONTR_REG(buck));
+	if (val < 0)
+		return val;
+	 val = val & ~0x7f;
+	if (val & mask)
+		return 1;
+	else
+		return 0;
 }
 
-static int act8846_dcdc_enable(struct regulator_dev *dev)
+/* 设置bit7=1来使能regulator */
+static int act8846_dcdc_enable(struct regulator_dev *rdev)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
+	struct act8846 *chip = rdev_get_drvdata(rdev);
+	int buck = rdev_get_id(rdev) - ACT8846_DCDC1;
+	u16 mask = 0x80;
+
+	return act8846_set_bits(chip, ACT8846_BUCK_CONTR_REG(buck), mask, 0x80);
 }
 
 static int act8846_dcdc_disable(struct regulator_dev *dev)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
+	struct act8846 *chip = rdev_get_drvdata(dev);
+	int buck = rdev_get_id(dev) - ACT8846_DCDC1;
+	u16 mask = 0x80;
+	return act8846_set_bits(chip, ACT8846_BUCK_CONTR_REG(buck), mask, 0);
 }
 
 static unsigned int act8846_dcdc_get_mode(struct regulator_dev *dev)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
+	struct act8846 *chip = rdev_get_drvdata(dev);
+	int buck = rdev_get_id(dev) - ACT8846_DCDC1;
+	u16 mask = 0x08;
+	u16 val;
+	val = act8846_reg_read(chip, ACT8846_BUCK_CONTR_REG(buck));
+	if (val < 0)
+		return val;
+
+	val = val & mask;
+	if (val== mask)
+		return REGULATOR_MODE_NORMAL;
+	else
+		return REGULATOR_MODE_STANDBY;
 }
 
 static int act8846_dcdc_set_mode(struct regulator_dev *dev, unsigned int mode)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
+	struct act8846 *chip = rdev_get_drvdata(dev);
+	int buck = rdev_get_id(dev) - ACT8846_DCDC1;
+	u16 mask = 0x80;
+
+	switch(mode)
+	{
+	case REGULATOR_MODE_STANDBY:
+		return act8846_set_bits(chip, ACT8846_BUCK_CONTR_REG(buck), mask, 0);
+	case REGULATOR_MODE_NORMAL:
+		return act8846_set_bits(chip, ACT8846_BUCK_CONTR_REG(buck), mask, mask);
+	default:
+		printk("error:pmu_act8846 only powersave and pwm mode\n");
+		return -EINVAL;
+	}
 }
 
 static int act8846_dcdc_set_sleep_voltage(struct regulator_dev *dev,
 					    int uV)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
+	struct act8846 *chip = rdev_get_drvdata(dev);
+	int buck = rdev_get_id(dev) - ACT8846_DCDC1;
+	int min_vol = uV / 1000,max_vol = uV / 1000;
+	const int *vol_map = buck_voltage_map;
+	u16 val;
+	int ret = 0;
+
+	if (min_vol < vol_map[VOL_MIN_IDX] ||
+	    min_vol > vol_map[VOL_MAX_IDX])
+		return -EINVAL;
+
+	for (val = VOL_MIN_IDX; val <= VOL_MAX_IDX; val++){
+		if (vol_map[val] >= min_vol)
+			break;
+        }
+
+	if (vol_map[val] > max_vol)
+		printk("WARNING:this voltage is not support!voltage set is %d mv\n",vol_map[val]);
+	#ifdef CONFIG_ACT8846_SUPPORT_RESET
+	 ret = act8846_set_bits(chip, (ACT8846_BUCK_SET_VOL_REG(buck) ),BUCK_VOL_MASK, val);
+	#else
+	ret = act8846_set_bits(chip, (ACT8846_BUCK_SET_VOL_REG(buck) +0x01),BUCK_VOL_MASK, val);
+	#endif
+
+	return ret;
 }
 
 static int act8846_dcdc_set_voltage_time_sel(struct regulator_dev *dev,   unsigned int old_selector,
 				     unsigned int new_selector)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
+	int old_volt, new_volt;
+
+	old_volt = act8846_dcdc_list_voltage(dev, old_selector);
+	if (old_volt < 0)
+		return old_volt;
+
+	new_volt = act8846_dcdc_list_voltage(dev, new_selector);
+	if (new_volt < 0)
+		return new_volt;
+
+	return DIV_ROUND_UP(abs(old_volt - new_volt)*2, 25000);
 }
 
 
@@ -354,55 +573,117 @@ static struct regulator_ops act8846_dcdc_ops = {
 };
 
 /* ldo ops */
-static int act8846_ldo_set_voltage(struct regulator_dev *dev,
-				  int min_uV, int max_uV,unsigned *selector)
-{
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
-}
-
-static int act8846_ldo_get_voltage(struct regulator_dev *dev)
-{
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
-}
-
-/* 根据index返回一个电压值 */
 static int act8846_ldo_list_voltage(struct regulator_dev *dev, unsigned index)
 {
 	if (index >= ARRAY_SIZE(ldo_voltage_map))
 		return -EINVAL;
 	return 1000 * ldo_voltage_map[index];
 }
-
 static int act8846_ldo_is_enabled(struct regulator_dev *dev)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
+	struct act8846 *chip = rdev_get_drvdata(dev);
+	int ldo = rdev_get_id(dev) - ACT8846_LDO1;
+	u16 val;
+	u16 mask=0x80;
+	val = act8846_reg_read(chip, ACT8846_LDO_CONTR_REG(ldo));
+	if (val < 0)
+		return val;
+	val=val&~0x7f;
+	if (val & mask)
+		return 1;
+	else
+		return 0;
 }
-
 static int act8846_ldo_enable(struct regulator_dev *dev)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
-}
+	struct act8846 *chip = rdev_get_drvdata(dev);
+	int ldo= rdev_get_id(dev) - ACT8846_LDO1;
+	u16 mask=0x80;
 
+	return act8846_set_bits(chip, ACT8846_LDO_CONTR_REG(ldo), mask, 0x80);
+
+}
 static int act8846_ldo_disable(struct regulator_dev *dev)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
-}
+	struct act8846 *chip = rdev_get_drvdata(dev);
+	int ldo= rdev_get_id(dev) - ACT8846_LDO1;
+	u16 mask=0x80;
 
+	return act8846_set_bits(chip, ACT8846_LDO_CONTR_REG(ldo), mask, 0);
+
+}
+static int act8846_ldo_get_voltage(struct regulator_dev *dev)
+{
+	struct act8846 *chip = rdev_get_drvdata(dev);
+	int ldo= rdev_get_id(dev) - ACT8846_LDO1;
+	u16 reg = 0;
+	int val;
+	reg = act8846_reg_read(chip,ACT8846_LDO_SET_VOL_REG(ldo));
+	reg &= LDO_VOL_MASK;
+	val = 1000 * ldo_voltage_map[reg];
+	return val;
+}
+static int act8846_ldo_set_voltage(struct regulator_dev *dev,
+				  int min_uV, int max_uV,unsigned *selector)
+{
+	struct act8846 *chip = rdev_get_drvdata(dev);
+	int ldo= rdev_get_id(dev) - ACT8846_LDO1;
+	int min_vol = min_uV / 1000, max_vol = max_uV / 1000;
+	const int *vol_map =ldo_voltage_map;
+	u16 val;
+	int ret = 0;
+
+	if (min_vol < vol_map[VOL_MIN_IDX] ||
+	    min_vol > vol_map[VOL_MAX_IDX])
+		return -EINVAL;
+
+	for (val = VOL_MIN_IDX; val <= VOL_MAX_IDX; val++){
+		if (vol_map[val] >= min_vol)
+			break;
+        }
+
+	if (vol_map[val] > max_vol)
+		return -EINVAL;
+
+	ret = act8846_set_bits(chip, ACT8846_LDO_SET_VOL_REG(ldo),
+		LDO_VOL_MASK, val);
+	return ret;
+
+}
 static unsigned int act8846_ldo_get_mode(struct regulator_dev *dev)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
-}
+	struct act8846 *chip = rdev_get_drvdata(dev);
+	int ldo = rdev_get_id(dev) - ACT8846_LDO1;
+	u16 mask = 0x80;
+	u16 val;
+	val = act8846_reg_read(chip, ACT8846_LDO_CONTR_REG(ldo));
+        if (val < 0) {
+                return val;
+        }
+	val=val & mask;
+	if (val== mask)
+		return REGULATOR_MODE_NORMAL;
+	else
+		return REGULATOR_MODE_STANDBY;
 
+}
 static int act8846_ldo_set_mode(struct regulator_dev *dev, unsigned int mode)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
+	struct act8846 *chip = rdev_get_drvdata(dev);
+	int ldo = rdev_get_id(dev) - ACT8846_LDO1;
+	u16 mask = 0x80;
+	switch(mode)
+	{
+	case REGULATOR_MODE_NORMAL:
+		return act8846_set_bits(chip, ACT8846_LDO_CONTR_REG(ldo), mask, mask);
+	case REGULATOR_MODE_STANDBY:
+		return act8846_set_bits(chip, ACT8846_LDO_CONTR_REG(ldo), mask, 0);
+	default:
+		printk("error:pmu_act8846 only lowpower and nomal mode\n");
+		return -EINVAL;
+	}
+
+
 }
 
 static struct regulator_ops act8846_ldo_ops = {
@@ -525,6 +806,11 @@ static struct regulator_desc regulators[] =
 		.owner = THIS_MODULE,
 	},
 };
+
+/* FIXME should not extern */
+extern struct regulator_dev *devm_regulator_register(struct device *dev,
+				  const struct regulator_desc *regulator_desc,
+				  const struct regulator_config *config);
 
 static int act8846_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
@@ -653,7 +939,8 @@ static int act8846_i2c_probe(struct i2c_client *client, const struct i2c_device_
 			rid->supply_regulator = rail_name;
 
 			rcfg.init_data = rid;
-			act_rdev = regulator_register(&regulators[i], &rcfg);
+			act_rdev = devm_regulator_register(chip->dev, &regulators[i], &rcfg);
+			//act_rdev = regulator_register(&regulators[i], &rcfg);
 			if (IS_ERR(act_rdev)) {
 				printk("failed to register %d regulator\n",i);
 				ret = -1;
@@ -663,7 +950,8 @@ static int act8846_i2c_probe(struct i2c_client *client, const struct i2c_device_
 	}
 
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return ret;
+
+	return 0;
 }
 
 static int act8846_i2c_remove(struct i2c_client *client)
