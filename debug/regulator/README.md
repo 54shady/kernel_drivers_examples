@@ -1,5 +1,9 @@
 # Regulator Usage
 
+## DCDC & LDO
+
+![dcdc & ld0](./dcdc_ldo1.png)
+
 ## ACT8846驱动
 
 框架图如下
