@@ -1,9 +1,16 @@
 #include <linux/module.h>
 #include <linux/init.h>
 
+struct test {
+	char name;
+	int age;
+};
+
 static int __init hello_init(void)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	struct test *t = NULL;
+
+	printk("%s, %d, tmp = %s\n", __FUNCTION__, __LINE__, t->name);
 	return 0;
 }
 
