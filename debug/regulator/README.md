@@ -48,7 +48,7 @@ REG[5, 13]对应LDO[1, 9]
 
 VCC_TP给TP供电,由PMU上的LDO提供
 
-TP的device tree如下描述
+TP的device tree如下描述这里并不完整,少里对PIN脚等的描述
 
 ```shell
 goodix_ts@5d {
