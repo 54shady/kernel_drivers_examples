@@ -16,3 +16,17 @@ kernel 3.10.49 drivers test examples
 
 - cd debug/hello
 - make CC=/home/zeroway/3288/src/3288_4.4/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-gcc KERNELDIR=/home/zeroway/3288/src/3288_4.4/kernel
+
+## 各模块入口
+
+[hello](./debug/hello/README.md)
+
+[regulator](./debug/regulator/README.md)
+
+[platform_driver_test](./debug/platform_driver_test/README.md)
+
+[pwm](./debug/pwm/README.md)
+
+[regmap](./debug/regmap/README.md)
+
+[script](./script/README.md)
