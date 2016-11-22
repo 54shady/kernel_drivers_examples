@@ -20,33 +20,6 @@
 #include <linux/irq.h>
 #include "es8323.h"
 
-#define es8323_DEF_VOL	0x20
-#define INVALID_GPIO -1
-#define ES8323_CODEC_SET_SPK	1
-#define ES8323_CODEC_SET_HP	2
-#define ES8323_RATES SNDRV_PCM_RATE_8000_96000
-#define ES8323_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE |\
-		SNDRV_PCM_FMTBIT_S24_LE)
-
-/* chip data */
-struct es8323_chip {
-	/* alway include these two member */
-	struct device *dev;
-	struct i2c_client *client;
-
-	/* sys clock */
-	unsigned int sysclk;
-	struct snd_pcm_hw_constraint_list *sysclk_constraints;
-
-	int spk_ctl_gpio; /* speak control gpio */
-	int hp_ctl_gpio; /* headphone control gpio*/
-	int hp_det_gpio; /* headphone detect gpio */
-
-	bool spk_gpio_level;
-	bool hp_gpio_level;
-	bool hp_det_level;
-};
-
 /* global chip point */
 struct es8323_chip *g_chip;
 
@@ -245,14 +218,6 @@ static int es8323_pcm_startup(struct snd_pcm_substream *substream, struct snd_so
 	return 0;
 }
 
-struct _coeff_div {
-	u32 mclk;
-	u32 rate;
-	u16 fs;
-	u8 sr:4;
-	u8 usb:1;
-};
-
 /* codec hifi mclk clock divider coefficients */
 static const struct _coeff_div coeff_div[] = {
 	/* 8k */
@@ -387,11 +352,11 @@ static int es8323_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
 	/* set master/slave audio interface */
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
 		case SND_SOC_DAIFMT_CBM_CFM:    // MASTER MODE
-			printk("es8323 in master mode");
+			printk("es8323 in master mode\n");
 			iface |= 0x80;
 			break;
 		case SND_SOC_DAIFMT_CBS_CFS:    // SLAVE MODE
-			printk("es8323 in slave mode");
+			printk("es8323 in slave mode\n");
 			iface &= 0x7F;
 			break;
 		default:
@@ -403,6 +368,7 @@ static int es8323_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
 		case SND_SOC_DAIFMT_I2S:
 			adciface &= 0xFC;
 			daciface &= 0xF9;
+			printk("I2S FORMAT\n");
 			break;
 		case SND_SOC_DAIFMT_RIGHT_J:
 			break;
@@ -419,21 +385,25 @@ static int es8323_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
 	/* clock inversion */
 	switch (fmt & SND_SOC_DAIFMT_INV_MASK) {
 		case SND_SOC_DAIFMT_NB_NF:
+			printk("NORMAL BCLK and NORMAL FRAME\n");
 			iface    &= 0xDF;
 			adciface &= 0xDF;
 			daciface &= 0xBF;
 			break;
 		case SND_SOC_DAIFMT_IB_IF:
+			printk("INVERT BCLK and INVERT FRAME\n");
 			iface    |= 0x20;
 			adciface |= 0x20;
 			daciface |= 0x40;
 			break;
 		case SND_SOC_DAIFMT_IB_NF:
+			printk("INVERT BCLK and NORMAL FRAME\n");
 			iface    |= 0x20;
 			adciface &= 0xDF;
 			daciface &= 0xBF;
 			break;
 		case SND_SOC_DAIFMT_NB_IF:
+			printk("NORMAL BCLK and INVERT FRAME\n");
 			iface    &= 0xDF;
 			adciface |= 0x20;
 			daciface |= 0x40;
@@ -557,22 +527,22 @@ static int es8323_mute(struct snd_soc_dai *dai, int mute)
 	printk("%s, %d mute = %d\n", __FUNCTION__, __LINE__, mute);
 	if (mute)
 	{
-		es8323_set_gpio(ES8323_CODEC_SET_SPK,!chip->spk_gpio_level);
-		es8323_set_gpio(ES8323_CODEC_SET_HP,!chip->hp_gpio_level);
+		es8323_set_gpio(ES8323_CODEC_SET_SPK, !chip->spk_gpio_level);
+		es8323_set_gpio(ES8323_CODEC_SET_HP, !chip->hp_gpio_level);
 		msleep(100);
 		snd_soc_write(codec, ES8323_DACCONTROL3, 0x06);
 	}
 	else
 	{
 		snd_soc_write(codec, ES8323_DACCONTROL3, 0x02);
-		snd_soc_write(codec, 0x30,es8323_DEF_VOL);
-		snd_soc_write(codec, 0x31,es8323_DEF_VOL);
+		snd_soc_write(codec, 0x30, ES8323_DEF_VOL);
+		snd_soc_write(codec, 0x31, ES8323_DEF_VOL);
 		msleep(130);
 
 		if(chip->hp_det_level != gpio_get_value(chip->hp_det_gpio))
-			es8323_set_gpio(ES8323_CODEC_SET_SPK,chip->spk_gpio_level);
+			es8323_set_gpio(ES8323_CODEC_SET_SPK, chip->spk_gpio_level);
 		else
-			es8323_set_gpio(ES8323_CODEC_SET_HP,chip->hp_gpio_level);
+			es8323_set_gpio(ES8323_CODEC_SET_HP, chip->hp_gpio_level);
 
 		msleep(150);
 	}
@@ -718,7 +688,6 @@ int gpio_setup(struct es8323_chip *chip, struct i2c_client *client)
 
 static irqreturn_t hp_det_irq_handler(int irq, void *dev_id)
 {
-	/* disable irq */
 	return IRQ_HANDLED;
 }
 
