@@ -23,6 +23,7 @@
 
 /* chip data */
 struct es8323_chip {
+	/* alway include these two member */
 	struct device *dev;
 	struct i2c_client *client;
 
@@ -70,7 +71,8 @@ int gpio_setup(struct es8323_chip *chip, struct i2c_client *client)
 	else
 	{
 	    chip->spk_gpio_level = (flags & OF_GPIO_ACTIVE_LOW)? 0:1;
-	    ret = devm_gpio_request(chip->dev, chip->spk_ctl_gpio, NULL);
+		printk("request gpio%d for speak control gpio\n", chip->spk_ctl_gpio);
+	    ret = devm_gpio_request(chip->dev, chip->spk_ctl_gpio, "spk_ctl_gpio");
 	    if (ret != 0)
 		{
 		    printk("%s request SPK_CON error", __func__);
@@ -88,7 +90,8 @@ int gpio_setup(struct es8323_chip *chip, struct i2c_client *client)
 	else
 	{
 	    chip->hp_gpio_level = (flags & OF_GPIO_ACTIVE_LOW)? 0:1;
-	    ret = devm_gpio_request(chip->dev, chip->hp_ctl_gpio, NULL);
+		printk("request gpio%d for headphone control gpio\n", chip->hp_ctl_gpio);
+	    ret = devm_gpio_request(chip->dev, chip->hp_ctl_gpio, "hp_ctl_gpio");
 	    if (ret != 0)
 		{
 		    printk("%s request hp_ctl error", __func__);
@@ -106,7 +109,8 @@ int gpio_setup(struct es8323_chip *chip, struct i2c_client *client)
 	else
 	{
 		chip->hp_det_level = (flags & OF_GPIO_ACTIVE_LOW)? 0:1;
-		ret = devm_gpio_request(chip->dev, chip->hp_det_gpio, NULL);
+		printk("request gpio%d for headphone detect gpio\n", chip->hp_det_gpio);
+		ret = devm_gpio_request(chip->dev, chip->hp_det_gpio, "hp_det_gpio");
 		if (ret != 0)
 		{
 			printk("%s request HP_DET error", __func__);
@@ -118,7 +122,8 @@ int gpio_setup(struct es8323_chip *chip, struct i2c_client *client)
 	hub_en = of_get_named_gpio_flags(client->dev.of_node, "hub_en", 0, &flags);
 	if (hub_en > 0)
 	{
-		ret = devm_gpio_request(chip->dev, hub_en, NULL);
+		printk("request gpio%d for hub enable gpio\n", hub_en);
+		ret = devm_gpio_request(chip->dev, hub_en, "hub_en");
 		if (ret != 0)
 		{
 				printk("%s request hub en error", __func__);
@@ -131,7 +136,8 @@ int gpio_setup(struct es8323_chip *chip, struct i2c_client *client)
 	hub_rest = of_get_named_gpio_flags(client->dev.of_node, "hub_rest", 0, &flags);
 	if (hub_rest > 0)
 	{
-		ret = devm_gpio_request(chip->dev, hub_rest, NULL);
+		printk("request gpio%d for hub reset gpio\n", hub_rest);
+		ret = devm_gpio_request(chip->dev, hub_rest, "hub_reset");
 		if (ret != 0)
 		{
 				printk("%s request hub rst error", __func__);
