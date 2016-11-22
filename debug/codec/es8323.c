@@ -43,6 +43,7 @@ static struct snd_soc_codec_driver soc_codec_dev_es8323 = {
 };
 
 static struct snd_soc_dai_driver es8323_dai = {
+	.name = "ES8323 HiFi",
 };
 
 void es8323_i2c_shutdown(struct i2c_client *client)
@@ -54,6 +55,8 @@ void es8323_i2c_shutdown(struct i2c_client *client)
  * return value
  * equal zero success
  * less then zero failed
+ * To see more info about the gpios
+ * cat /sys/kernel/debug/gpio
  */
 int gpio_setup(struct es8323_chip *chip, struct i2c_client *client)
 {
@@ -193,9 +196,11 @@ static int es8323_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 
 	/* irq setup */
 	ret = devm_request_threaded_irq(chip->dev, gpio_to_irq(chip->hp_det_gpio), NULL, hp_det_irq_handler, IRQF_TRIGGER_LOW |IRQF_ONESHOT, "ES8323", NULL);
-	//ret = devm_request_threaded_irq(gpio_to_irq(chip->hp_det_gpio), NULL, hp_det_irq_handler, IRQF_TRIGGER_LOW |IRQF_ONESHOT, "ES8323", NULL);
 	if(ret == 0)
 		printk("%s:register ISR (irq=%d)\n", __FUNCTION__, gpio_to_irq(chip->hp_det_gpio));
+
+	/* register codec */
+	ret = snd_soc_register_codec(&client->dev, &soc_codec_dev_es8323, &es8323_dai, 1);
 
 	printk("%s, %d probe done\n", __FUNCTION__, __LINE__);
 	return ret;
@@ -204,6 +209,7 @@ static int es8323_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 static int es8323_i2c_remove(struct i2c_client *client)
 {
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	//snd_soc_unregister_codec(&client->dev);
 	return 0;
 }
 
