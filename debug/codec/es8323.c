@@ -20,6 +20,9 @@
 #include <linux/irq.h>
 
 #define INVALID_GPIO -1
+#define ES8323_RATES SNDRV_PCM_RATE_8000_96000
+#define ES8323_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE |\
+	SNDRV_PCM_FMTBIT_S24_LE)
 
 /* chip data */
 struct es8323_chip {
@@ -39,11 +42,85 @@ struct es8323_chip {
 /* global chip point */
 struct es8323_chip *g_chip;
 
+static int es8323_probe(struct snd_soc_codec *codec)
+{
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	return 0;
+}
+
+static int es8323_remove(struct snd_soc_codec *codec)
+{
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	return 0;
+}
+
+/* codec driver */
 static struct snd_soc_codec_driver soc_codec_dev_es8323 = {
+	.probe             = es8323_probe,
+	.remove            = es8323_remove,
 };
 
+/* dai ops  */
+static int es8323_pcm_startup(struct snd_pcm_substream *substream, struct snd_soc_dai *dai)
+{
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	return 0;
+}
+
+static int es8323_pcm_hw_params(struct snd_pcm_substream *substream,
+				struct snd_pcm_hw_params *params,
+				struct snd_soc_dai *dai)
+{
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	return 0;
+}
+
+static int es8323_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
+{
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	return 0;
+}
+
+/* Note that this should be called from init rather than from hw_params */
+static int es8323_set_dai_sysclk(struct snd_soc_dai *codec_dai,
+		int clk_id, unsigned int freq, int dir)
+{
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	return 0;
+}
+
+static int es8323_mute(struct snd_soc_dai *dai, int mute)
+{
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	return 0;
+}
+
+static struct snd_soc_dai_ops es8323_ops = {
+	.startup      = es8323_pcm_startup,
+	.hw_params    = es8323_pcm_hw_params,
+	.set_fmt      = es8323_set_dai_fmt,
+	.set_sysclk   = es8323_set_dai_sysclk,
+	.digital_mute = es8323_mute,
+};
+
+/* 描述声卡播放和录音硬件相关信息和参数设置 */
 static struct snd_soc_dai_driver es8323_dai = {
 	.name = "ES8323 HiFi",
+	.playback = {
+		.stream_name  = "Playback",
+		.channels_min = 1,
+		.channels_max = 2,
+		.rates        = ES8323_RATES,
+		.formats      = ES8323_FORMATS,
+	},
+	.capture = {
+		.stream_name  = "Capture",
+		.channels_min = 1,
+		.channels_max = 2,
+		.rates        = ES8323_RATES,
+		.formats      = ES8323_FORMATS,
+	 },
+	.ops = &es8323_ops,
 };
 
 void es8323_i2c_shutdown(struct i2c_client *client)
@@ -209,7 +286,7 @@ static int es8323_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 static int es8323_i2c_remove(struct i2c_client *client)
 {
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	//snd_soc_unregister_codec(&client->dev);
+	snd_soc_unregister_codec(&client->dev);
 	return 0;
 }
 
