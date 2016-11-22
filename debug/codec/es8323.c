@@ -20,6 +20,7 @@
 #include <linux/irq.h>
 #include "es8323.h"
 
+static char g_mute = 1;
 static u16 es8323_reg[] = {
 	0x06, 0x1C, 0xC3, 0xFC,  /*  0 *////0x0100 0x0180
 	0xC0, 0x00, 0x00, 0x7C,  /*  4 */
@@ -496,7 +497,11 @@ static int es8323_mute(struct snd_soc_dai *dai, int mute)
 	struct snd_soc_codec *codec = dai->codec;
 	struct es8323_chip *chip = snd_soc_codec_get_drvdata(codec);
 
+	g_mute = mute;
+
 	printk("%s, %d mute = %d\n", __FUNCTION__, __LINE__, mute);
+
+	/* 静音*/
 	if (mute)
 	{
 		printk("set spk = %d\n", !chip->spk_gpio_level);
@@ -662,8 +667,42 @@ int gpio_setup(struct es8323_chip *chip, struct i2c_client *client)
 	return 0;
 }
 
+/* 检测耳机是否插入 */
 static irqreturn_t hp_det_irq_handler(int irq, void *dev_id)
 {
+	int ret;
+	unsigned int type;
+	struct es8323_chip *chip = (struct es8323_chip *)dev_id;
+
+	disable_irq_nosync(irq);
+
+	/* 根据当前hp_det_gpio高低电平来决定中断触发条件 */
+	type = gpio_get_value(chip->hp_det_gpio) ? IRQ_TYPE_EDGE_FALLING : IRQ_TYPE_EDGE_RISING;
+	ret = irq_set_irq_type(irq, type);
+	if (ret < 0) {
+		pr_err("%s: irq_set_irq_type(%d, %d) failed\n", __func__, irq, type);
+		return -1;
+	}
+
+	/* 正在播放声音 */
+	if (g_mute == 0)
+	{
+		if(chip->hp_det_level == gpio_get_value(chip->hp_det_gpio))
+		{
+			printk("hp_det_level = 0,insert hp\n");
+			gpio_set_value(chip->spk_ctl_gpio, !chip->spk_gpio_level);
+			gpio_set_value(chip->hp_ctl_gpio, !chip->hp_gpio_level);
+		}
+		else
+		{
+			printk("hp_det_level = 1,deinsert hp\n");
+			gpio_set_value(chip->spk_ctl_gpio, chip->spk_gpio_level);
+			gpio_set_value(chip->hp_ctl_gpio, !chip->hp_gpio_level);
+		}
+	}
+
+	enable_irq(irq);
+
 	return IRQ_HANDLED;
 }
 
@@ -702,7 +741,7 @@ static int es8323_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	}
 
 	/* irq setup */
-	ret = devm_request_threaded_irq(chip->dev, gpio_to_irq(chip->hp_det_gpio), NULL, hp_det_irq_handler, IRQF_TRIGGER_LOW |IRQF_ONESHOT, "ES8323", NULL);
+	ret = devm_request_threaded_irq(chip->dev, gpio_to_irq(chip->hp_det_gpio), NULL, hp_det_irq_handler, IRQF_TRIGGER_LOW | IRQF_ONESHOT, "ES8323", chip);
 	if(ret == 0)
 		printk("%s:register ISR (irq=%d)\n", __FUNCTION__, gpio_to_irq(chip->hp_det_gpio));
 
