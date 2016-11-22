@@ -20,9 +20,6 @@
 #include <linux/irq.h>
 #include "es8323.h"
 
-/* global chip point */
-struct es8323_chip *g_chip;
-
 static u16 es8323_reg[] = {
 	0x06, 0x1C, 0xC3, 0xFC,  /*  0 *////0x0100 0x0180
 	0xC0, 0x00, 0x00, 0x7C,  /*  4 */
@@ -492,31 +489,6 @@ static int es8323_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 	return 0;
 }
 
-static int es8323_set_gpio(int gpio, bool level)
-{
-	struct es8323_chip *chip = g_chip;
-
-	if (!chip) {
-		printk("%s : es8323_chip is NULL\n", __func__);
-		return 0;
-	}
-
-	printk("%s : set %s %s ctl gpio %s\n", __func__,
-		gpio & ES8323_CODEC_SET_SPK ? "spk" : "",
-		gpio & ES8323_CODEC_SET_HP ? "hp" : "",
-		level ? "HIGH" : "LOW");
-
-	if ((gpio & ES8323_CODEC_SET_SPK) && chip && chip->spk_ctl_gpio != INVALID_GPIO) {
-		gpio_set_value(chip->spk_ctl_gpio, level);
-	}
-
-	if ((gpio & ES8323_CODEC_SET_HP) && chip && chip->hp_ctl_gpio != INVALID_GPIO) {
-		gpio_set_value(chip->hp_ctl_gpio, level);
-	}
-
-	return 0;
-}
-
 /* 是否静音操作 */
 static int es8323_mute(struct snd_soc_dai *dai, int mute)
 {
@@ -527,22 +499,26 @@ static int es8323_mute(struct snd_soc_dai *dai, int mute)
 	printk("%s, %d mute = %d\n", __FUNCTION__, __LINE__, mute);
 	if (mute)
 	{
-		es8323_set_gpio(ES8323_CODEC_SET_SPK, !chip->spk_gpio_level);
-		es8323_set_gpio(ES8323_CODEC_SET_HP, !chip->hp_gpio_level);
+		printk("set spk = %d\n", !chip->spk_gpio_level);
+		printk("set hp = %d\n", !chip->hp_gpio_level);
+		gpio_set_value(chip->spk_ctl_gpio, !chip->spk_gpio_level);
+		gpio_set_value(chip->hp_ctl_gpio, !chip->hp_gpio_level);
 		msleep(100);
 		snd_soc_write(codec, ES8323_DACCONTROL3, 0x06);
 	}
 	else
 	{
+		printk("set spk = %d\n", !chip->spk_gpio_level);
+		printk("set hp = %d\n", !chip->hp_gpio_level);
 		snd_soc_write(codec, ES8323_DACCONTROL3, 0x02);
 		snd_soc_write(codec, 0x30, ES8323_DEF_VOL);
 		snd_soc_write(codec, 0x31, ES8323_DEF_VOL);
 		msleep(130);
 
 		if(chip->hp_det_level != gpio_get_value(chip->hp_det_gpio))
-			es8323_set_gpio(ES8323_CODEC_SET_SPK, chip->spk_gpio_level);
+			gpio_set_value(chip->spk_ctl_gpio, chip->spk_gpio_level);
 		else
-			es8323_set_gpio(ES8323_CODEC_SET_HP, chip->hp_gpio_level);
+			gpio_set_value(chip->hp_ctl_gpio, !chip->hp_gpio_level);
 
 		msleep(150);
 	}
@@ -710,9 +686,6 @@ static int es8323_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 		printk("ERROR: No memory\n");
 		return -ENOMEM;
 	}
-
-	/* FIXME */
-	g_chip = chip;
 
 	/* 设置chip */
 	chip->client = client;
