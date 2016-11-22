@@ -20,7 +20,10 @@
 #include <linux/irq.h>
 #include "es8323.h"
 
+#define es8323_DEF_VOL	0x20
 #define INVALID_GPIO -1
+#define ES8323_CODEC_SET_SPK	1
+#define ES8323_CODEC_SET_HP	2
 #define ES8323_RATES SNDRV_PCM_RATE_8000_96000
 #define ES8323_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE |\
 		SNDRV_PCM_FMTBIT_S24_LE)
@@ -224,23 +227,225 @@ static struct snd_soc_codec_driver soc_codec_dev_es8323 = {
 };
 
 /* dai ops  */
+/* (tinyplay test.wav) when sound is played the functions below will be called */
 static int es8323_pcm_startup(struct snd_pcm_substream *substream, struct snd_soc_dai *dai)
 {
+	/* 根据DAI来获取chip */
+	struct snd_soc_codec *codec = dai->codec;
+	struct es8323_chip *chip = snd_soc_codec_get_drvdata(codec);
+
+	/* 采样率是由提供给codec的MCLK决定的 */
+	printk("es8323 sysclk = %d\n", chip->sysclk);
+
+	snd_pcm_hw_constraint_list(substream->runtime, 0,
+				   SNDRV_PCM_HW_PARAM_RATE,
+				   chip->sysclk_constraints);
+
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
 	return 0;
 }
 
+struct _coeff_div {
+	u32 mclk;
+	u32 rate;
+	u16 fs;
+	u8 sr:4;
+	u8 usb:1;
+};
+
+/* codec hifi mclk clock divider coefficients */
+static const struct _coeff_div coeff_div[] = {
+	/* 8k */
+	{12288000, 8000, 1536, 0xa, 0x0},
+	{11289600, 8000, 1408, 0x9, 0x0},
+	{18432000, 8000, 2304, 0xc, 0x0},
+	{16934400, 8000, 2112, 0xb, 0x0},
+	{12000000, 8000, 1500, 0xb, 0x1},
+
+	/* 11.025k */
+	{11289600, 11025, 1024, 0x7, 0x0},
+	{16934400, 11025, 1536, 0xa, 0x0},
+	{12000000, 11025, 1088, 0x9, 0x1},
+
+	/* 16k */
+	{12288000, 16000, 768, 0x6, 0x0},
+	{18432000, 16000, 1152, 0x8, 0x0},
+	{12000000, 16000, 750, 0x7, 0x1},
+
+	/* 22.05k */
+	{11289600, 22050, 512, 0x4, 0x0},
+	{16934400, 22050, 768, 0x6, 0x0},
+	{12000000, 22050, 544, 0x6, 0x1},
+
+	/* 32k */
+	{12288000, 32000, 384, 0x3, 0x0},
+	{18432000, 32000, 576, 0x5, 0x0},
+	{12000000, 32000, 375, 0x4, 0x1},
+
+	/* 44.1k */
+	{11289600, 44100, 256, 0x2, 0x0},
+	{16934400, 44100, 384, 0x3, 0x0},
+	{12000000, 44100, 272, 0x3, 0x1},
+
+	/* 48k */
+	{12288000, 48000, 256, 0x2, 0x0},
+	{18432000, 48000, 384, 0x3, 0x0},
+	{12000000, 48000, 250, 0x2, 0x1},
+
+	/* 88.2k */
+	{11289600, 88200, 128, 0x0, 0x0},
+	{16934400, 88200, 192, 0x1, 0x0},
+	{12000000, 88200, 136, 0x1, 0x1},
+
+	/* 96k */
+	{12288000, 96000, 128, 0x0, 0x0},
+	{18432000, 96000, 192, 0x1, 0x0},
+	{12000000, 96000, 125, 0x0, 0x1},
+};
+
+static inline int get_coeff(int mclk, int rate)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(coeff_div); i++) {
+		if (coeff_div[i].rate == rate && coeff_div[i].mclk == mclk)
+			return i;
+	}
+
+	return -EINVAL;
+}
+
+/* 设置DAI硬件配置 */
 static int es8323_pcm_hw_params(struct snd_pcm_substream *substream,
 		struct snd_pcm_hw_params *params,
 		struct snd_soc_dai *dai)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_codec *codec = rtd->codec;
+	struct es8323_chip *chip = snd_soc_codec_get_drvdata(codec);
+	u16 srate = snd_soc_read(codec, ES8323_IFACE) & 0x80;
+	u16 adciface = snd_soc_read(codec, ES8323_ADC_IFACE) & 0xE3;
+	u16 daciface = snd_soc_read(codec, ES8323_DAC_IFACE) & 0xC7;
+	int coeff;
+
+	coeff = get_coeff(chip->sysclk, params_rate(params));
+	if (coeff < 0) {
+		coeff = get_coeff(chip->sysclk / 2, params_rate(params));
+		srate |= 0x40;
+	}
+	if (coeff < 0) {
+		dev_err(codec->dev,
+				"Unable to configure sample rate %dHz with %dHz MCLK\n",
+				params_rate(params), chip->sysclk);
+		return coeff;
+	}
+
+	/* bit size */
+	switch (params_format(params)) {
+		case SNDRV_PCM_FORMAT_S16_LE:
+			adciface |= 0x000C;
+			daciface |= 0x0018;
+			break;
+		case SNDRV_PCM_FORMAT_S20_3LE:
+			adciface |= 0x0004;
+			daciface |= 0x0008;
+			break;
+		case SNDRV_PCM_FORMAT_S24_LE:
+			break;
+		case SNDRV_PCM_FORMAT_S32_LE:
+			adciface |= 0x0010;
+			daciface |= 0x0020;
+			break;
+	}
+
+	/* set iface & srate*/
+	snd_soc_write(codec, ES8323_DAC_IFACE, daciface);
+	snd_soc_write(codec, ES8323_ADC_IFACE, adciface);
+
+	if (coeff >= 0) {
+		snd_soc_write(codec, ES8323_IFACE, srate);
+		snd_soc_write(codec, ES8323_ADCCONTROL5, coeff_div[coeff].sr | (coeff_div[coeff].usb) << 4);
+		snd_soc_write(codec, ES8323_DACCONTROL2, coeff_div[coeff].sr | (coeff_div[coeff].usb) << 4);
+	}
+
 	return 0;
 }
 
+/* 设置CODEC为主或从模式, I2S接口模式 */
 static int es8323_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	struct snd_soc_codec *codec = codec_dai->codec;
+	u8 iface = 0;
+	u8 adciface = 0;
+	u8 daciface = 0;
+	printk("%s, %d fmt[%02x]\n", __FUNCTION__, __LINE__, fmt);
+
+	iface    = snd_soc_read(codec, ES8323_IFACE);
+	adciface = snd_soc_read(codec, ES8323_ADC_IFACE);
+	daciface = snd_soc_read(codec, ES8323_DAC_IFACE);
+
+	/* set master/slave audio interface */
+	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
+		case SND_SOC_DAIFMT_CBM_CFM:    // MASTER MODE
+			printk("es8323 in master mode");
+			iface |= 0x80;
+			break;
+		case SND_SOC_DAIFMT_CBS_CFS:    // SLAVE MODE
+			printk("es8323 in slave mode");
+			iface &= 0x7F;
+			break;
+		default:
+			return -EINVAL;
+	}
+
+	/* interface format */
+	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
+		case SND_SOC_DAIFMT_I2S:
+			adciface &= 0xFC;
+			daciface &= 0xF9;
+			break;
+		case SND_SOC_DAIFMT_RIGHT_J:
+			break;
+		case SND_SOC_DAIFMT_LEFT_J:
+			break;
+		case SND_SOC_DAIFMT_DSP_A:
+			break;
+		case SND_SOC_DAIFMT_DSP_B:
+			break;
+		default:
+			return -EINVAL;
+	}
+
+	/* clock inversion */
+	switch (fmt & SND_SOC_DAIFMT_INV_MASK) {
+		case SND_SOC_DAIFMT_NB_NF:
+			iface    &= 0xDF;
+			adciface &= 0xDF;
+			daciface &= 0xBF;
+			break;
+		case SND_SOC_DAIFMT_IB_IF:
+			iface    |= 0x20;
+			adciface |= 0x20;
+			daciface |= 0x40;
+			break;
+		case SND_SOC_DAIFMT_IB_NF:
+			iface    |= 0x20;
+			adciface &= 0xDF;
+			daciface &= 0xBF;
+			break;
+		case SND_SOC_DAIFMT_NB_IF:
+			iface    &= 0xDF;
+			adciface |= 0x20;
+			daciface |= 0x40;
+			break;
+		default:
+			return -EINVAL;
+	}
+
+	snd_soc_write(codec, ES8323_IFACE, iface);
+	snd_soc_write(codec, ES8323_ADC_IFACE, adciface);
+	snd_soc_write(codec, ES8323_DAC_IFACE, daciface);
+
 	return 0;
 }
 
@@ -317,9 +522,61 @@ static int es8323_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 	return 0;
 }
 
+static int es8323_set_gpio(int gpio, bool level)
+{
+	struct es8323_chip *chip = g_chip;
+
+	if (!chip) {
+		printk("%s : es8323_chip is NULL\n", __func__);
+		return 0;
+	}
+
+	printk("%s : set %s %s ctl gpio %s\n", __func__,
+		gpio & ES8323_CODEC_SET_SPK ? "spk" : "",
+		gpio & ES8323_CODEC_SET_HP ? "hp" : "",
+		level ? "HIGH" : "LOW");
+
+	if ((gpio & ES8323_CODEC_SET_SPK) && chip && chip->spk_ctl_gpio != INVALID_GPIO) {
+		gpio_set_value(chip->spk_ctl_gpio, level);
+	}
+
+	if ((gpio & ES8323_CODEC_SET_HP) && chip && chip->hp_ctl_gpio != INVALID_GPIO) {
+		gpio_set_value(chip->hp_ctl_gpio, level);
+	}
+
+	return 0;
+}
+
+/* 是否静音操作 */
 static int es8323_mute(struct snd_soc_dai *dai, int mute)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	/* 根据DAI来获取chip */
+	struct snd_soc_codec *codec = dai->codec;
+	struct es8323_chip *chip = snd_soc_codec_get_drvdata(codec);
+
+	printk("%s, %d mute = %d\n", __FUNCTION__, __LINE__, mute);
+	if (mute)
+	{
+		es8323_set_gpio(ES8323_CODEC_SET_SPK,!chip->spk_gpio_level);
+		es8323_set_gpio(ES8323_CODEC_SET_HP,!chip->hp_gpio_level);
+		msleep(100);
+		snd_soc_write(codec, ES8323_DACCONTROL3, 0x06);
+	}
+	else
+	{
+		snd_soc_write(codec, ES8323_DACCONTROL3, 0x02);
+		snd_soc_write(codec, 0x30,es8323_DEF_VOL);
+		snd_soc_write(codec, 0x31,es8323_DEF_VOL);
+		msleep(130);
+
+		if(chip->hp_det_level != gpio_get_value(chip->hp_det_gpio))
+			es8323_set_gpio(ES8323_CODEC_SET_SPK,chip->spk_gpio_level);
+		else
+			es8323_set_gpio(ES8323_CODEC_SET_HP,chip->hp_gpio_level);
+
+		msleep(150);
+	}
+
 	return 0;
 }
 
@@ -484,6 +741,9 @@ static int es8323_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 		printk("ERROR: No memory\n");
 		return -ENOMEM;
 	}
+
+	/* FIXME */
+	g_chip = chip;
 
 	/* 设置chip */
 	chip->client = client;
