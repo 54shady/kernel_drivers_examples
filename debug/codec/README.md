@@ -1,6 +1,11 @@
+# Intro
+
+- es8323.c codec驱动
+- rk_es8323.c rockchip平台machine驱动
+
 # Debug
 
-- codec probe成功后在下面目录会有相关信息
+codec probe成功后在下面目录会有相关信息
 
 	ls /dev/snd/
 	cat /proc/asound/cards
