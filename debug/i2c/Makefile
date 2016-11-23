@@ -15,6 +15,7 @@ DEBFLAGS = -O2
 endif
 
 obj-m := myi2c.o
+obj-m += i2c_regmap.o
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 CC ?= gcc
 PWD := $(shell pwd)
