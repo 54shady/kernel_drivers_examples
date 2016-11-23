@@ -147,7 +147,7 @@ static int rk3288_es8323_init(struct snd_soc_pcm_runtime *pcm_rt)
 	return ret;
 }
 
-static struct snd_soc_dai_link rk3288_dai = {
+static struct snd_soc_dai_link rk3288_dai_link = {
 	.name = "ES8323",
 	.stream_name = "ES8323 PCM",
 	.codec_dai_name = "ES8323 HiFi",
@@ -157,7 +157,7 @@ static struct snd_soc_dai_link rk3288_dai = {
 
 static struct snd_soc_card rockchip_es8323_snd_card = {
 	.name = "RK_ES8323",
-	.dai_link = &rk3288_dai,
+	.dai_link = &rk3288_dai_link,
 	.num_links = 1,
 };
 
