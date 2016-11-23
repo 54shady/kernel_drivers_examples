@@ -7,6 +7,11 @@
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
 
+/* Clock dividers */
+#define ROCKCHIP_DIV_MCLK	0
+#define ROCKCHIP_DIV_BCLK	1
+#define ROCKCHIP_DIV_PRESCALER	2
+
 int parse_card_info_from_dt(struct snd_soc_card *card)
 {
 	struct device_node *dai_node, *child_dai_node;
@@ -66,20 +71,80 @@ int parse_card_info_from_dt(struct snd_soc_card *card)
 	return 0;
 }
 
+/* 设置CODEC DAI 和 CPU DAI 参数 */
 static int rk3288_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params)
 {
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
+	int ret = 0;
+	unsigned int pll_out = 0;
+	/* 取得pcm runtime */
+	struct snd_soc_pcm_runtime *pcm_rt = substream->private_data;
+	/* 从pcm runtime 中取出codec_dai, cpu_dai, 和dai_fmt */
+	struct snd_soc_dai *codec_dai = pcm_rt->codec_dai;
+	struct snd_soc_dai *cpu_dai = pcm_rt->cpu_dai;
+	unsigned int dai_fmt = pcm_rt->card->dai_link->dai_fmt;
+
+	/* set codec DAI configuration */
+	ret = snd_soc_dai_set_fmt(codec_dai, dai_fmt);
+	if (ret < 0) {
+		printk("%s():failed to set the format for codec side\n", __FUNCTION__);
+		return ret;
+	}
+
+	/* set cpu DAI configuration */
+	ret = snd_soc_dai_set_fmt(cpu_dai, dai_fmt);
+	if (ret < 0) {
+		printk("%s():failed to set the format for cpu side\n", __FUNCTION__);
+		return ret;
+	}
+
+	/* 根据采样率设置PLL */
+	switch(params_rate(params))
+	{
+		case 8000:
+		case 16000:
+		case 24000:
+		case 32000:
+		case 48000:
+			pll_out = 12288000;
+			break;
+		case 11025:
+		case 22050:
+		case 44100:
+			pll_out = 11289600;
+			break;
+		default:
+			printk("Enter:%s, %d, Error rate=%d\n",__FUNCTION__,__LINE__,params_rate(params));
+			ret = -1;
+			break;
+	}
+
+	/* 根据dai_fmt设置时钟分频系数 */
+	if ((dai_fmt & SND_SOC_DAIFMT_MASTER_MASK) == SND_SOC_DAIFMT_CBS_CFS)
+	{
+		snd_soc_dai_set_sysclk(cpu_dai, 0, pll_out, 0);
+		snd_soc_dai_set_clkdiv(cpu_dai, ROCKCHIP_DIV_BCLK, (pll_out/4)/params_rate(params)-1);
+		snd_soc_dai_set_clkdiv(cpu_dai, ROCKCHIP_DIV_MCLK, 3);
+	}
+	printk("Enter:%s, %d, LRCK=%d\n",__FUNCTION__,__LINE__,(pll_out/4)/params_rate(params));
+	return ret;
 }
 
 static struct snd_soc_ops rk3288_ops = {
 	  .hw_params = rk3288_hw_params,
 };
 
-static int rk3288_es8323_init(struct snd_soc_pcm_runtime *rtd)
+static int rk3288_es8323_init(struct snd_soc_pcm_runtime *pcm_rt)
 {
+	int ret;
+	struct snd_soc_dai *codec_dai = pcm_rt->codec_dai;
+
+	/* 设置CODEC SYSCLK */
+    ret = snd_soc_dai_set_sysclk(codec_dai, 0, 11289600, SND_SOC_CLOCK_IN);
+	if (ret < 0)
+		printk(KERN_ERR "Failed to set es8323 SYSCLK: %d\n", ret);
+
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
+	return ret;
 }
 
 static struct snd_soc_dai_link rk3288_dai = {
@@ -117,7 +182,7 @@ static int rockchip_es8323_audio_probe(struct platform_device *pdev)
 		printk("%s() register card failed:%d\n", __FUNCTION__, ret);
 
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	return 0;
+	return ret;
 }
 
 static int rockchip_es8323_audio_remove(struct platform_device *pdev)
