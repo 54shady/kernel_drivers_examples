@@ -460,7 +460,7 @@ static int es8323_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 	struct snd_soc_codec *codec = codec_dai->codec;
 	struct es8323_chip *chip = snd_soc_codec_get_drvdata(codec);
 
-	/* 根据不同的屏率来设置时钟 */
+	/* 根据不同的频率来设置时钟 */
 	switch (freq)
 	{
 		case 11289600:
@@ -763,16 +763,23 @@ static int es8323_i2c_remove(struct i2c_client *client)
 	return 0;
 }
 
+static struct of_device_id es8323_of_match[] = {
+	{ .compatible = "es8323"},
+	{ },
+};
+MODULE_DEVICE_TABLE(of, es8323_of_match);
+
 static const struct i2c_device_id es8323_i2c_id[] = {
-	{ "es8323", 0 },
+	{ "ES8323", 0 },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, es8323_i2c_id);
 
 static struct i2c_driver es8323_i2c_driver = {
 	.driver = {
-		.name = "my ES8323 driver test",
+		.name = "ES8323 codec",
 		.owner = THIS_MODULE,
+		.of_match_table = of_match_ptr(es8323_of_match),
 	},
 	.shutdown = es8323_i2c_shutdown,
 	.probe = es8323_i2c_probe,
