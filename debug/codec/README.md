@@ -12,3 +12,9 @@ codec probe成功后在下面目录会有相关信息
 	cat /sys/kernel/debug/asoc/codecs
 	cat /sys/kernel/debug/asoc/dais
 	cat /sys/kernel/debug/asoc/platforms
+
+# Usage
+
+将es8323.dtsi包含到主dts中
+
+	#include "es8323.dtsi"
