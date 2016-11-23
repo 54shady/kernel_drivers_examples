@@ -15,6 +15,7 @@ DEBFLAGS = -O2
 endif
 
 obj-m := es8323.o
+obj-m += rk_es8323.o
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
 KERNEL_BUID_OUTPUT ?=$(KERNEL_DIR)
 CC = $(CROSS_COMPILE)gcc
