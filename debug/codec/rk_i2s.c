@@ -492,22 +492,39 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 	}
 
 	/* register platform(dma) */
-	snd_dmaengine_pcm_register(&pdev->dev, &rockchip_dmaengine_pcm_config,
+	ret = snd_dmaengine_pcm_register(&pdev->dev, &rockchip_dmaengine_pcm_config,
 			SND_DMAENGINE_PCM_FLAG_COMPAT|
 			SND_DMAENGINE_PCM_FLAG_NO_RESIDUE);
+	if (ret) {
+		dev_err(&pdev->dev, "Could not register PCM: %d\n", ret);
+		goto EXIT_PLATFORM;
+	}
 
 	/* update i2s dma register */
 	rockchip_snd_txctrl(i2s, 0);
 	rockchip_snd_rxctrl(i2s, 0);
 
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
+
+	return ret;
+
+EXIT_PLATFORM:
+	snd_soc_unregister_component(&pdev->dev);
 EXIT:
 	return ret;
 }
 
 static int rockchip_i2s_remove(struct platform_device *pdev)
 {
+	struct rk_i2s_dev *i2s = dev_get_drvdata(&pdev->dev);
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
+
+	clk_disable_unprepare(i2s->mclk);
+	clk_disable_unprepare(i2s->clk);
+	clk_disable_unprepare(i2s->hclk);
+
+	snd_dmaengine_pcm_unregister(&pdev->dev);
+	snd_soc_unregister_component(&pdev->dev);
 	return 0;
 }
 
