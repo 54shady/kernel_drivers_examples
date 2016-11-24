@@ -14,6 +14,11 @@
 
 #define I2S_DEFAULT_FREQ	(11289600)
 #define I2S_DMA_BURST_SIZE	(16) /* size * width: 16*4 = 64 bytes */
+#define ROCKCHIP_I2S_RATES SNDRV_PCM_RATE_8000_192000
+#define ROCKCHIP_I2S_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | \
+		SNDRV_PCM_FMTBIT_S20_3LE | \
+		SNDRV_PCM_FMTBIT_S24_LE | \
+		SNDRV_PCM_FORMAT_S32_LE)
 
 /* I2S regname and offset */
 #define I2S_TXCR	(0x0000)
@@ -178,6 +183,107 @@ static const struct regmap_config rockchip_i2s_regmap_config = {
 	.cache_type = REGCACHE_FLAT,
 };
 
+/* value of /sys/kernel/debug/asoc/dais */
+static const struct snd_soc_component_driver rockchip_i2s_component = {
+	.name = "rockchip-i2s",
+};
+
+static int rockchip_i2s_dai_probe(struct snd_soc_dai *dai)
+{
+	struct rk_i2s_dev *i2s = snd_soc_dai_get_drvdata(dai);
+
+	dai->capture_dma_data = &i2s->capture_dma_data;
+	dai->playback_dma_data = &i2s->playback_dma_data;
+
+	return 0;
+}
+
+static int rockchip_i2s_trigger(struct snd_pcm_substream *substream, int cmd,
+		struct snd_soc_dai *dai)
+{
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	return 0;
+}
+
+static int rockchip_i2s_hw_params(struct snd_pcm_substream *substream,
+		struct snd_pcm_hw_params *params,
+		struct snd_soc_dai *dai)
+{
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	return 0;
+}
+
+static int rockchip_i2s_set_fmt(struct snd_soc_dai *cpu_dai,
+		unsigned int fmt)
+{
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	return 0;
+}
+
+static int rockchip_i2s_set_clkdiv(struct snd_soc_dai *cpu_dai,
+		int div_id, int div)
+{
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	return 0;
+}
+
+static int rockchip_i2s_set_sysclk(struct snd_soc_dai *cpu_dai,
+		int clk_id, unsigned int freq, int dir)
+{
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	return 0;
+}
+
+static struct snd_soc_dai_ops rockchip_i2s_dai_ops = {
+	.trigger = rockchip_i2s_trigger,
+	.hw_params = rockchip_i2s_hw_params,
+	.set_fmt = rockchip_i2s_set_fmt,
+	.set_clkdiv = rockchip_i2s_set_clkdiv,
+	.set_sysclk = rockchip_i2s_set_sysclk,
+};
+
+/* 这里有两个dai driver, 根据dts里的i2s-id来选择 */
+struct snd_soc_dai_driver rockchip_i2s_dai[] = {
+	{
+		.probe = rockchip_i2s_dai_probe,
+		.name = "rockchip-i2s.0",
+		.id = 0,
+		.playback = {
+			.channels_min = 2,
+			.channels_max = 8,
+			.rates = ROCKCHIP_I2S_RATES,
+			.formats = ROCKCHIP_I2S_FORMATS,
+		},
+		.capture = {
+			.channels_min = 2,
+			.channels_max = 2,
+			.rates = ROCKCHIP_I2S_RATES,
+			.formats = ROCKCHIP_I2S_FORMATS,
+		},
+		.ops = &rockchip_i2s_dai_ops,
+		.symmetric_rates = 1,
+	},
+	{
+		.probe = rockchip_i2s_dai_probe,
+		.name = "rockchip-i2s.1",
+		.id = 1,
+		.playback = {
+			.channels_min = 2,
+			.channels_max = 2,
+			.rates = ROCKCHIP_I2S_RATES,
+			.formats = ROCKCHIP_I2S_FORMATS,
+		},
+		.capture = {
+			.channels_min = 2,
+			.channels_max = 2,
+			.rates = ROCKCHIP_I2S_RATES,
+			.formats = ROCKCHIP_I2S_FORMATS,
+		},
+		.ops = &rockchip_i2s_dai_ops,
+		.symmetric_rates = 1,
+	},
+};
+
 static int rockchip_i2s_probe(struct platform_device *pdev)
 {
 	struct rk_i2s_dev *i2s;
@@ -243,6 +349,18 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 	i2s->dev = &pdev->dev;
 	dev_set_drvdata(&pdev->dev, i2s);
 
+	/*
+	 * register component(dai)
+	 * 根据dts里i2s-id的值来选择注册哪个dai
+	 */
+	ret = snd_soc_register_component(&pdev->dev, &rockchip_i2s_component,
+			&rockchip_i2s_dai[pdev->id], 1);
+
+	if (ret) {
+		dev_err(&pdev->dev, "Could not register DAI: %d\n", ret);
+		ret = -ENOMEM;
+		goto EXIT;
+	}
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
 
 EXIT:
