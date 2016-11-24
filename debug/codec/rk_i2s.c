@@ -9,8 +9,11 @@
 #include <linux/io.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
+#include <linux/spinlock.h>
 
 #include <sound/dmaengine_pcm.h>
+
+#include "rk_i2s.h"
 
 #define I2S_DEFAULT_FREQ	(11289600)
 #define I2S_DMA_BURST_SIZE	(16) /* size * width: 16*4 = 64 bytes */
@@ -19,19 +22,6 @@
 		SNDRV_PCM_FMTBIT_S20_3LE | \
 		SNDRV_PCM_FMTBIT_S24_LE | \
 		SNDRV_PCM_FORMAT_S32_LE)
-
-/* I2S regname and offset */
-#define I2S_TXCR	(0x0000)
-#define I2S_RXCR	(0x0004)
-#define I2S_CKR		(0x0008)
-#define I2S_FIFOLR	(0x000c)
-#define I2S_DMACR	(0x0010)
-#define I2S_INTCR	(0x0014)
-#define I2S_INTSR	(0x0018)
-#define I2S_XFER	(0x001c)
-#define I2S_CLR		(0x0020)
-#define I2S_TXDR	(0x0024)
-#define I2S_RXDR	(0x0028)
 
 /* 描述I2S控制器的数据结构 */
 struct rk_i2s_dev {
@@ -49,6 +39,8 @@ struct rk_i2s_dev {
 	bool tx_start;
 	bool rx_start;
 };
+
+static DEFINE_SPINLOCK(lock);
 
 static const struct of_device_id rockchip_i2s_match[] = {
 	{ .compatible = "rockchip-i2s", },
@@ -284,6 +276,143 @@ struct snd_soc_dai_driver rockchip_i2s_dai[] = {
 	},
 };
 
+static const struct snd_pcm_hardware rockchip_pcm_hardware = {
+	.info = SNDRV_PCM_INFO_INTERLEAVED |
+		SNDRV_PCM_INFO_BLOCK_TRANSFER |
+		SNDRV_PCM_INFO_MMAP |
+		SNDRV_PCM_INFO_MMAP_VALID |
+		SNDRV_PCM_INFO_PAUSE |
+		SNDRV_PCM_INFO_RESUME,
+	.formats = SNDRV_PCM_FMTBIT_S24_LE |
+		SNDRV_PCM_FMTBIT_S20_3LE |
+		SNDRV_PCM_FMTBIT_S16_LE,
+	.channels_min = 2,
+	.channels_max = 8,
+	.buffer_bytes_max = 2*1024*1024,
+	.period_bytes_min = 64,
+	.period_bytes_max = 512*1024,
+	.periods_min = 3,
+	.periods_max = 128,
+	.fifo_size = 16,
+};
+
+static const struct snd_dmaengine_pcm_config rockchip_dmaengine_pcm_config = {
+	.pcm_hardware = &rockchip_pcm_hardware,
+	.prepare_slave_config = snd_dmaengine_pcm_prepare_slave_config,
+	.compat_filter_fn = NULL,
+	.prealloc_buffer_size = PAGE_SIZE * 512,
+};
+
+static void rockchip_snd_txctrl(struct rk_i2s_dev *i2s, int on)
+{
+	unsigned long flags;
+	unsigned int val = 0;
+	int retry = 10;
+
+	spin_lock_irqsave(&lock, flags);
+
+	dev_dbg(i2s->dev, "%s: %d: on: %d\n", __func__, __LINE__, on);
+
+	if (on) {
+		regmap_update_bits(i2s->regmap, I2S_DMACR,
+				   I2S_DMACR_TDE_MASK, I2S_DMACR_TDE_ENABLE);
+
+		regmap_update_bits(i2s->regmap, I2S_XFER,
+				   I2S_XFER_TXS_MASK | I2S_XFER_RXS_MASK,
+				   I2S_XFER_TXS_START | I2S_XFER_RXS_START);
+
+		i2s->tx_start = true;
+	} else {
+		i2s->tx_start = false;
+
+		regmap_update_bits(i2s->regmap, I2S_DMACR,
+				   I2S_DMACR_TDE_MASK, I2S_DMACR_TDE_DISABLE);
+
+
+		if (!i2s->rx_start) {
+			regmap_update_bits(i2s->regmap, I2S_XFER,
+					   I2S_XFER_TXS_MASK |
+					   I2S_XFER_RXS_MASK,
+					   I2S_XFER_TXS_STOP |
+					   I2S_XFER_RXS_STOP);
+
+			regmap_update_bits(i2s->regmap, I2S_CLR,
+					   I2S_CLR_TXC_MASK | I2S_CLR_RXC_MASK,
+					   I2S_CLR_TXC | I2S_CLR_RXC);
+
+			regmap_read(i2s->regmap, I2S_CLR, &val);
+
+			/* Should wait for clear operation to finish */
+			while (val) {
+				regmap_read(i2s->regmap, I2S_CLR, &val);
+				retry--;
+				if (!retry) {
+					dev_warn(i2s->dev, "fail to clear\n");
+					break;
+				}
+			}
+			dev_dbg(i2s->dev, "%s: %d: stop xfer\n",
+				__func__, __LINE__);
+		}
+	}
+
+	spin_unlock_irqrestore(&lock, flags);
+}
+
+static void rockchip_snd_rxctrl(struct rk_i2s_dev *i2s, int on)
+{
+	unsigned long flags;
+	unsigned int val = 0;
+	int retry = 10;
+
+	spin_lock_irqsave(&lock, flags);
+
+	dev_dbg(i2s->dev, "%s: %d: on: %d\n", __func__, __LINE__, on);
+
+	if (on) {
+		regmap_update_bits(i2s->regmap, I2S_DMACR,
+				   I2S_DMACR_RDE_MASK, I2S_DMACR_RDE_ENABLE);
+
+		regmap_update_bits(i2s->regmap, I2S_XFER,
+				   I2S_XFER_TXS_MASK | I2S_XFER_RXS_MASK,
+				   I2S_XFER_TXS_START | I2S_XFER_RXS_START);
+
+		i2s->rx_start = true;
+	} else {
+		i2s->rx_start = false;
+
+		regmap_update_bits(i2s->regmap, I2S_DMACR,
+				   I2S_DMACR_RDE_MASK, I2S_DMACR_RDE_DISABLE);
+
+		if (!i2s->tx_start) {
+			regmap_update_bits(i2s->regmap, I2S_XFER,
+					   I2S_XFER_TXS_MASK |
+					   I2S_XFER_RXS_MASK,
+					   I2S_XFER_TXS_STOP |
+					   I2S_XFER_RXS_STOP);
+
+			regmap_update_bits(i2s->regmap, I2S_CLR,
+					   I2S_CLR_TXC_MASK | I2S_CLR_RXC_MASK,
+					   I2S_CLR_TXC | I2S_CLR_RXC);
+
+			regmap_read(i2s->regmap, I2S_CLR, &val);
+
+			/* Should wait for clear operation to finish */
+			while (val) {
+				regmap_read(i2s->regmap, I2S_CLR, &val);
+				retry--;
+				if (!retry) {
+					dev_warn(i2s->dev, "fail to clear\n");
+					break;
+				}
+			}
+			dev_dbg(i2s->dev, "%s: %d: stop xfer\n",
+				__func__, __LINE__);
+		}
+	}
+
+	spin_unlock_irqrestore(&lock, flags);
+}
 static int rockchip_i2s_probe(struct platform_device *pdev)
 {
 	struct rk_i2s_dev *i2s;
@@ -361,8 +490,17 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 		ret = -ENOMEM;
 		goto EXIT;
 	}
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
 
+	/* register platform(dma) */
+	snd_dmaengine_pcm_register(&pdev->dev, &rockchip_dmaengine_pcm_config,
+			SND_DMAENGINE_PCM_FLAG_COMPAT|
+			SND_DMAENGINE_PCM_FLAG_NO_RESIDUE);
+
+	/* update i2s dma register */
+	rockchip_snd_txctrl(i2s, 0);
+	rockchip_snd_rxctrl(i2s, 0);
+
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
 EXIT:
 	return ret;
 }
