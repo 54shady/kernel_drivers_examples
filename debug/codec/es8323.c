@@ -689,13 +689,13 @@ static irqreturn_t hp_det_irq_handler(int irq, void *dev_id)
 	{
 		if(chip->hp_det_level == gpio_get_value(chip->hp_det_gpio))
 		{
-			printk("hp_det_level = 0,insert hp\n");
+			printk("hp_det_level = 1,insert hp\n");
 			gpio_set_value(chip->spk_ctl_gpio, !chip->spk_gpio_level);
 			gpio_set_value(chip->hp_ctl_gpio, !chip->hp_gpio_level);
 		}
 		else
 		{
-			printk("hp_det_level = 1,deinsert hp\n");
+			printk("hp_det_level = 0,deinsert hp\n");
 			gpio_set_value(chip->spk_ctl_gpio, chip->spk_gpio_level);
 			gpio_set_value(chip->hp_ctl_gpio, !chip->hp_gpio_level);
 		}
