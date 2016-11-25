@@ -21,6 +21,64 @@
 #include "es8323.h"
 
 static char g_mute = 1;
+
+static const DECLARE_TLV_DB_SCALE(adc_tlv, -9600, 50, 1);
+static const DECLARE_TLV_DB_SCALE(dac_tlv, -9600, 50, 1);
+static const DECLARE_TLV_DB_SCALE(out_tlv, -4500, 150, 0);
+static const DECLARE_TLV_DB_SCALE(bypass_tlv, -1500, 300, 0);
+
+static const char *es8323_line_texts[] = { "Line 1", "Line 2", "PGA"};
+static const unsigned int es8323_line_values[] = { 0, 1, 3};
+static const char *es8323_pga_sel[] = {"Line 1", "Line 2", "Differential"};
+static const char *stereo_3d_txt[] = {"No 3D  ", "Level 1","Level 2","Level 3","Level 4","Level 5","Level 6","Level 7"};
+static const char *alc_func_txt[] = {"Off", "Right", "Left", "Stereo"};
+static const char *ng_type_txt[] = {"Constant PGA Gain","Mute ADC Output"};
+static const char *deemph_txt[] = {"None", "32Khz", "44.1Khz", "48Khz"};
+static const char *adcpol_txt[] = {"Normal", "L Invert", "R Invert","L + R Invert"};
+static const char *es8323_mono_mux[] = {"Stereo", "Mono (Left)","Mono (Right)"};
+static const char *es8323_diff_sel[] = {"Line 1", "Line 2"};
+
+static const struct soc_enum es8323_enum[]={
+	SOC_VALUE_ENUM_SINGLE(ES8323_DACCONTROL16, 3, 7, ARRAY_SIZE(es8323_line_texts), es8323_line_texts, es8323_line_values),/* LLINE */
+	SOC_VALUE_ENUM_SINGLE(ES8323_DACCONTROL16, 0, 7, ARRAY_SIZE(es8323_line_texts), es8323_line_texts, es8323_line_values),/* rline	*/
+	SOC_VALUE_ENUM_SINGLE(ES8323_ADCCONTROL2, 6, 3, ARRAY_SIZE(es8323_pga_sel), es8323_line_texts, es8323_line_values),/* Left PGA Mux */
+	SOC_VALUE_ENUM_SINGLE(ES8323_ADCCONTROL2, 4, 3, ARRAY_SIZE(es8323_pga_sel), es8323_line_texts, es8323_line_values),/* Right PGA Mux */
+	SOC_ENUM_SINGLE(ES8323_DACCONTROL7, 2, 8, stereo_3d_txt),/* stereo-3d */
+	SOC_ENUM_SINGLE(ES8323_ADCCONTROL10, 6, 4, alc_func_txt),/*alc func*/
+	SOC_ENUM_SINGLE(ES8323_ADCCONTROL14, 1, 2, ng_type_txt),/*noise gate type*/
+	SOC_ENUM_SINGLE(ES8323_DACCONTROL6, 6, 4, deemph_txt),/*Playback De-emphasis*/
+	SOC_ENUM_SINGLE(ES8323_ADCCONTROL6, 6, 4, adcpol_txt),
+	SOC_ENUM_SINGLE(ES8323_ADCCONTROL3, 3, 3, es8323_mono_mux),
+	SOC_ENUM_SINGLE(ES8323_ADCCONTROL3, 7, 2, es8323_diff_sel),
+};
+
+static const struct snd_kcontrol_new es8323_snd_controls[] = {
+	SOC_ENUM("3D Mode", es8323_enum[4]),
+	SOC_SINGLE("ALC Capture Target Volume", ES8323_ADCCONTROL11, 4, 15, 0),
+	SOC_SINGLE("ALC Capture Max PGA", ES8323_ADCCONTROL10, 3, 7, 0),
+	SOC_SINGLE("ALC Capture Min PGA", ES8323_ADCCONTROL10, 0, 7, 0),
+	SOC_ENUM("ALC Capture Function", es8323_enum[5]),
+	SOC_SINGLE("ALC Capture ZC Switch", ES8323_ADCCONTROL13, 6, 1, 0),
+	SOC_SINGLE("ALC Capture Hold Time", ES8323_ADCCONTROL11, 0, 15, 0),
+	SOC_SINGLE("ALC Capture Decay Time", ES8323_ADCCONTROL12, 4, 15, 0),
+	SOC_SINGLE("ALC Capture Attack Time", ES8323_ADCCONTROL12, 0, 15, 0),
+	SOC_SINGLE("ALC Capture NG Threshold", ES8323_ADCCONTROL14, 3, 31, 0),
+	SOC_ENUM("ALC Capture NG Type",es8323_enum[6]),
+	SOC_SINGLE("ALC Capture NG Switch", ES8323_ADCCONTROL14, 0, 1, 0),
+	SOC_SINGLE("ZC Timeout Switch", ES8323_ADCCONTROL13, 6, 1, 0),
+	SOC_DOUBLE_R_TLV("Capture Digital Volume", ES8323_ADCCONTROL8, ES8323_ADCCONTROL9,0, 255, 1, adc_tlv),
+	SOC_SINGLE("Capture Mute", ES8323_ADCCONTROL7, 2, 1, 0),
+	SOC_SINGLE_TLV("Left Channel Capture Volume",	ES8323_ADCCONTROL1, 4, 15, 0, bypass_tlv),
+	SOC_SINGLE_TLV("Right Channel Capture Volume",	ES8323_ADCCONTROL1, 0, 15, 0, bypass_tlv),
+	SOC_ENUM("Playback De-emphasis", es8323_enum[7]),
+	SOC_ENUM("Capture Polarity", es8323_enum[8]),
+	SOC_DOUBLE_R_TLV("PCM Volume", ES8323_DACCONTROL4, ES8323_DACCONTROL5, 0, 255, 1, dac_tlv),
+	SOC_SINGLE_TLV("Left Mixer Left Bypass Volume", ES8323_DACCONTROL17, 3, 7, 1, bypass_tlv),
+	SOC_SINGLE_TLV("Right Mixer Right Bypass Volume", ES8323_DACCONTROL20, 3, 7, 1, bypass_tlv),
+	SOC_DOUBLE_R_TLV("Output 1 Playback Volume", ES8323_DACCONTROL24, ES8323_DACCONTROL25, 0, 64, 0, out_tlv),
+	SOC_DOUBLE_R_TLV("Output 2 Playback Volume", ES8323_DACCONTROL26, ES8323_DACCONTROL27, 0, 64, 0, out_tlv),
+};
+
 static u16 es8323_reg[] = {
 	0x06, 0x1C, 0xC3, 0xFC,  /*  0 *////0x0100 0x0180
 	0xC0, 0x00, 0x00, 0x7C,  /*  4 */
@@ -143,6 +201,9 @@ static int es8323_probe(struct snd_soc_codec *codec)
 	snd_soc_write(codec, ES8323_DACCONTROL3, 0x06);
 
 	es8323_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
+
+	/* add codec controls */
+	snd_soc_add_codec_controls(codec, es8323_snd_controls, ARRAY_SIZE(es8323_snd_controls));
 
 	return 0;
 }

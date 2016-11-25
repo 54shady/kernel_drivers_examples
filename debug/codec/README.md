@@ -123,6 +123,18 @@
 
 	tinyplay test.wav
 
+参数控制(查看所有可调参数)
+
+	tinymix
+
+查看某个参数值
+
+	tinymix <ctrl id>
+
+修改某个参数值
+
+	tinymix <ctrl id> <value>
+
 # attached
 
 ## spin lock
