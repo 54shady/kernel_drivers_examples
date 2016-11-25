@@ -167,7 +167,6 @@ static const struct regmap_config rockchip_i2s_regmap_config = {
 	.cache_type = REGCACHE_FLAT,
 };
 
-/* value of /sys/kernel/debug/asoc/dais */
 static const struct snd_soc_component_driver rockchip_i2s_component = {
 	.name = "rockchip-i2s",
 };
