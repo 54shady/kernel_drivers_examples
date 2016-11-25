@@ -146,6 +146,8 @@ struct es8323_chip {
 	bool spk_gpio_level;
 	bool hp_gpio_level;
 	bool hp_det_level;
+
+	struct delayed_work detect_work;
 };
 
 #define ES8323_DEF_VOL	0x20

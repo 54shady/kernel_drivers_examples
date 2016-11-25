@@ -18,6 +18,8 @@
 #include <linux/gpio.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
+#include <linux/workqueue.h>
+
 #include "es8323.h"
 
 static char g_mute = 1;
@@ -728,14 +730,16 @@ int gpio_setup(struct es8323_chip *chip, struct i2c_client *client)
 	return 0;
 }
 
-/* 检测耳机是否插入 */
-static irqreturn_t hp_det_irq_handler(int irq, void *dev_id)
+static void hp_detect_work(struct work_struct *work)
 {
-	int ret;
+	struct es8323_chip *chip;
+	int irq;
 	unsigned int type;
-	struct es8323_chip *chip = (struct es8323_chip *)dev_id;
+	int ret;
+	chip = container_of(work, struct es8323_chip, detect_work);
+	irq = gpio_to_irq(chip->hp_det_gpio);
 
-	disable_irq_nosync(irq);
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
 
 	/* 根据当前hp_det_gpio高低电平来决定中断触发条件 */
 	type = gpio_get_value(chip->hp_det_gpio) ? IRQ_TYPE_EDGE_FALLING : IRQ_TYPE_EDGE_RISING;
@@ -763,6 +767,16 @@ static irqreturn_t hp_det_irq_handler(int irq, void *dev_id)
 	}
 
 	enable_irq(irq);
+}
+
+/* 检测耳机是否插入 */
+static irqreturn_t hp_det_irq_handler(int irq, void *dev_id)
+{
+	struct es8323_chip *chip = (struct es8323_chip *)dev_id;
+
+	disable_irq_nosync(irq);
+
+	schedule_delayed_work(&chip->detect_work, HZ / 10);
 
 	return IRQ_HANDLED;
 }
@@ -790,6 +804,7 @@ static int es8323_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	/* 设置chip */
 	chip->client = client;
 	chip->dev = &client->dev;
+	INIT_DELAYED_WORK(&chip->detect_work, hp_detect_work);
 
 	/* set client data */
 	i2c_set_clientdata(client, chip);
