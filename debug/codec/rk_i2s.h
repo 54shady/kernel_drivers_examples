@@ -207,4 +207,29 @@
 #define I2S_CHANNEL_4	4
 #define I2S_CHANNEL_2	2
 
+#define I2S_DEFAULT_FREQ	(11289600)
+#define I2S_DMA_BURST_SIZE	(16) /* size * width: 16*4 = 64 bytes */
+#define ROCKCHIP_I2S_RATES SNDRV_PCM_RATE_8000_192000
+#define ROCKCHIP_I2S_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | \
+		SNDRV_PCM_FMTBIT_S20_3LE | \
+		SNDRV_PCM_FMTBIT_S24_LE | \
+		SNDRV_PCM_FORMAT_S32_LE)
+
+/* 描述I2S控制器的数据结构 */
+struct rk_i2s_dev {
+	struct device *dev;
+	struct clk *clk; /* bclk */
+	struct clk *mclk; /*mclk output only */
+	struct clk *hclk; /*ahb clk */
+
+	struct snd_dmaengine_dai_dma_data capture_dma_data;
+	struct snd_dmaengine_dai_dma_data playback_dma_data;
+
+	struct regmap *regmap;
+
+	/* 发送和接收数据的标志 */
+	bool tx_start;
+	bool rx_start;
+};
+
 #endif /* __RK_I2S_H__ */
