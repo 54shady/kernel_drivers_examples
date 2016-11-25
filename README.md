@@ -1,6 +1,9 @@
 # kernel_drivers_examples
 
-kernel 3.10.49 drivers test examples
+Codes test on the kernel version below
+
+	3.10.49
+	3.10.79
 
 # 目录说明
 
@@ -14,8 +17,15 @@ kernel 3.10.49 drivers test examples
 
 ## 举例(以hello模块为例)
 
+### 编译内核时没有指定O选项
+
 - cd debug/hello
 - make CC=/home/zeroway/3288/src/3288_4.4/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-gcc KERNELDIR=/home/zeroway/3288/src/3288_4.4/kernel
+
+### 编译内核时有指定O选项
+
+- cd debug/hello
+- make CROSS_COMPILE=/home/zeroway/3288/51/src/3288_5.1_v2/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi- KERNEL_DIR=/home/zeroway/3288/51/src/3288_5.1_v2/kernel KERNEL_BUID_OUTPUT=/home/zeroway/3288/51/src/3288_5.1_v2/out/target/product/rk3288/obj/KERNEL
 
 ## 各模块入口
 
@@ -28,5 +38,7 @@ kernel 3.10.49 drivers test examples
 [pwm](./debug/pwm/README.md)
 
 [regmap](./debug/regmap/README.md)
+
+[audio](./debug/codec/README.md)
 
 [script](./script/README.md)
