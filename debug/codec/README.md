@@ -79,7 +79,7 @@
 	cat /sys/kernel/debug/asoc/codecs
 
 	内容如下(i2c_driver name.i2c控制器号-I2C设备地址)
-	my ES8323 driver test.2-0010
+	ES8323 codec.2-0010
 
 	cat /sys/kernel/debug/asoc/dais
 	ES8323 HiFi
