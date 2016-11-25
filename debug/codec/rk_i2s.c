@@ -93,9 +93,10 @@ EXIT:
 void enable_clks(struct rk_i2s_dev *i2s)
 {
 	clk_prepare_enable(i2s->hclk);
-	clk_set_rate(i2s->clk, I2S_DEFAULT_FREQ);
 	clk_prepare_enable(i2s->clk);
 	clk_prepare_enable(i2s->mclk);
+	clk_set_rate(i2s->clk, I2S_DEFAULT_FREQ);
+	clk_set_rate(i2s->mclk, I2S_DEFAULT_FREQ);
 }
 
 /* 可写寄存器 */
