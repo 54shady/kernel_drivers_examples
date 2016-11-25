@@ -747,10 +747,6 @@ static int es8323_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 
 	/* register codec */
 	ret = snd_soc_register_codec(&client->dev, &soc_codec_dev_es8323, &es8323_dai, 1);
-	/*
-	 * after register the codec
-	 * the codec probe(es8323_probe) and es8323_set_dai_sysclk will be called
-	 */
 
 	printk("%s, %d probe done\n", __FUNCTION__, __LINE__);
 	return ret;

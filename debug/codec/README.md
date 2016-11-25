@@ -97,10 +97,10 @@
 
 加载machine驱动
 
-	insmod rk_es8323.ko 有如下信息表示成功,练接连个dai
+	insmod rk_es8323.ko 有如下信息表示成功,连接两个个dai
 	ES8323 HiFi <-> ff890000.rockchip-i2s mapping ok
 
-codec probe成功后在下面目录会有相关信息
+所有probe成功后在下面目录会有相关信息
 
 	/dev/snd/
 	/proc/asound/cards

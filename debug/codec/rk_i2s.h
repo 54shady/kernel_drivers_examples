@@ -230,6 +230,8 @@ struct rk_i2s_dev {
 	/* 发送和接收数据的标志 */
 	bool tx_start;
 	bool rx_start;
+
+	struct resource *res;
 };
 
 #endif /* __RK_I2S_H__ */

@@ -5,12 +5,10 @@
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/soc.h>
-#include <sound/soc-dapm.h>
 
 /* Clock dividers */
 #define ROCKCHIP_DIV_MCLK	0
 #define ROCKCHIP_DIV_BCLK	1
-#define ROCKCHIP_DIV_PRESCALER	2
 
 int parse_card_info_from_dt(struct snd_soc_card *card)
 {

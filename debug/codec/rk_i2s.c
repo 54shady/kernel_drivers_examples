@@ -393,9 +393,6 @@ static int rockchip_i2s_hw_params(struct snd_pcm_substream *substream,
 			   I2S_DMACR_TDL_MASK | I2S_DMACR_RDL_MASK,
 			   I2S_DMACR_TDL(16) | I2S_DMACR_RDL(16));
 
-#if defined(CONFIG_RK_HDMI) && defined(CONFIG_SND_RK_SOC_HDMI_I2S)
-	snd_config_hdmi_audio(params);
-#endif
 	spin_unlock_irqrestore(&lock, flags);
 
 	return 0;
@@ -600,10 +597,20 @@ static const struct snd_dmaengine_pcm_config rockchip_dmaengine_pcm_config = {
 	.prealloc_buffer_size = PAGE_SIZE * 512,
 };
 
+void rockchip_dma_setup(struct rk_i2s_dev *i2s)
+{
+	i2s->playback_dma_data.addr = i2s->res->start + I2S_TXDR;
+	i2s->playback_dma_data.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+	i2s->playback_dma_data.maxburst = I2S_DMA_BURST_SIZE;
+
+	i2s->capture_dma_data.addr = i2s->res->start + I2S_RXDR;
+	i2s->capture_dma_data.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+	i2s->capture_dma_data.maxburst = I2S_DMA_BURST_SIZE;
+}
+
 static int rockchip_i2s_probe(struct platform_device *pdev)
 {
 	struct rk_i2s_dev *i2s;
-	struct resource *res;
 	void __iomem *regs;
 	int ret;
 
@@ -626,9 +633,9 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 	 * 获取dts里设置的寄存器起始和结束地址
 	 * 根据该值来映射内存
 	 */
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	printk("res: start 0x%x, end 0x%x, name %s\n", res->start, res->end, res->name);
-	regs = devm_ioremap_resource(&pdev->dev, res);
+	i2s->res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	printk("res: start 0x%x, end 0x%x, name %s\n", i2s->res->start, i2s->res->end, i2s->res->name);
+	regs = devm_ioremap_resource(&pdev->dev, i2s->res);
 	if (IS_ERR(regs)) {
 		ret = PTR_ERR(regs);
 		goto EXIT;
@@ -649,13 +656,7 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 	 * playback --> i2s tx fifo
 	 * capture --> i2s rx fifo
 	 */
-	i2s->playback_dma_data.addr = res->start + I2S_TXDR;
-	i2s->playback_dma_data.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
-	i2s->playback_dma_data.maxburst = I2S_DMA_BURST_SIZE;
-
-	i2s->capture_dma_data.addr = res->start + I2S_RXDR;
-	i2s->capture_dma_data.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
-	i2s->capture_dma_data.maxburst = I2S_DMA_BURST_SIZE;
+	rockchip_dma_setup(i2s);
 
 	/* turn off xfer and recv while init */
 	i2s->tx_start = false;
@@ -669,9 +670,7 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 	 * register component(dai)
 	 * 根据dts里i2s-id的值来选择注册哪个dai
 	 */
-	ret = snd_soc_register_component(&pdev->dev, &rockchip_i2s_component,
-			&rockchip_i2s_dai[pdev->id], 1);
-
+	ret = snd_soc_register_component(&pdev->dev, &rockchip_i2s_component, &rockchip_i2s_dai[pdev->id], 1);
 	if (ret) {
 		dev_err(&pdev->dev, "Could not register DAI: %d\n", ret);
 		ret = -ENOMEM;
