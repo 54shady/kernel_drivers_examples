@@ -122,3 +122,33 @@ codec probe成功后在下面目录会有相关信息
 播放
 
 	tinyplay test.wav
+
+# attached
+
+## spin lock
+
+[参考文章](http://blog.csdn.net/droidphone/article/details/7395983)
+
+### 如果只是在普通线程之间同时访问共享对象
+
+	使用spin_lock()/spin_unlock()
+
+### 如果是在中断和普通线程之间同时访问共享对象,并且确信退出临界区后要打开中断
+
+	使用spin_lock_irq()/spin_unlock_irq()
+
+### 如果是在中断和普通线程之间同时访问共享对象,并且退出临界区后要保持中断的状态
+
+	使用spin_lock_irqsave()/spin_unlock_irqrestore()
+
+## PCM是什么
+
+[参考文章](http://blog.csdn.net/droidphone/article/details/6308006)
+
+PCM是英文Pulse-code modulation的缩写,中文译名是脉冲编码调制
+
+PCM就是要把声音从模拟转换成数字信号的一种技术
+
+playback:如何把用户空间的应用程序发过来的PCM数据,转化为人耳可以辨别的模拟音频
+
+capture:把mic拾取到得模拟信号,经过采样,量化,转换为PCM信号送回给用户空间的应用程序
