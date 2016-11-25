@@ -1,8 +1,72 @@
 # Intro
 
-- es8323.c codec驱动
-- rk_es8323.c rockchip平台machine驱动
-- rk_i2s.c rockchip平台platform驱动
+## es8323.c codec驱动
+
+### DeviceTree Describe
+
+	&i2c2 {
+	es8323: es8323@10 {
+				compatible = "es8323";
+				reg = <0x10>;
+				spk-con-gpio = <&gpio7 GPIO_B7 GPIO_ACTIVE_HIGH>;
+				hp-con-gpio = <&gpio0 GPIO_B5 GPIO_ACTIVE_HIGH>;
+				hp-det-gpio = <&gpio7 GPIO_A4 GPIO_ACTIVE_HIGH>;
+				hub_rest = <&gpio0 GPIO_B6 GPIO_ACTIVE_LOW>;
+				hub_en = <&gpio7 GPIO_B2 GPIO_ACTIVE_HIGH>;
+			};
+	};
+
+## rk_es8323.c rockchip平台machine驱动
+
+### DeviceTree Describe
+
+	/ {
+		rockchip-es8323 {
+			compatible = "rockchip-es8323";
+			dais {
+				dai0 {
+					audio-codec = <&es8323>;
+					audio-controller = <&i2s>;
+					format = "i2s";
+				};
+			};
+		};
+	};
+
+## rk_i2s.c rockchip平台platform驱动
+
+### DeviceTree Describe
+
+	i2s: rockchip-i2s@0xff890000 {
+			 compatible = "rockchip-i2s";
+			 reg = <0xff890000 0x10000>;
+			 i2s-id = <0>;
+			 clocks = <&clk_i2s>, <&clk_i2s_out>, <&clk_gates10 8>;
+			 clock-names = "i2s_clk","i2s_mclk", "i2s_hclk";
+			 interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_HIGH>;
+			 dmas = <&pdma0 0>, <&pdma0 1>;
+			 dma-names = "tx", "rx";
+			 pinctrl-names = "default", "sleep";
+			 pinctrl-0 = <&i2s_mclk &i2s_sclk &i2s_lrckrx &i2s_lrcktx &i2s_sdi &i2s_sdo0 &i2s_sdo1 &i2s_sdo2 &i2s_sdo3>;
+			 pinctrl-1 = <&i2s_gpio>;
+		 };
+
+
+### 从datasheet里Address Mapping可以找到I2S控制器被映射到的位置
+
+![I2S MAP](./I2S_MAP.png)
+
+### 中断号(SPI[85])
+
+![I2S INT](./I2S_INT.png)
+
+### DMA编号(tx[0], rx[1])
+
+![I2S DMA](./I2S_DMA.png)
+
+### I2S寄存器信息,32bit,步进4
+
+![I2S REG](./I2S_REG.png)
 
 # Debug
 

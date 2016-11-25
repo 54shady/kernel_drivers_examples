@@ -15,6 +15,22 @@
 
 #include "rk_i2s.h"
 
+/* I2S DeviceTree Describe */
+#if 0
+i2s: rockchip-i2s@0xff890000 {
+		 compatible = "rockchip-i2s";
+		 reg = <0xff890000 0x10000>;
+		 i2s-id = <0>;
+		 clocks = <&clk_i2s>, <&clk_i2s_out>, <&clk_gates10 8>;
+		 clock-names = "i2s_clk","i2s_mclk", "i2s_hclk";
+		 interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_HIGH>;
+		 dmas = <&pdma0 0>, <&pdma0 1>;
+		 dma-names = "tx", "rx";
+		 pinctrl-names = "default", "sleep";
+		 pinctrl-0 = <&i2s_mclk &i2s_sclk &i2s_lrckrx &i2s_lrcktx &i2s_sdi &i2s_sdo0 &i2s_sdo1 &i2s_sdo2 &i2s_sdo3>;
+		 pinctrl-1 = <&i2s_gpio>;
+	 };
+#endif
 static DEFINE_SPINLOCK(lock);
 
 static const struct of_device_id rockchip_i2s_match[] = {
