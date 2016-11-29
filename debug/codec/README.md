@@ -70,15 +70,17 @@
 
 # 耳机检测
 
+[参考文章Android4.×耳机插拔检测](http://blog.csdn.net/fengying765/article/details/38301483)
+
+[参考文章Android 耳机插拔处理流程](http://blog.csdn.net/xxm282828/article/details/45542039)
+
 ## 名词解释
 
 headphone 耳机
 
 micphone 麦克风
 
-headset 带有麦克风的耳机 headphone + micphone
-
-![参考文章](http://blog.csdn.net/fengying765/article/details/38301483)
+headset (耳麦)带有麦克风的耳机 headphone + micphone
 
 ## 设置android使用InputEvent检测
 
