@@ -23,7 +23,8 @@
 
 #include "es8323.h"
 
-static char g_mute = 1;
+/* global flag indicate jack new done */
+static int g_jack_new = 0;
 
 static const DECLARE_TLV_DB_SCALE(adc_tlv, -9600, 50, 1);
 static const DECLARE_TLV_DB_SCALE(dac_tlv, -9600, 50, 1);
@@ -212,6 +213,8 @@ static int es8323_probe(struct snd_soc_codec *codec)
 	ret = snd_soc_jack_new(codec, "Headset Jack", SND_JACK_HEADSET, &chip->jack);
 	if (ret)
 		return ret;
+
+	g_jack_new = 1;
 
 	return 0;
 }
@@ -566,8 +569,6 @@ static int es8323_mute(struct snd_soc_dai *dai, int mute)
 	struct snd_soc_codec *codec = dai->codec;
 	struct es8323_chip *chip = snd_soc_codec_get_drvdata(codec);
 
-	g_mute = mute;
-
 	printk("%s, %d mute = %d\n", __FUNCTION__, __LINE__, mute);
 
 	/* 静音*/
@@ -755,23 +756,20 @@ static void hp_detect_work(struct work_struct *work)
 		return -1;
 	}
 
-	/* 正在播放声音 */
-	if (g_mute == 0)
+	if(chip->hp_det_level == gpio_get_value(chip->hp_det_gpio))
 	{
-		if(chip->hp_det_level == gpio_get_value(chip->hp_det_gpio))
-		{
-			printk("hp_det_level = 1,insert hp\n");
-			gpio_set_value(chip->spk_ctl_gpio, !chip->spk_gpio_level);
-			gpio_set_value(chip->hp_ctl_gpio, !chip->hp_gpio_level);
-			snd_soc_jack_report(&chip->jack, SND_JACK_HEADPHONE, SND_JACK_HEADSET);
-		}
-		else
-		{
-			printk("hp_det_level = 0,deinsert hp\n");
-			gpio_set_value(chip->spk_ctl_gpio, chip->spk_gpio_level);
-			gpio_set_value(chip->hp_ctl_gpio, !chip->hp_gpio_level);
+		printk("hp_det_level = 1,insert hp\n");
+		gpio_set_value(chip->spk_ctl_gpio, !chip->spk_gpio_level);
+		gpio_set_value(chip->hp_ctl_gpio, !chip->hp_gpio_level);
+		snd_soc_jack_report(&chip->jack, SND_JACK_HEADPHONE, SND_JACK_HEADSET);
+	}
+	else
+	{
+		printk("hp_det_level = 0,deinsert hp\n");
+		gpio_set_value(chip->spk_ctl_gpio, chip->spk_gpio_level);
+		gpio_set_value(chip->hp_ctl_gpio, !chip->hp_gpio_level);
+		if (g_jack_new)
 			snd_soc_jack_report(&chip->jack, SND_JACK_HEADSET, SND_JACK_HEADSET);
-		}
 	}
 
 	enable_irq(irq);

@@ -68,6 +68,23 @@
 
 ![I2S REG](./I2S_REG.png)
 
+# 耳机检测
+
+![参考文章](http://blog.csdn.net/fengying765/article/details/38301483)
+
+## 设置android使用InputEvent检测
+
+修改frameworks/base/core/res/res/values/config.xml
+
+	修改为true
+	<bool name="config_useDevInputEventForAudioJack">true</bool>
+
+## 驱动中添加相关代码如下
+
+	snd_soc_jack_new(codec, "Headset Jack", SND_JACK_HEADSET, &chip->jack);
+
+	snd_soc_jack_report(&chip->jack, SND_JACK_HEADPHONE, SND_JACK_HEADSET);
+
 # Debug
 
 编译后得到连个模块es8323.ko, rk_es8323.ko, rk_i2s.ko
