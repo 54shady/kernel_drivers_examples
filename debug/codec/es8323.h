@@ -148,6 +148,8 @@ struct es8323_chip {
 	bool hp_det_level;
 
 	struct delayed_work detect_work;
+
+	struct snd_soc_jack jack;
 };
 
 #define ES8323_DEF_VOL	0x20

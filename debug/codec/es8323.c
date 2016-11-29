@@ -19,6 +19,7 @@
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/workqueue.h>
+#include <sound/jack.h>
 
 #include "es8323.h"
 
@@ -137,6 +138,7 @@ static int es8323_reset(struct snd_soc_codec *codec)
 static int es8323_probe(struct snd_soc_codec *codec)
 {
 	int ret = 0;
+	struct es8323_chip *chip = snd_soc_codec_get_drvdata(codec);
 	/* 设置codec读写寄存器的函数, i2c read write wrapper */
 	codec->read  = es8323_read_reg_cache;
 	codec->write = es8323_write;
@@ -206,6 +208,10 @@ static int es8323_probe(struct snd_soc_codec *codec)
 
 	/* add codec controls */
 	snd_soc_add_codec_controls(codec, es8323_snd_controls, ARRAY_SIZE(es8323_snd_controls));
+
+	ret = snd_soc_jack_new(codec, "Headset Jack", SND_JACK_HEADSET, &chip->jack);
+	if (ret)
+		return ret;
 
 	return 0;
 }
@@ -757,12 +763,14 @@ static void hp_detect_work(struct work_struct *work)
 			printk("hp_det_level = 1,insert hp\n");
 			gpio_set_value(chip->spk_ctl_gpio, !chip->spk_gpio_level);
 			gpio_set_value(chip->hp_ctl_gpio, !chip->hp_gpio_level);
+			snd_soc_jack_report(&chip->jack, SND_JACK_HEADPHONE, SND_JACK_HEADSET);
 		}
 		else
 		{
 			printk("hp_det_level = 0,deinsert hp\n");
 			gpio_set_value(chip->spk_ctl_gpio, chip->spk_gpio_level);
 			gpio_set_value(chip->hp_ctl_gpio, !chip->hp_gpio_level);
+			snd_soc_jack_report(&chip->jack, SND_JACK_HEADSET, SND_JACK_HEADSET);
 		}
 	}
 
