@@ -70,6 +70,14 @@
 
 # 耳机检测
 
+## 名词解释
+
+headphone 耳机
+
+micphone 麦克风
+
+headset 带有麦克风的耳机 headphone + micphone
+
 ![参考文章](http://blog.csdn.net/fengying765/article/details/38301483)
 
 ## 设置android使用InputEvent检测
