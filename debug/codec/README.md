@@ -85,6 +85,10 @@
 
 	snd_soc_jack_report(&chip->jack, SND_JACK_HEADPHONE, SND_JACK_HEADSET);
 
+## 调试
+
+	adb shell getevent 能够获得插拔耳机的事件
+
 # Debug
 
 编译后得到连个模块es8323.ko, rk_es8323.ko, rk_i2s.ko
