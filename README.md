@@ -29,16 +29,16 @@ Codes test on the kernel version below
 
 ## 各模块入口
 
-[hello](./debug/hello/README.md)
+[HELLO](./debug/hello/README.md)
 
-[regulator](./debug/regulator/README.md)
+[REGULATOR (ACT8846 PMU)](./debug/regulator/README.md)
 
-[platform_driver_test](./debug/platform_driver_test/README.md)
+[PLATFORM_DRIVER_TEST](./debug/platform_driver_test/README.md)
 
-[pwm](./debug/pwm/README.md)
+[PWM BACKLIGHT](./debug/pwm/README.md)
 
-[regmap](./debug/regmap/README.md)
+[REGMAP](./debug/regmap/README.md)
 
-[audio](./debug/codec/README.md)
+[AUDIO (ES8323)](./debug/codec/README.md)
 
-[script](./script/README.md)
+[SCRIPT](./script/README.md)
