@@ -122,6 +122,7 @@ static void wk2xxx_release_port(struct uart_port *port)
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
 }
 
+/* Request the memory region(s) being used by port */
 static int wk2xxx_request_port(struct uart_port *port)
 {
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
@@ -129,9 +130,14 @@ static int wk2xxx_request_port(struct uart_port *port)
 	return 0;
 }
 
+/* 配置串口 */
 static void wk2xxx_config_port(struct uart_port *port, int flags)
 {
+	struct wk2xxx_port *chip = container_of(port,struct wk2xxx_port,port);
+
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	if (flags & UART_CONFIG_TYPE && wk2xxx_request_port(port) == 0)
+		chip->port.type = PORT_WK2XXX;
 }
 
 static int wk2xxx_verify_port(struct uart_port *port, struct serial_struct *ser)
@@ -349,6 +355,7 @@ static int wk2xxx_probe(struct spi_device *spidev)
 
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
 
+#ifdef TEST_DRIVER
 	for (i = 0; i < 10; i++)
 	{
 		/* do 10 time read write */
@@ -358,6 +365,7 @@ static int wk2xxx_probe(struct spi_device *spidev)
 			printk("Nice, :) SPI OK %d time %d\n", val, i);
 		wk2xxx_write_reg(spidev, WK2XXX_GPORT, WK2XXX_GENA, i);
 	}
+#endif
 
 	/* 注册串口驱动 */
 	status = uart_register_driver(&wk2xxx_uart_driver);
