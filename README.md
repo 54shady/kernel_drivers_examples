@@ -31,6 +31,8 @@ Codes test on the kernel version below
 
 [HELLO](./debug/hello/README.md)
 
+[I2C](./debug/i2c/README.md)
+
 [REGULATOR (ACT8846 PMU)](./debug/regulator/README.md)
 
 [PLATFORM_DRIVER_TEST](./debug/platform_driver_test/README.md)

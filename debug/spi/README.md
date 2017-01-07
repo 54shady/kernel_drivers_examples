@@ -16,3 +16,17 @@ read and write test
 
 	cat /dev/ttysWK0
 	echo 1 > /dev/ttysWK0
+
+测试脚本
+
+	i=1
+	while true
+	do
+	if [ $i -eq 10 ]
+	then
+	(( i=1 ))
+	fi
+	echo $i > /dev/ttysWK0
+	sleep 1
+	(( i+=1 ))
+	done
