@@ -43,4 +43,10 @@ Codes test on the kernel version below
 
 [AUDIO (ES8323)](./debug/codec/README.md)
 
+[TIMER](./debug/timer/README.md)
+
+[TIMER AND WORKQUEUE](./debug/timer_workq/README.md)
+
+[WORKQUEUE](./debug/workqueue/README.md)
+
 [SCRIPT](./script/README.md)
