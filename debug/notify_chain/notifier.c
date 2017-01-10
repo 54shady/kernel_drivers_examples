@@ -1,9 +1,10 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/notifier.h>
-extern int test_notifier_call_chain(unsigned long val, void*v);
 
-static int __init call_notifier(void)
+extern int test_notifier_call_chain(unsigned long val, void *v);
+
+static int call_notifier(void)
 {
 	int err;
 	printk("Begin to notify:\n");
@@ -17,7 +18,7 @@ static int __init call_notifier(void)
 	return err;
 }
 
-static void __exit uncall_notifier(void)
+static void uncall_notifier(void)
 {
 	printk("Endnotify\n");
 }

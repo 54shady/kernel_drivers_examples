@@ -49,4 +49,6 @@ Codes test on the kernel version below
 
 [WORKQUEUE](./debug/workqueue/README.md)
 
+[NOTIFY](./debug/notify_chain/README.md)
+
 [SCRIPT](./script/README.md)

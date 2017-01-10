@@ -1,6 +1,7 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/notifier.h>
+
 extern int unregister_test_notifier(struct notifier_block*);
 extern int register_test_notifier(struct notifier_block *nb);
 
@@ -43,7 +44,7 @@ static struct notifier_block test_notifier3 =
 	.notifier_call = test_event3,
 };
 
-static int __init reg_notifier(void)
+static int reg_notifier(void)
 {
 	int err;
 	printk("Begin to register:\n");
@@ -75,8 +76,7 @@ static int __init reg_notifier(void)
 	return err;
 }
 
-
-static void __exit unreg_notifier(void)
+static void unreg_notifier(void)
 {
 	printk("Begin to unregister\n");
 	unregister_test_notifier(&test_notifier1);
