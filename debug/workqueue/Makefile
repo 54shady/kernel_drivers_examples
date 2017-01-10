@@ -3,9 +3,9 @@
 # DEBUG = y
 
 # Usage
-# make CC=<your_compiler_path> KERNELDIR=<your_kernel_dir>
+# make CROSS_COMPILE=<cross_compiler_prefix> KERNEL_DIR=<your_kernel_dir> KERNEL_BUID_OUTPUT=<kernel_buid_output>
 #
-# make CC=/home/zeroway/3288/src/3288_4.4/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-gcc KERNELDIR=/home/zeroway/3288/src/3288_4.4/kernel
+# make CROSS_COMPILE=/home/zeroway/3288/51/src/3288_5.1_v2/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi- KERNEL_DIR=/home/zeroway/3288/51/src/3288_5.1_v2/kernel KERNEL_BUID_OUTPUT=/home/zeroway/3288/51/src/3288_5.1_v2/out/target/product/rk3288/obj/KERNEL
 
 # Add your debugging flag (or not) to CFLAGS
 ifeq ($(DEBUG),y)
@@ -15,12 +15,15 @@ DEBFLAGS = -O2
 endif
 
 obj-m := workq_test.o
-KERNELDIR ?= /lib/modules/$(shell uname -r)/build
-CC ?= gcc
+obj-m += workq_test2.o
+KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
+KERNEL_BUID_OUTPUT ?=$(KERNEL_DIR)
+CC = $(CROSS_COMPILE)gcc
+LD = $(CROSS_COMPILE)ld
 PWD := $(shell pwd)
 
 modules:
-	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
+	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) O=$(KERNEL_BUID_OUTPUT) modules
 
 clean:
 	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions modules.order Module.symvers
