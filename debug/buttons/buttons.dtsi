@@ -1,0 +1,9 @@
+/{
+	interrupt_buttons {
+		compatible = "tiny4412,buttons";
+		tiny4412,int_gpio1 = <&gpx3 2 GPIO_ACTIVE_HIGH>;
+		tiny4412,int_gpio2 = <&gpx3 3 GPIO_ACTIVE_HIGH>;
+		tiny4412,int_gpio3 = <&gpx3 4 GPIO_ACTIVE_HIGH>;
+		tiny4412,int_gpio4 = <&gpx3 5 GPIO_ACTIVE_HIGH>;
+	};
+};
