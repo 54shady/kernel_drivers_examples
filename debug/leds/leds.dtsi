@@ -1,0 +1,37 @@
+/{
+	leds {
+		compatible = "tiny4412,leds";
+		reg = <0x11000000 0x300>;
+		tiny4412,gpio = <&gpm4 0 GPIO_ACTIVE_HIGH
+						&gpm4 1 GPIO_ACTIVE_HIGH
+						&gpm4 2 GPIO_ACTIVE_HIGH
+						&gpm4 3 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default", "gpio_sleep", "gpio_active";
+		pinctrl-0 = <&led_gpio_default>;
+		pinctrl-1 = <&led_gpio_sleep>;
+		pinctrl-2 = <&led_gpio_active>;
+	};
+};
+
+&pinctrl_1 {
+	led_gpio_default: leds_default {
+		samsung,pins = "gpm4-0", "gpm4-1", "gpm4-2", "gpm4-3";
+		samsung,pin-function = <1>;
+		samsung,pin-pud = <1>;
+		samsung,pin-drv = <2>;
+	};
+
+	led_gpio_sleep: leds_sleep {
+		samsung,pins = "gpm4-0", "gpm4-1", "gpm4-2", "gpm4-3";
+		samsung,pin-function = <1>;
+		samsung,pin-pud = <0>;
+		samsung,pin-drv = <0>;
+	};
+
+	led_gpio_active: leds_active {
+		samsung,pins = "gpm4-0", "gpm4-1", "gpm4-2", "gpm4-3";
+		samsung,pin-function = <1>;
+		samsung,pin-pud = <3>;
+		samsung,pin-drv = <3>;
+	};
+};
