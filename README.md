@@ -16,9 +16,15 @@ u-boot版本：友善之臂自带的 U-Boot 2010.12
 
 busybox版本：busybox 1.25
 
-交叉编译工具链arm-none-linux-gnueabi-gcc:
+交叉编译工具链arm-none-linux-gnueabi-gcc:[下载地址](https://launchpad.net/gcc-arm-embedded/+download)
 
 gcc version 4.8.3 20140320 (prerelease) (Sourcery CodeBench Lite 2014.05-29)
+
+## U-boot
+
+代码下载
+
+	git clone https://github.com/54shady/uboot_tiny4412.git --depth=1
 
 ## 编译内核
 
