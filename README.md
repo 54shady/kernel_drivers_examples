@@ -20,6 +20,12 @@ busybox版本：busybox 1.25
 
 gcc version 4.8.3 20140320 (prerelease) (Sourcery CodeBench Lite 2014.05-29)
 
+## 说明
+
+4412>	表示在开发板上执行
+
+PC>		表示在开发主机上执行
+
 ## U-boot
 
 代码下载
@@ -46,7 +52,21 @@ uboot下格式化FAT分区
 
 	fatformat mmc 0:1
 
-## 编译内核
+## U-Boot环境变量
+
+EMMC或SD卡里文件系统启动
+
+	set bootcmd "movi read kernel 0 0x40600000; mmc read 0 0x41000000 0x3421 0x2800; mmc read 0 0x42000000 0x5c21 0x800; bootm 0x40600000 0x41000000 0x42000000"
+
+	setenv bootargs 'root=/dev/ram0 rw rootfstype=ext4 console=ttySAC0,115200 ethmac=1C:6F:65:34:51:7E init=/linuxrc'
+
+nfs网络文件系统启动
+
+	set bootcmd "movi read kernel 0 0x40600000; mmc read 0 0x42000000 0x5c21 0x800; bootm 0x40600000 - 0x42000000"
+
+	setenv bootargs 'root=/dev/nfs rw nfsroot=192.168.1.100:/home/zeroway/android/src/rootfs_for_tiny4412/rootfs ethmac=1C:6F:65:34:51:7E ip=192.168.1.230:192.168.1.100:192.168.1.1:255.255.255.0::eth0:off console=ttySAC0,115200 init=/linuxrc'
+
+## Kernel
 
 配置
 
@@ -82,13 +102,7 @@ sudo gzip --best -c ramdisk > ramdisk.gz
 sudo mkimage -n "ramdisk" -A arm -O linux -T ramdisk -C gzip -d ramdisk.gz ramdisk.img
 ```
 
-## 说明
-
-4412>	表示在开发板上执行
-
-PC>		表示在开发主机上执行
-
-## 使用DNW烧写
+## DNW烧写
 
 block size = 512 byte(0x200)
 
@@ -181,27 +195,13 @@ PC>
 	mmc read 0 0x40600000 0x7530 0x800
 	cmp.b 0x40600000 0x42000000 0x800
 
-## 启动
+## bootm启动
 
 bootm + uImage + ramdisk + dtb
 
 	bootm 0x40600000 0x41000000 0x42000000
 
-## U-Boot环境变量
-
-EMMC或SD卡里文件系统启动
-
-	set bootcmd "movi read kernel 0 0x40600000; mmc read 0 0x41000000 0x3421 0x2800; mmc read 0 0x42000000 0x5c21 0x800; bootm 0x40600000 0x41000000 0x42000000"
-
-	setenv bootargs 'root=/dev/ram0 rw rootfstype=ext4 console=ttySAC0,115200 ethmac=1C:6F:65:34:51:7E init=/linuxrc'
-
-nfs网络文件系统启动
-
-	set bootcmd "movi read kernel 0 0x40600000; mmc read 0 0x42000000 0x5c21 0x800; bootm 0x40600000 - 0x42000000"
-
-	setenv bootargs 'root=/dev/nfs rw nfsroot=192.168.1.100:/home/zeroway/android/src/rootfs_for_tiny4412/rootfs ethmac=1C:6F:65:34:51:7E ip=192.168.1.230:192.168.1.100:192.168.1.1:255.255.255.0::eth0:off console=ttySAC0,115200 init=/linuxrc'
-
-## 使用fastboot烧写镜像
+## fastboot烧写镜像
 
 ### 烧写内核
 
