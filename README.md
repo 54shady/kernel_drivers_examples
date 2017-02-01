@@ -26,6 +26,26 @@ gcc version 4.8.3 20140320 (prerelease) (Sourcery CodeBench Lite 2014.05-29)
 
 	git clone https://github.com/54shady/uboot_tiny4412.git --depth=1
 
+配置编译
+
+	mkdir out
+	make O=out ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- tiny4412_config
+	make O=out ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- -j8
+	make ARCH=arm CROSS_COMPILE=arm-none-linux-gnueabi- -C sd_fuse
+
+烧写uboot到SD卡里(sdb)
+
+	cd sd_fuse/tiny4412/
+	./sd_fusing.sh /dev/sdb
+
+uboot下对SD卡进行分区
+
+	fdisk -c 0 608 2057 520
+
+uboot下格式化FAT分区
+
+	fatformat mmc 0:1
+
 ## 编译内核
 
 配置
