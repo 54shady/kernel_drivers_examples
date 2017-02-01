@@ -1,6 +1,6 @@
-# Intro
+# Codec driver example(es8323 on rockchip)
 
-## es8323.c codec驱动
+## Codec驱动(es8323.c)
 
 ### DeviceTree Describe
 
@@ -16,7 +16,7 @@
 			};
 	};
 
-## rk_es8323.c rockchip平台machine驱动
+## Machine驱动(rk_es8323.c rockchip平台)
 
 ### DeviceTree Describe
 
@@ -33,7 +33,7 @@
 		};
 	};
 
-## rk_i2s.c rockchip平台platform驱动
+## Platform驱动(rk_i2s.c rockchip平台)
 
 ### DeviceTree Describe
 
@@ -68,40 +68,11 @@
 
 ![I2S REG](./I2S_REG.png)
 
-# 耳机检测
+## Usage
 
-[参考文章Android4.×耳机插拔检测](http://blog.csdn.net/fengying765/article/details/38301483)
+将es8323.dtsi包含到主dts中
 
-[参考文章Android 耳机插拔处理流程](http://blog.csdn.net/xxm282828/article/details/45542039)
-
-## 名词解释
-
-headphone 耳机
-
-micphone 麦克风
-
-headset (耳麦)带有麦克风的耳机 headphone + micphone
-
-## 设置android使用InputEvent检测
-
-修改frameworks/base/core/res/res/values/config.xml
-
-	修改为true
-	<bool name="config_useDevInputEventForAudioJack">true</bool>
-
-## 驱动中添加相关代码如下
-
-	snd_soc_jack_new(codec, "Headset Jack", SND_JACK_HEADSET, &chip->jack);
-
-	snd_soc_jack_report(&chip->jack, SND_JACK_HEADPHONE, SND_JACK_HEADSET);
-
-## 调试
-
-	adb shell getevent 能够获得插拔耳机的事件
-
-# Debug
-
-编译后得到连个模块es8323.ko, rk_es8323.ko, rk_i2s.ko
+	#include "es8323.dtsi"
 
 加载codec驱动
 
@@ -138,13 +109,7 @@ headset (耳麦)带有麦克风的耳机 headphone + micphone
 	/sys/kernel/debug/asoc/
 	/sys/class/sound/
 
-# Usage
-
-将es8323.dtsi包含到主dts中
-
-	#include "es8323.dtsi"
-
-# test
+## Test
 
 录音
 
@@ -166,25 +131,56 @@ headset (耳麦)带有麦克风的耳机 headphone + micphone
 
 	tinymix <ctrl id> <value>
 
-# attached
+## 耳机检测
 
-## spin lock
+[参考文章Android4.×耳机插拔检测](http://blog.csdn.net/fengying765/article/details/38301483)
+
+[参考文章Android 耳机插拔处理流程](http://blog.csdn.net/xxm282828/article/details/45542039)
+
+### 名词解释
+
+headphone 耳机
+
+micphone 麦克风
+
+headset (耳麦)带有麦克风的耳机 headphone + micphone
+
+### 设置android使用InputEvent检测
+
+修改frameworks/base/core/res/res/values/config.xml
+
+	修改为true
+	<bool name="config_useDevInputEventForAudioJack">true</bool>
+
+### 驱动中添加相关代码如下
+
+	snd_soc_jack_new(codec, "Headset Jack", SND_JACK_HEADSET, &chip->jack);
+
+	snd_soc_jack_report(&chip->jack, SND_JACK_HEADPHONE, SND_JACK_HEADSET);
+
+### 调试
+
+	adb shell getevent 能够获得插拔耳机的事件
+
+## Attached
+
+### spin lock
 
 [参考文章](http://blog.csdn.net/droidphone/article/details/7395983)
 
-### 如果只是在普通线程之间同时访问共享对象
+- 如果只是在普通线程之间同时访问共享对象
 
 	使用spin_lock()/spin_unlock()
 
-### 如果是在中断和普通线程之间同时访问共享对象,并且确信退出临界区后要打开中断
+- 如果是在中断和普通线程之间同时访问共享对象,并且确信退出临界区后要打开中断
 
 	使用spin_lock_irq()/spin_unlock_irq()
 
-### 如果是在中断和普通线程之间同时访问共享对象,并且退出临界区后要保持中断的状态
+- 如果是在中断和普通线程之间同时访问共享对象,并且退出临界区后要保持中断的状态
 
 	使用spin_lock_irqsave()/spin_unlock_irqrestore()
 
-## PCM是什么
+### PCM是什么
 
 [参考文章](http://blog.csdn.net/droidphone/article/details/6308006)
 
