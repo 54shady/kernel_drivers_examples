@@ -4,7 +4,7 @@
 
 ![dcdc & ld0](./dcdc_ldo1.png)
 
-## ACT8846驱动
+## ACT8846 PMU驱动
 
 框架图如下
 
@@ -38,7 +38,7 @@ REG[5, 13]对应LDO[1, 9]
 
 假设act8846接到主控I2C的I2C0上则且I2C0标号为i2c0则可以直接使用,否则只需改下I2C的编号即可
 
-## 触摸屏硬件连接和设备树配置
+### 触摸屏硬件连接和设备树配置
 
 以下图所示的一个TP模块连接方式来说明
 
@@ -85,7 +85,7 @@ ldo4_reg:regulator@7 {
 };
 ```
 
-## 测试方法
+### 测试方法
 
 - 加载PMU驱动
 
@@ -109,6 +109,36 @@ done
 while true
 do
 cat /sys/class/regulator/regulator.8/state
+sleep 2
+done
+```
+
+## RK818 PMU驱动
+
+### 测试方法
+
+- 加载PMU驱动
+
+	insmod rk818.ko
+
+- 不断开关LDO2的电压
+
+```shell
+while true
+do
+insmod rk818_test.ko
+sleep 5
+rmmod rk818_test
+sleep 5
+done
+```
+
+- 查看regulator开关状态
+
+```shell
+while true
+do
+cat /sys/class/regulator/regulator.7/state
 sleep 2
 done
 ```
