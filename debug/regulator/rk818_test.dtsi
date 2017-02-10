@@ -1,0 +1,8 @@
+&i2c0 {
+	regulator_test@5d {
+		compatible = "Test,regulator";
+		status = "okay";
+		reg = <0x5d>;
+		VCC_TP-supply = <&rk818_ldo2_reg>;
+	};
+};

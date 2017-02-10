@@ -3,8 +3,9 @@
 #include <linux/i2c.h>
 #include <linux/kernel.h>
 #include <linux/regulator/driver.h>
-#include <linux/mfd/rk818.h>
-#include <linux/mfd/core.h>
+#include <linux/regulator/of_regulator.h>
+#include <linux/regulator/driver.h>
+#include <linux/regulator/machine.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/mutex.h>
@@ -20,6 +21,8 @@
 #include <linux/regmap.h>
 #include <linux/syscore_ops.h>
 
+#include "rk818.h"
+
 #define BUCK_VOL_MASK 0x3f
 #define LDO_VOL_MASK 0x3f
 #define LDO9_VOL_MASK 0x1f
@@ -29,28 +32,35 @@
 #define VOL_MAX_IDX 0x3f
 #define RK818_I2C_ADDR_RATE  200*1000
 
+/* FIXME should not extern */
+extern struct regulator_dev *devm_regulator_register(struct device *dev,
+				  const struct regulator_desc *regulator_desc,
+				  const struct regulator_config *config);
+
 const static int buck_set_vol_base_addr[] = {
 	RK818_BUCK1_ON_REG,
 	RK818_BUCK2_ON_REG,
 	RK818_BUCK3_CONFIG_REG,
 	RK818_BUCK4_ON_REG,
 };
+
 const static int buck_set_slp_vol_base_addr[] = {
 	RK818_BUCK1_SLP_REG,
 	RK818_BUCK2_SLP_REG,
 	RK818_BUCK3_CONFIG_REG,
 	RK818_BUCK4_SLP_VSEL_REG,
 };
+
 const static int buck_contr_base_addr[] = {
 	RK818_BUCK1_CONFIG_REG,
 	RK818_BUCK2_CONFIG_REG,
 	RK818_BUCK3_CONFIG_REG,
 	RK818_BUCK4_CONFIG_REG,
 };
+
 #define rk818_BUCK_SET_VOL_REG(x) (buck_set_vol_base_addr[x])
 #define rk818_BUCK_CONTR_REG(x) (buck_contr_base_addr[x])
 #define rk818_BUCK_SET_SLP_VOL_REG(x) (buck_set_slp_vol_base_addr[x])
-
 
 const static int ldo_set_vol_base_addr[] = {
 	RK818_LDO1_ON_VSEL_REG,
@@ -63,6 +73,7 @@ const static int ldo_set_vol_base_addr[] = {
 	RK818_LDO8_ON_VSEL_REG,
 	RK818_BOOST_LDO9_ON_VSEL_REG,
 };
+
 const static int ldo_set_slp_vol_base_addr[] = {
 	RK818_LDO1_SLP_VSEL_REG,
 	RK818_LDO2_SLP_VSEL_REG,
@@ -98,23 +109,25 @@ const static int ldo_voltage_map[] = {
 	1800, 1900, 2000, 2100, 2200,  2300,  2400, 2500, 2600,
 	2700, 2800, 2900, 3000, 3100, 3200,3300, 3400,
 };
+
 const static int ldo3_voltage_map[] = {
 	800, 900, 1000, 1100, 1200,  1300, 1400, 1500, 1600,
 	1700, 1800, 1900,  2000,2100,  2200,  2500,
 };
+
 const static int ldo6_voltage_map[] = {
 	800, 900, 1000, 1100, 1200,  1300, 1400, 1500, 1600,
 	1700, 1800, 1900,  2000,2100,  2200,  2300,2400,2500,
 };
+
 const static int boost_voltage_map[] = {
 	4700,4800,4900,5000,5100,5200,5300,5400,
 };
 
-/////////////////////////////////rk818-irq.c
-static inline int irq_to_rk818_irq(struct rk818 *rk818,
+static inline int irq_to_rk818_irq(struct rk818_chip *chip,
 		int irq)
 {
-	return (irq - rk818->chip_irq);
+	return (irq - chip->chip_irq);
 }
 
 /*
@@ -128,37 +141,37 @@ static inline int irq_to_rk818_irq(struct rk818 *rk818,
  */
 static irqreturn_t rk818_irq(int irq, void *irq_data)
 {
-	struct rk818 *rk818 = irq_data;
+	struct rk818_chip *chip = irq_data;
 	u32 irq_sts;
 	u32 irq_mask;
 	u8 reg;
 	int i, cur_irq;
 	//printk(" rk818 irq %d \n",irq);
-	wake_lock(&rk818->irq_wake);
-	rk818_i2c_read(rk818, RK818_INT_STS_REG1, 1, &reg);
+	wake_lock(&chip->irq_wake);
+	rk818_i2c_read(chip, RK818_INT_STS_REG1, 1, &reg);
 	irq_sts = reg;
-	rk818_i2c_read(rk818, RK818_INT_STS_REG2, 1, &reg);
+	rk818_i2c_read(chip, RK818_INT_STS_REG2, 1, &reg);
 	irq_sts |= reg << 8;
 
-	rk818_i2c_read(rk818, RK818_INT_STS_MSK_REG1, 1, &reg);
+	rk818_i2c_read(chip, RK818_INT_STS_MSK_REG1, 1, &reg);
 	irq_mask = reg;
-	rk818_i2c_read(rk818, RK818_INT_STS_MSK_REG2, 1, &reg);
+	rk818_i2c_read(chip, RK818_INT_STS_MSK_REG2, 1, &reg);
 	irq_mask |= reg << 8;
 
 	irq_sts &= ~irq_mask;
 
 	if (!irq_sts)
 	{
-		wake_unlock(&rk818->irq_wake);
+		wake_unlock(&chip->irq_wake);
 		return IRQ_NONE;
 	}
 
-	for (i = 0; i < rk818->irq_num; i++) {
+	for (i = 0; i < chip->irq_num; i++) {
 
 		if (!(irq_sts & (1 << i)))
 			continue;
 
-		cur_irq = irq_find_mapping(rk818->irq_domain, i);
+		cur_irq = irq_find_mapping(chip->irq_domain, i);
 
 		if (cur_irq)
 			handle_nested_irq(cur_irq);
@@ -167,59 +180,57 @@ static irqreturn_t rk818_irq(int irq, void *irq_data)
 	/* Write the STS register back to clear IRQs we handled */
 	reg = irq_sts & 0xFF;
 	irq_sts >>= 8;
-	rk818_i2c_write(rk818, RK818_INT_STS_REG1, 1, reg);
+	rk818_i2c_write(chip, RK818_INT_STS_REG1, 1, reg);
 	reg = irq_sts & 0xFF;
-	rk818_i2c_write(rk818, RK818_INT_STS_REG2, 1, reg);
-	wake_unlock(&rk818->irq_wake);
+	rk818_i2c_write(chip, RK818_INT_STS_REG2, 1, reg);
+	wake_unlock(&chip->irq_wake);
 	return IRQ_HANDLED;
 }
 
 static void rk818_irq_lock(struct irq_data *data)
 {
-	struct rk818 *rk818 = irq_data_get_irq_chip_data(data);
+	struct rk818_chip *chip = irq_data_get_irq_chip_data(data);
 
-	mutex_lock(&rk818->irq_lock);
+	mutex_lock(&chip->irq_lock);
 }
 
 static void rk818_irq_sync_unlock(struct irq_data *data)
 {
-	struct rk818 *rk818 = irq_data_get_irq_chip_data(data);
+	struct rk818_chip *chip = irq_data_get_irq_chip_data(data);
 	u32 reg_mask;
 	u8 reg;
 
-	rk818_i2c_read(rk818, RK818_INT_STS_MSK_REG1, 1, &reg);
+	rk818_i2c_read(chip, RK818_INT_STS_MSK_REG1, 1, &reg);
 	reg_mask = reg;
-	rk818_i2c_read(rk818, RK818_INT_STS_MSK_REG2, 1, &reg);
+	rk818_i2c_read(chip, RK818_INT_STS_MSK_REG2, 1, &reg);
 	reg_mask |= reg << 8;
 
-	if (rk818->irq_mask != reg_mask) {
-		reg = rk818->irq_mask & 0xff;
-		//		rk818_i2c_write(rk818, RK818_INT_STS_MSK_REG1, 1, reg);
-		reg = rk818->irq_mask >> 8 & 0xff;
-		//		rk818_i2c_write(rk818, RK818_INT_STS_MSK_REG2, 1, reg);
+	if (chip->irq_mask != reg_mask) {
+		reg = chip->irq_mask & 0xff;
+		reg = chip->irq_mask >> 8 & 0xff;
 	}
-	mutex_unlock(&rk818->irq_lock);
+	mutex_unlock(&chip->irq_lock);
 }
 
 static void rk818_irq_enable(struct irq_data *data)
 {
-	struct rk818 *rk818 = irq_data_get_irq_chip_data(data);
+	struct rk818_chip *chip = irq_data_get_irq_chip_data(data);
 
-	rk818->irq_mask &= ~( 1 << irq_to_rk818_irq(rk818, data->irq));
+	chip->irq_mask &= ~( 1 << irq_to_rk818_irq(chip, data->irq));
 }
 
 static void rk818_irq_disable(struct irq_data *data)
 {
-	struct rk818 *rk818 = irq_data_get_irq_chip_data(data);
+	struct rk818_chip *chip = irq_data_get_irq_chip_data(data);
 
-	rk818->irq_mask |= ( 1 << irq_to_rk818_irq(rk818, data->irq));
+	chip->irq_mask |= ( 1 << irq_to_rk818_irq(chip, data->irq));
 }
 
 #ifdef CONFIG_PM_SLEEP
 static int rk818_irq_set_wake(struct irq_data *data, unsigned int enable)
 {
-	struct rk818 *rk818 = irq_data_get_irq_chip_data(data);
-	return irq_set_irq_wake(rk818->chip_irq, enable);
+	struct rk818_chip *chip = irq_data_get_irq_chip_data(data);
+	return irq_set_irq_wake(chip->chip_irq, enable);
 }
 #else
 #define rk818_irq_set_wake NULL
@@ -237,9 +248,9 @@ static struct irq_chip rk818_irq_chip = {
 static int rk818_irq_domain_map(struct irq_domain *d, unsigned int irq,
 		irq_hw_number_t hw)
 {
-	struct rk818 *rk818 = d->host_data;
+	struct rk818_chip *chip = d->host_data;
 
-	irq_set_chip_data(irq, rk818);
+	irq_set_chip_data(irq, chip);
 	irq_set_chip_and_handler(irq, &rk818_irq_chip, handle_edge_irq);
 	irq_set_nested_thread(irq, 1);
 #ifdef CONFIG_ARM
@@ -254,45 +265,44 @@ static struct irq_domain_ops rk818_irq_domain_ops = {
 	.map = rk818_irq_domain_map,
 };
 
-int rk818_irq_init(struct rk818 *rk818, int irq,struct rk818_board *pdata)
+int rk818_irq_init(struct rk818_chip *chip, int irq,struct rk818_chip_board *pdata)
 {
 	struct irq_domain *domain;
 	int ret,val,irq_type,flags;
 	u8 reg;
 
-	//	printk("%s,line=%d\n", __func__,__LINE__);
 	if (!irq) {
-		dev_warn(rk818->dev, "No interrupt support, no core IRQ\n");
+		dev_warn(chip->dev, "No interrupt support, no core IRQ\n");
 		return 0;
 	}
 
 	/* Clear unattended interrupts */
-	rk818_i2c_read(rk818, RK818_INT_STS_REG1, 1, &reg);
-	rk818_i2c_write(rk818, RK818_INT_STS_REG1, 1, reg);
-	rk818_i2c_read(rk818, RK818_INT_STS_REG2, 1, &reg);
-	rk818_i2c_write(rk818, RK818_INT_STS_REG2, 1, reg);
-	rk818_i2c_read(rk818, RK818_RTC_STATUS_REG, 1, &reg);
-	rk818_i2c_write(rk818, RK818_RTC_STATUS_REG, 1, reg);//clear alarm and timer interrupt
+	rk818_i2c_read(chip, RK818_INT_STS_REG1, 1, &reg);
+	rk818_i2c_write(chip, RK818_INT_STS_REG1, 1, reg);
+	rk818_i2c_read(chip, RK818_INT_STS_REG2, 1, &reg);
+	rk818_i2c_write(chip, RK818_INT_STS_REG2, 1, reg);
+	rk818_i2c_read(chip, RK818_RTC_STATUS_REG, 1, &reg);
+	rk818_i2c_write(chip, RK818_RTC_STATUS_REG, 1, reg);//clear alarm and timer interrupt
 
 	/* Mask top level interrupts */
-	rk818->irq_mask = 0xFFFFFF;
-	mutex_init(&rk818->irq_lock);
-	wake_lock_init(&rk818->irq_wake, WAKE_LOCK_SUSPEND, "rk818_irq_wake");
-	rk818->irq_num = RK818_NUM_IRQ;
-	rk818->irq_gpio = pdata->irq_gpio;
-	if (rk818->irq_gpio && !rk818->chip_irq) {
-		rk818->chip_irq = gpio_to_irq(rk818->irq_gpio);
+	chip->irq_mask = 0xFFFFFF;
+	mutex_init(&chip->irq_lock);
+	wake_lock_init(&chip->irq_wake, WAKE_LOCK_SUSPEND, "rk818_irq_wake");
+	chip->irq_num = RK818_NUM_IRQ;
+	chip->irq_gpio = pdata->irq_gpio;
+	if (chip->irq_gpio && !chip->chip_irq) {
+		chip->chip_irq = gpio_to_irq(chip->irq_gpio);
 
-		if (rk818->irq_gpio) {
-			ret = gpio_request(rk818->irq_gpio, "rk818_pmic_irq");
+		if (chip->irq_gpio) {
+			ret = devm_gpio_request(chip->dev, chip->irq_gpio, "rk818_pmic_irq");
 			if (ret < 0) {
-				dev_err(rk818->dev,
+				dev_err(chip->dev,
 						"Failed to request gpio %d with ret:"
-						"%d\n",	rk818->irq_gpio, ret);
+						"%d\n",	chip->irq_gpio, ret);
 				return IRQ_NONE;
 			}
-			gpio_direction_input(rk818->irq_gpio);
-			val = gpio_get_value(rk818->irq_gpio);
+			gpio_direction_input(chip->irq_gpio);
+			val = gpio_get_value(chip->irq_gpio);
 			if (val){
 				irq_type = IRQ_TYPE_LEVEL_LOW;
 				flags = IRQF_TRIGGER_FALLING;
@@ -301,36 +311,33 @@ int rk818_irq_init(struct rk818 *rk818, int irq,struct rk818_board *pdata)
 				irq_type = IRQ_TYPE_LEVEL_HIGH;
 				flags = IRQF_TRIGGER_RISING;
 			}
-			gpio_free(rk818->irq_gpio);
 			pr_info("%s: rk818_pmic_irq=%x\n", __func__, val);
 		}
 	}
 
 	domain = irq_domain_add_linear(NULL, RK818_NUM_IRQ,
-			&rk818_irq_domain_ops, rk818);
+			&rk818_irq_domain_ops, chip);
 	if (!domain) {
-		dev_err(rk818->dev, "could not create irq domain\n");
+		dev_err(chip->dev, "could not create irq domain\n");
 		return -ENODEV;
 	}
-	rk818->irq_domain = domain;
+	chip->irq_domain = domain;
 
-	ret = request_threaded_irq(rk818->chip_irq, NULL, rk818_irq, flags | IRQF_ONESHOT, "rk818", rk818);
+	ret = devm_request_threaded_irq(chip->dev, chip->chip_irq, NULL, rk818_irq, flags | IRQF_ONESHOT, "rk818", chip);
 
-	irq_set_irq_type(rk818->chip_irq, irq_type);
-	enable_irq_wake(rk818->chip_irq);
+	irq_set_irq_type(chip->chip_irq, irq_type);
+	enable_irq_wake(chip->chip_irq);
 	if (ret != 0)
-		dev_err(rk818->dev, "Failed to request IRQ: %d\n", ret);
+		dev_err(chip->dev, "Failed to request IRQ: %d\n", ret);
 
 	return ret;
 }
 
-int rk818_irq_exit(struct rk818 *rk818)
+int rk818_irq_exit(struct rk818_chip *chip)
 {
-	if (rk818->chip_irq)
-		free_irq(rk818->chip_irq, rk818);
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
 	return 0;
 }
-/////////////////////////////////rk818-irq.c
 
 static int rk818_ldo_list_voltage(struct regulator_dev *dev, unsigned index)
 {
@@ -351,14 +358,15 @@ static int rk818_ldo_list_voltage(struct regulator_dev *dev, unsigned index)
 		return 1000 * ldo_voltage_map[index];
 	}
 }
+
 static int rk818_ldo_is_enabled(struct regulator_dev *dev)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int ldo= rdev_get_id(dev) - RK818_LDO1;
 	u16 val;
 
 	if (ldo == 8){
-		val = rk818_reg_read(rk818, RK818_DCDC_EN_REG);  //ldo9
+		val = rk818_reg_read(chip, RK818_DCDC_EN_REG);  //ldo9
 		if (val < 0)
 			return val;
 		if (val & (1 << 5))
@@ -366,7 +374,7 @@ static int rk818_ldo_is_enabled(struct regulator_dev *dev)
 		else
 			return 0;
 	}
-	val = rk818_reg_read(rk818, RK818_LDO_EN_REG);
+	val = rk818_reg_read(chip, RK818_LDO_EN_REG);
 	if (val < 0)
 		return val;
 	if (val & (1 << ldo))
@@ -374,48 +382,51 @@ static int rk818_ldo_is_enabled(struct regulator_dev *dev)
 	else
 		return 0;
 }
+
 static int rk818_ldo_enable(struct regulator_dev *dev)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int ldo= rdev_get_id(dev) - RK818_LDO1;
 
 	if (ldo == 8)
-		rk818_set_bits(rk818, RK818_DCDC_EN_REG, 1 << 5, 1 << 5); //ldo9
+		rk818_set_bits(chip, RK818_DCDC_EN_REG, 1 << 5, 1 << 5); //ldo9
 	else if (ldo ==9)
-		rk818_set_bits(rk818, RK818_DCDC_EN_REG, 1 << 6, 1 << 6); //ldo10 switch
+		rk818_set_bits(chip, RK818_DCDC_EN_REG, 1 << 6, 1 << 6); //ldo10 switch
 	else
-		rk818_set_bits(rk818, RK818_LDO_EN_REG, 1 << ldo, 1 << ldo);
+		rk818_set_bits(chip, RK818_LDO_EN_REG, 1 << ldo, 1 << ldo);
 
 	return 0;
 }
+
 static int rk818_ldo_disable(struct regulator_dev *dev)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int ldo= rdev_get_id(dev) - RK818_LDO1;
 
 	if (ldo == 8)
-		rk818_set_bits(rk818, RK818_DCDC_EN_REG, 1 << 5, 1 << 0); //ldo9
+		rk818_set_bits(chip, RK818_DCDC_EN_REG, 1 << 5, 1 << 0); //ldo9
 	else if(ldo ==9)
-		rk818_set_bits(rk818, RK818_DCDC_EN_REG, 1 << 6, 1 << 0); //ldo10 switch
+		rk818_set_bits(chip, RK818_DCDC_EN_REG, 1 << 6, 1 << 0); //ldo10 switch
 	else
-		rk818_set_bits(rk818, RK818_LDO_EN_REG, 1 << ldo, 0);
+		rk818_set_bits(chip, RK818_LDO_EN_REG, 1 << ldo, 0);
 
 	return 0;
 }
+
 static int rk818_ldo_get_voltage(struct regulator_dev *dev)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int ldo= rdev_get_id(dev) - RK818_LDO1;
 	u16 reg = 0;
 	int val;
 
 	if  (ldo ==9){
-		reg = rk818_reg_read(rk818,rk818_BUCK_SET_VOL_REG(3));
+		reg = rk818_reg_read(chip,rk818_BUCK_SET_VOL_REG(3));
 		reg &= BUCK_VOL_MASK;
 		val = 1000 * buck4_voltage_map[reg];
 	}
 	else{
-		reg = rk818_reg_read(rk818,rk818_LDO_SET_VOL_REG(ldo));
+		reg = rk818_reg_read(chip,rk818_LDO_SET_VOL_REG(ldo));
 		if (ldo == 8){
 			reg &= LDO9_VOL_MASK;
 		}
@@ -434,36 +445,39 @@ static int rk818_ldo_get_voltage(struct regulator_dev *dev)
 	}
 	return val;
 }
+
 static int rk818_ldo_suspend_enable(struct regulator_dev *dev)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int ldo= rdev_get_id(dev) - RK818_LDO1;
 
 	if (ldo == 8)
-		return rk818_set_bits(rk818, RK818_SLEEP_SET_OFF_REG1, 1 << 5, 0); //ldo9
+		return rk818_set_bits(chip, RK818_SLEEP_SET_OFF_REG1, 1 << 5, 0); //ldo9
 	else if (ldo ==9)
-		return rk818_set_bits(rk818, RK818_SLEEP_SET_OFF_REG1, 1 << 6, 0); //ldo10 switch
+		return rk818_set_bits(chip, RK818_SLEEP_SET_OFF_REG1, 1 << 6, 0); //ldo10 switch
 	else
-		return rk818_set_bits(rk818, RK818_SLEEP_SET_OFF_REG2, 1 << ldo, 0);
+		return rk818_set_bits(chip, RK818_SLEEP_SET_OFF_REG2, 1 << ldo, 0);
 
 }
+
 static int rk818_ldo_suspend_disable(struct regulator_dev *dev)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int ldo= rdev_get_id(dev) - RK818_LDO1;
 
 	if (ldo == 8)
-		return rk818_set_bits(rk818, RK818_SLEEP_SET_OFF_REG1, 1 << 5, 1 << 5); //ldo9
+		return rk818_set_bits(chip, RK818_SLEEP_SET_OFF_REG1, 1 << 5, 1 << 5); //ldo9
 	else if (ldo ==9)
-		return rk818_set_bits(rk818, RK818_SLEEP_SET_OFF_REG1, 1 << 6, 1 << 6); //ldo10 switch
+		return rk818_set_bits(chip, RK818_SLEEP_SET_OFF_REG1, 1 << 6, 1 << 6); //ldo10 switch
 	else
-		return rk818_set_bits(rk818, RK818_SLEEP_SET_OFF_REG2, 1 << ldo, 1 << ldo);
+		return rk818_set_bits(chip, RK818_SLEEP_SET_OFF_REG2, 1 << ldo, 1 << ldo);
 
 }
+
 static int rk818_ldo_set_sleep_voltage(struct regulator_dev *dev,
 		int uV)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int ldo= rdev_get_id(dev) - RK818_LDO1;
 	const int *vol_map = ldo_voltage_map;
 	int min_vol = uV / 1000;
@@ -492,10 +506,10 @@ static int rk818_ldo_set_sleep_voltage(struct regulator_dev *dev,
 	}
 
 	if (ldo == 8){
-		ret = rk818_set_bits(rk818, rk818_LDO_SET_SLP_VOL_REG(ldo),LDO9_VOL_MASK, val);
+		ret = rk818_set_bits(chip, rk818_LDO_SET_SLP_VOL_REG(ldo),LDO9_VOL_MASK, val);
 	}
 	else
-		ret = rk818_set_bits(rk818, rk818_LDO_SET_SLP_VOL_REG(ldo),LDO_VOL_MASK, val);
+		ret = rk818_set_bits(chip, rk818_LDO_SET_SLP_VOL_REG(ldo),LDO_VOL_MASK, val);
 
 	return ret;
 }
@@ -503,7 +517,7 @@ static int rk818_ldo_set_sleep_voltage(struct regulator_dev *dev,
 static int rk818_ldo_set_voltage(struct regulator_dev *dev,
 		int min_uV, int max_uV,unsigned *selector)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int ldo= rdev_get_id(dev) - RK818_LDO1;
 	const int *vol_map;
 	int min_vol = min_uV / 1000;
@@ -533,10 +547,10 @@ static int rk818_ldo_set_voltage(struct regulator_dev *dev,
 	}
 
 	if (ldo == 8){
-		ret = rk818_set_bits(rk818, rk818_LDO_SET_VOL_REG(ldo),LDO9_VOL_MASK, val);
+		ret = rk818_set_bits(chip, rk818_LDO_SET_VOL_REG(ldo),LDO9_VOL_MASK, val);
 	}
 	else
-		ret = rk818_set_bits(rk818, rk818_LDO_SET_VOL_REG(ldo),LDO_VOL_MASK, val);
+		ret = rk818_set_bits(chip, rk818_LDO_SET_VOL_REG(ldo),LDO_VOL_MASK, val);
 
 	return ret;
 
@@ -583,11 +597,11 @@ static int rk818_dcdc_list_voltage(struct regulator_dev *dev, unsigned selector)
 
 static int rk818_dcdc_is_enabled(struct regulator_dev *dev)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int buck = rdev_get_id(dev) - RK818_DCDC1;
 	u16 val;
 
-	val = rk818_reg_read(rk818, RK818_DCDC_EN_REG);
+	val = rk818_reg_read(chip, RK818_DCDC_EN_REG);
 	if (val < 0)
 		return val;
 	if (val & (1 << buck))
@@ -598,29 +612,29 @@ static int rk818_dcdc_is_enabled(struct regulator_dev *dev)
 
 static int rk818_dcdc_enable(struct regulator_dev *dev)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int buck = rdev_get_id(dev) - RK818_DCDC1;
 
-	return rk818_set_bits(rk818, RK818_DCDC_EN_REG, 1 << buck, 1 << buck);
+	return rk818_set_bits(chip, RK818_DCDC_EN_REG, 1 << buck, 1 << buck);
 
 }
 
 static int rk818_dcdc_disable(struct regulator_dev *dev)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int buck = rdev_get_id(dev) - RK818_DCDC1;
 
-	return rk818_set_bits(rk818, RK818_DCDC_EN_REG, 1 << buck , 0);
+	return rk818_set_bits(chip, RK818_DCDC_EN_REG, 1 << buck , 0);
 }
 
 static int rk818_dcdc_get_voltage(struct regulator_dev *dev)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int buck = rdev_get_id(dev) - RK818_DCDC1;
 	u16 reg = 0;
 	int val;
 
-	reg = rk818_reg_read(rk818,rk818_BUCK_SET_VOL_REG(buck));
+	reg = rk818_reg_read(chip,rk818_BUCK_SET_VOL_REG(buck));
 
 	reg &= BUCK_VOL_MASK;
 	val = rk818_dcdc_list_voltage(dev,reg);
@@ -656,7 +670,7 @@ static int rk818_dcdc_select_min_voltage(struct regulator_dev *dev,
 static int rk818_dcdc_set_voltage(struct regulator_dev *dev,
 		int min_uV, int max_uV,unsigned *selector)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int buck = rdev_get_id(dev) - RK818_DCDC1;
 	u16 val;
 	int ret = 0;
@@ -665,17 +679,17 @@ static int rk818_dcdc_set_voltage(struct regulator_dev *dev,
 		return 0;
 	}else if (buck==3){
 		val = rk818_dcdc_select_min_voltage(dev,min_uV,max_uV,buck);
-		ret = rk818_set_bits(rk818, rk818_BUCK_SET_VOL_REG(buck), BUCK_VOL_MASK, val);
+		ret = rk818_set_bits(chip, rk818_BUCK_SET_VOL_REG(buck), BUCK_VOL_MASK, val);
 	}
 	val = rk818_dcdc_select_min_voltage(dev,min_uV,max_uV,buck);
-	ret = rk818_set_bits(rk818, rk818_BUCK_SET_VOL_REG(buck), BUCK_VOL_MASK, val);
+	ret = rk818_set_bits(chip, rk818_BUCK_SET_VOL_REG(buck), BUCK_VOL_MASK, val);
 	return ret;
 }
 
 static int rk818_dcdc_set_sleep_voltage(struct regulator_dev *dev,
 		int uV)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int buck = rdev_get_id(dev) - RK818_DCDC1;
 	u16 val;
 	int ret = 0;
@@ -684,18 +698,18 @@ static int rk818_dcdc_set_sleep_voltage(struct regulator_dev *dev,
 		return 0;
 	}else{
 		val = rk818_dcdc_select_min_voltage(dev,uV,uV,buck);
-		ret = rk818_set_bits(rk818, rk818_BUCK_SET_SLP_VOL_REG(buck) , BUCK_VOL_MASK, val);
+		ret = rk818_set_bits(chip, rk818_BUCK_SET_SLP_VOL_REG(buck) , BUCK_VOL_MASK, val);
 	}
 	return ret;
 }
 
 static unsigned int rk818_dcdc_get_mode(struct regulator_dev *dev)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int buck = rdev_get_id(dev) - RK818_DCDC1;
 	u16 mask = 0x80;
 	u16 val;
-	val = rk818_reg_read(rk818, rk818_BUCK_SET_VOL_REG(buck));
+	val = rk818_reg_read(chip, rk818_BUCK_SET_VOL_REG(buck));
 	if (val < 0) {
 		return val;
 	}
@@ -709,15 +723,15 @@ static unsigned int rk818_dcdc_get_mode(struct regulator_dev *dev)
 
 static int rk818_dcdc_set_mode(struct regulator_dev *dev, unsigned int mode)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int buck = rdev_get_id(dev) - RK818_DCDC1;
 	u16 mask = 0x80;
 	switch(mode)
 	{
 		case REGULATOR_MODE_FAST:
-			return rk818_set_bits(rk818, rk818_BUCK_SET_VOL_REG(buck), mask, mask);
+			return rk818_set_bits(chip, rk818_BUCK_SET_VOL_REG(buck), mask, mask);
 		case REGULATOR_MODE_NORMAL:
-			return rk818_set_bits(rk818, rk818_BUCK_SET_VOL_REG(buck), mask, 0);
+			return rk818_set_bits(chip, rk818_BUCK_SET_VOL_REG(buck), mask, 0);
 		default:
 			printk("error:pmu_rk818 only powersave and pwm mode\n");
 			return -EINVAL;
@@ -742,33 +756,33 @@ static int rk818_dcdc_set_voltage_time_sel(struct regulator_dev *dev,   unsigned
 
 static int rk818_dcdc_suspend_enable(struct regulator_dev *dev)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int buck = rdev_get_id(dev) - RK818_DCDC1;
 
-	return rk818_set_bits(rk818, RK818_SLEEP_SET_OFF_REG1, 1 << buck, 0);
+	return rk818_set_bits(chip, RK818_SLEEP_SET_OFF_REG1, 1 << buck, 0);
 
 }
 
 static int rk818_dcdc_suspend_disable(struct regulator_dev *dev)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int buck = rdev_get_id(dev) - RK818_DCDC1;
 
-	return rk818_set_bits(rk818, RK818_SLEEP_SET_OFF_REG1, 1 << buck , 1 << buck);
+	return rk818_set_bits(chip, RK818_SLEEP_SET_OFF_REG1, 1 << buck , 1 << buck);
 }
 
 static int rk818_dcdc_set_suspend_mode(struct regulator_dev *dev, unsigned int mode)
 {
-	struct rk818 *rk818 = rdev_get_drvdata(dev);
+	struct rk818_chip *chip = rdev_get_drvdata(dev);
 	int buck = rdev_get_id(dev) - RK818_DCDC1;
 	u16 mask = 0x80;
 
 	switch(mode)
 	{
 		case REGULATOR_MODE_FAST:
-			return rk818_set_bits(rk818, (rk818_BUCK_SET_VOL_REG(buck) + 0x01), mask, mask);
+			return rk818_set_bits(chip, (rk818_BUCK_SET_VOL_REG(buck) + 0x01), mask, mask);
 		case REGULATOR_MODE_NORMAL:
-			return rk818_set_bits(rk818, (rk818_BUCK_SET_VOL_REG(buck) + 0x01), mask, 0);
+			return rk818_set_bits(chip, (rk818_BUCK_SET_VOL_REG(buck) + 0x01), mask, 0);
 		default:
 			printk("error:pmu_rk818 only powersave and pwm mode\n");
 			return -EINVAL;
@@ -911,146 +925,138 @@ static struct regulator_desc regulators[] = {
 
 };
 
-int rk818_i2c_read(struct rk818 *rk818, char reg, int count,u8 *dest)
+int rk818_i2c_read(struct rk818_chip *chip, char reg, int count,u8 *dest)
 {
-	struct i2c_client *i2c = rk818->i2c;
+	struct i2c_client *client = chip->client;
 
 	int ret;
-	struct i2c_adapter *adap;
 	struct i2c_msg msgs[2];
 
-	if(!i2c)
+	if(!client)
 		return ret;
 
 	if (count != 1)
 		return -EIO;
 
-	adap = i2c->adapter;
-
-	msgs[0].addr = i2c->addr;
+	msgs[0].addr = client->addr;
 	msgs[0].buf = &reg;
 	msgs[0].flags = 0;
 	msgs[0].len = 1;
 	msgs[0].scl_rate = 200*1000;
 
 	msgs[1].buf = dest;
-	msgs[1].addr = i2c->addr;
+	msgs[1].addr = client->addr;
 	msgs[1].flags =  I2C_M_RD;
 	msgs[1].len = count;
 	msgs[1].scl_rate = RK818_I2C_ADDR_RATE;
 
-	ret = i2c_transfer(adap, msgs, 2);
+	ret = i2c_transfer(client->adapter, msgs, 2);
 
 	return 0;
 }
 
-int rk818_i2c_write(struct rk818 *rk818, char reg, int count,  const u8 src)
+int rk818_i2c_write(struct rk818_chip *chip, char reg, int count,  const u8 src)
 {
 	int ret=-1;
-	struct i2c_client *i2c = rk818->i2c;
-	struct i2c_adapter *adap;
+	struct i2c_client *client = chip->client;
 	struct i2c_msg msg;
 	char tx_buf[2];
 
-	if(!i2c)
+	if(!client)
 		return ret;
 	if (count != 1)
 		return -EIO;
 
-	adap = i2c->adapter;
 	tx_buf[0] = reg;
 	tx_buf[1] = src;
 
-	msg.addr = i2c->addr;
+	msg.addr = client->addr;
 	msg.buf = &tx_buf[0];
 	msg.len = 1 +1;
-	msg.flags = i2c->flags;
+	msg.flags = client->flags;
 	msg.scl_rate = RK818_I2C_ADDR_RATE;
 
-	ret = i2c_transfer(adap, &msg, 1);
+	ret = i2c_transfer(client->adapter, &msg, 1);
 	return ret;
 }
 
-u8 rk818_reg_read(struct rk818 *rk818, u8 reg)
+u8 rk818_reg_read(struct rk818_chip *chip, u8 reg)
 {
 	u8 val = 0;
 
-	mutex_lock(&rk818->io_lock);
+	mutex_lock(&chip->io_lock);
 
-	rk818_i2c_read(rk818, reg, 1, &val);
+	rk818_i2c_read(chip, reg, 1, &val);
 
-	mutex_unlock(&rk818->io_lock);
+	mutex_unlock(&chip->io_lock);
 
 	return val & 0xff;
 }
 EXPORT_SYMBOL_GPL(rk818_reg_read);
 
-int rk818_reg_write(struct rk818 *rk818, u8 reg, u8 val)
+int rk818_reg_write(struct rk818_chip *chip, u8 reg, u8 val)
 {
 	int err =0;
 
-	mutex_lock(&rk818->io_lock);
+	mutex_lock(&chip->io_lock);
 
-	err = rk818_i2c_write(rk818, reg, 1,val);
+	err = rk818_i2c_write(chip, reg, 1,val);
 	if (err < 0)
-		dev_err(rk818->dev, "Write for reg 0x%x failed\n", reg);
+		dev_err(chip->dev, "Write for reg 0x%x failed\n", reg);
 
-	mutex_unlock(&rk818->io_lock);
+	mutex_unlock(&chip->io_lock);
 	return err;
 }
 EXPORT_SYMBOL_GPL(rk818_reg_write);
 
-int rk818_set_bits(struct rk818 *rk818, u8 reg, u8 mask, u8 val)
+int rk818_set_bits(struct rk818_chip *chip, u8 reg, u8 mask, u8 val)
 {
 	u8 tmp;
 	int ret;
 
-	mutex_lock(&rk818->io_lock);
+	mutex_lock(&chip->io_lock);
 
-	ret = rk818_i2c_read(rk818, reg, 1, &tmp);
+	ret = rk818_i2c_read(chip, reg, 1, &tmp);
 	tmp = (tmp & ~mask) | val;
 	if (ret == 0) {
-		ret = rk818_i2c_write(rk818, reg, 1, tmp);
+		ret = rk818_i2c_write(chip, reg, 1, tmp);
 	}
-	rk818_i2c_read(rk818, reg, 1, &tmp);
-	mutex_unlock(&rk818->io_lock);
+	rk818_i2c_read(chip, reg, 1, &tmp);
+	mutex_unlock(&chip->io_lock);
 
 	return 0;//ret;
 }
 EXPORT_SYMBOL_GPL(rk818_set_bits);
 
-int rk818_clear_bits(struct rk818 *rk818, u8 reg, u8 mask)
+int rk818_clear_bits(struct rk818_chip *chip, u8 reg, u8 mask)
 {
 	u8 data;
 	int err;
 
-	mutex_lock(&rk818->io_lock);
-	err = rk818_i2c_read(rk818, reg, 1, &data);
+	mutex_lock(&chip->io_lock);
+	err = rk818_i2c_read(chip, reg, 1, &data);
 	if (err <0) {
-		dev_err(rk818->dev, "read from reg %x failed\n", reg);
+		dev_err(chip->dev, "read from reg %x failed\n", reg);
 		goto out;
 	}
 
 	data &= ~mask;
-	err = rk818_i2c_write(rk818, reg, 1, data);
+	err = rk818_i2c_write(chip, reg, 1, data);
 	if (err <0)
-		dev_err(rk818->dev, "write to reg %x failed\n", reg);
+		dev_err(chip->dev, "write to reg %x failed\n", reg);
 
 out:
-	mutex_unlock(&rk818->io_lock);
+	mutex_unlock(&chip->io_lock);
 	return err;
 }
 EXPORT_SYMBOL_GPL(rk818_clear_bits);
 
-#ifdef CONFIG_OF
 static struct of_device_id rk818_of_match[] = {
 	{ .compatible = "rockchip,rk818"},
 	{ },
 };
 MODULE_DEVICE_TABLE(of, rk818_of_match);
-#endif
 
-#ifdef CONFIG_OF
 static struct of_regulator_match rk818_reg_matches[] = {
 	{ .name = "rk818_dcdc1", .driver_data = (void *)0 },
 	{ .name = "rk818_dcdc2", .driver_data = (void *)1 },
@@ -1068,13 +1074,13 @@ static struct of_regulator_match rk818_reg_matches[] = {
 	{ .name = "rk818_ldo10", .driver_data = (void *)13 },
 };
 
-static struct rk818_board *rk818_parse_dt(struct rk818 *rk818)
+static struct rk818_chip_board *rk818_parse_dt(struct rk818_chip *chip)
 {
-	struct rk818_board *pdata;
+	struct rk818_chip_board *pdata;
 	struct device_node *regs,*rk818_pmic_np;
 	int i, count;
 
-	rk818_pmic_np = of_node_get(rk818->dev->of_node);
+	rk818_pmic_np = of_node_get(chip->dev->of_node);
 	if (!rk818_pmic_np) {
 		printk("could not find pmic sub-node\n");
 		return NULL;
@@ -1084,13 +1090,13 @@ static struct rk818_board *rk818_parse_dt(struct rk818 *rk818)
 	if (!regs)
 		return NULL;
 
-	count = of_regulator_match(rk818->dev, regs, rk818_reg_matches,
+	count = of_regulator_match(chip->dev, regs, rk818_reg_matches,
 			rk818_NUM_REGULATORS);
 	of_node_put(regs);
 	if ((count < 0) || (count > rk818_NUM_REGULATORS))
 		return NULL;
 
-	pdata = devm_kzalloc(rk818->dev, sizeof(*pdata), GFP_KERNEL);
+	pdata = devm_kzalloc(chip->dev, sizeof(*pdata), GFP_KERNEL);
 	if (!pdata)
 		return NULL;
 
@@ -1101,7 +1107,7 @@ static struct rk818_board *rk818_parse_dt(struct rk818 *rk818)
 		pdata->rk818_init_data[i] = rk818_reg_matches[i].init_data;
 		pdata->of_node[i] = rk818_reg_matches[i].of_node;
 	}
-	pdata->irq = rk818->chip_irq;
+	pdata->irq = chip->chip_irq;
 	pdata->irq_base = -1;
 
 	pdata->irq_gpio = of_get_named_gpio(rk818_pmic_np,"gpios",0);
@@ -1115,71 +1121,64 @@ static struct rk818_board *rk818_parse_dt(struct rk818 *rk818)
 		printk("invalid gpio: %d\n",  pdata->pmic_sleep_gpio);
 	}
 	pdata->pmic_sleep = true;
-	pdata->pm_off = of_property_read_bool(rk818_pmic_np,"rk818,system-power-controller");
+	pdata->pm_off = of_property_read_bool(rk818_pmic_np,"chip,system-power-controller");
 
 	return pdata;
 }
 
-#else
-static struct rk818_board *rk818_parse_dt(struct i2c_client *i2c)
-{
-	return NULL;
-}
-#endif
-
-static int rk818_pre_init(struct rk818 *rk818)
+static int rk818_pre_init(struct rk818_chip *chip)
 {
 	int ret,val;
 	printk("%s,line=%d\n", __func__,__LINE__);
 
-	ret = rk818_set_bits(rk818, 0xa1, (0xF<<0),(0x7));
-	ret = rk818_set_bits(rk818, 0xa1,(0x7<<4),(0x7<<4)); //close charger when usb low then 3.4V
-	ret = rk818_set_bits(rk818, 0x52,(0x1<<1),(0x1<<1)); //no action when vref
-	ret = rk818_set_bits(rk818, 0x52,(0x1<<0),(0x1<<0)); //enable HDMI 5V
+	ret = rk818_set_bits(chip, 0xa1, (0xF<<0),(0x7));
+	ret = rk818_set_bits(chip, 0xa1,(0x7<<4),(0x7<<4)); //close charger when usb low then 3.4V
+	ret = rk818_set_bits(chip, 0x52,(0x1<<1),(0x1<<1)); //no action when vref
+	ret = rk818_set_bits(chip, 0x52,(0x1<<0),(0x1<<0)); //enable HDMI 5V
 
-	/*******enable switch and boost***********/
-	val = rk818_reg_read(rk818,RK818_DCDC_EN_REG);
+	/* enable switch and boost */
+	val = rk818_reg_read(chip,RK818_DCDC_EN_REG);
 	val |= (0x3 << 5);    //enable switch1/2
 	val |= (0x1 << 4);    //enable boost
-	ret = rk818_reg_write(rk818,RK818_DCDC_EN_REG,val);
+	ret = rk818_reg_write(chip,RK818_DCDC_EN_REG,val);
 	if (ret <0) {
 		printk(KERN_ERR "Unable to write RK818_DCDC_EN_REG reg\n");
 		return ret;
 	}
 
-	/****************set vbat low **********/
-	val = rk818_reg_read(rk818,RK818_VB_MON_REG);
+	/* set vbat low */
+	val = rk818_reg_read(chip,RK818_VB_MON_REG);
 	val &=(~(VBAT_LOW_VOL_MASK | VBAT_LOW_ACT_MASK));
 	val |= (RK818_VBAT_LOW_3V0 | EN_VABT_LOW_SHUT_DOWN);
-	ret = rk818_reg_write(rk818,RK818_VB_MON_REG,val);
+	ret = rk818_reg_write(chip,RK818_VB_MON_REG,val);
 	if (ret <0) {
 		printk(KERN_ERR "Unable to write RK818_VB_MON_REG reg\n");
 		return ret;
 	}
 
-	/**********mask int****************/
-	val = rk818_reg_read(rk818,RK818_INT_STS_MSK_REG1);
+	/* mask int */
+	val = rk818_reg_read(chip,RK818_INT_STS_MSK_REG1);
 	val |= (0x1<<0); //mask vout_lo_int
-	ret = rk818_reg_write(rk818,RK818_INT_STS_MSK_REG1,val);
+	ret = rk818_reg_write(chip,RK818_INT_STS_MSK_REG1,val);
 	if (ret <0) {
 		printk(KERN_ERR "Unable to write RK818_INT_STS_MSK_REG1 reg\n");
 		return ret;
 	}
 
-	/**********enable clkout2****************/
-	ret = rk818_reg_write(rk818,RK818_CLK32OUT_REG,0x01);
+	/* enable clkout2 */
+	ret = rk818_reg_write(chip,RK818_CLK32OUT_REG,0x01);
 	if (ret <0) {
 		printk(KERN_ERR "Unable to write RK818_CLK32OUT_REG reg\n");
 		return ret;
 	}
 
-	ret = rk818_clear_bits(rk818, RK818_INT_STS_MSK_REG1,(0x3<<5)); //open rtc int when power on
-	ret = rk818_set_bits(rk818, RK818_RTC_INT_REG,(0x1<<3),(0x1<<3)); //open rtc int when power on
+	ret = rk818_clear_bits(chip, RK818_INT_STS_MSK_REG1,(0x3<<5)); //open rtc int when power on
+	ret = rk818_set_bits(chip, RK818_RTC_INT_REG,(0x1<<3),(0x1<<3)); //open rtc int when power on
 
-	/*****disable otg and boost when in sleep mode****/
-	val = rk818_reg_read(rk818, RK818_SLEEP_SET_OFF_REG1);
+	/* disable otg and boost when in sleep mode */
+	val = rk818_reg_read(chip, RK818_SLEEP_SET_OFF_REG1);
 	val |= ((0x1 << 7) | (0x1 << 4));
-	ret =  rk818_reg_write(rk818, RK818_SLEEP_SET_OFF_REG1, val);
+	ret =  rk818_reg_write(chip, RK818_SLEEP_SET_OFF_REG1, val);
 	if (ret < 0) {
 		pr_err("Unable to write RK818_SLEEP_SET_OFF_REG1 reg\n");
 		return ret;
@@ -1188,10 +1187,10 @@ static int rk818_pre_init(struct rk818 *rk818)
 	return 0;
 }
 
-static int  rk818_i2c_probe(struct i2c_client *i2c, const struct i2c_device_id *id)
+static int rk818_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
-	struct rk818 *rk818;
-	struct rk818_board *pdev;
+	struct rk818_chip *chip;
+	struct rk818_chip_board *pdata;
 	const struct of_device_id *match;
 	struct regulator_config config = { };
 	struct regulator_dev *rk818_rdev;
@@ -1199,105 +1198,102 @@ static int  rk818_i2c_probe(struct i2c_client *i2c, const struct i2c_device_id *
 	const char *rail_name = NULL;
 	int ret, i = 0;
 
-	printk("%s,line=%d\n", __func__,__LINE__);
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
 
-	if (i2c->dev.of_node) {
-		match = of_match_device(rk818_of_match, &i2c->dev);
+	/* 检查DT */
+	if (client->dev.of_node) {
+		match = of_match_device(rk818_of_match, &client->dev);
 		if (!match) {
-			dev_err(&i2c->dev,"Failed to find matching dt id\n");
+			dev_err(&client->dev,"Failed to find matching dt id\n");
 			return -EINVAL;
 		}
 	}
 
-	rk818 = devm_kzalloc(&i2c->dev,sizeof(struct rk818), GFP_KERNEL);
-	if (rk818 == NULL) {
+	/* 为自定义结构提分配数据空间 */
+	chip = devm_kzalloc(&client->dev,sizeof(struct rk818_chip), GFP_KERNEL);
+	if (chip == NULL)
 		ret = -ENOMEM;
-	}
-	rk818->i2c = i2c;
-	rk818->dev = &i2c->dev;
-	i2c_set_clientdata(i2c, rk818);
 
-	mutex_init(&rk818->io_lock);
+	/* 设置chip */
+	chip->client = client;
+	chip->dev = &client->dev;
 
-	ret = rk818_reg_read(rk818,0x2f);
+	/* 设置client 的driver data 指向chip */
+	i2c_set_clientdata(client, chip);
+
+	mutex_init(&chip->io_lock);
+
+	ret = rk818_reg_read(chip,0x2f);
 	if ((ret < 0) || (ret == 0xff)){
 		printk("The device is not rk818 %d\n",ret);
 	}
 
-	ret = rk818_pre_init(rk818);
-	if (ret < 0){
+	ret = rk818_pre_init(chip);
+	if (ret < 0)
 		printk("The rk818_pre_init failed %d\n",ret);
-	}
 
-	if (rk818->dev->of_node)
-		pdev = rk818_parse_dt(rk818);
+	/* 解析DT */
+	if (chip->dev->of_node)
+		pdata = rk818_parse_dt(chip);
 
-	/******************************set sleep vol & dcdc mode******************/
-#ifdef CONFIG_OF
-	rk818->pmic_sleep_gpio = pdev->pmic_sleep_gpio;
-	if (rk818->pmic_sleep_gpio) {
-		ret = gpio_request(rk818->pmic_sleep_gpio, "rk818_pmic_sleep");
+	/* set sleep vol and dcdc mode */
+	chip->pmic_sleep_gpio = pdata->pmic_sleep_gpio;
+	if (chip->pmic_sleep_gpio) {
+		ret = devm_gpio_request(chip->dev, chip->pmic_sleep_gpio, "rk818_pmic_sleep");
 		if (ret < 0) {
-			dev_err(rk818->dev,"Failed to request gpio %d with ret:""%d\n",	rk818->pmic_sleep_gpio, ret);
+			dev_err(chip->dev,"Failed to request gpio %d with ret:""%d\n",	chip->pmic_sleep_gpio, ret);
 			return IRQ_NONE;
 		}
-		gpio_direction_output(rk818->pmic_sleep_gpio,0);
-		ret = gpio_get_value(rk818->pmic_sleep_gpio);
-		gpio_free(rk818->pmic_sleep_gpio);
+		gpio_direction_output(chip->pmic_sleep_gpio,0);
+		ret = gpio_get_value(chip->pmic_sleep_gpio);
 		pr_info("%s: rk818_pmic_sleep=%x\n", __func__, ret);
 	}
-#endif
-	/**********************************************************/
 
-	if (pdev) {
-		rk818->num_regulators = rk818_NUM_REGULATORS;
-		rk818->rdev = kcalloc(rk818_NUM_REGULATORS,sizeof(struct regulator_dev *), GFP_KERNEL);
-		if (!rk818->rdev) {
+	/* If we got pdata, let's do some important */
+	if (pdata)
+	{
+		chip->num_regulators = rk818_NUM_REGULATORS;
+		chip->rdev = kcalloc(rk818_NUM_REGULATORS,sizeof(struct regulator_dev *), GFP_KERNEL);
+		if (!chip->rdev) {
 			return -ENOMEM;
 		}
 		/* Instantiate the regulators */
 		for (i = 0; i < rk818_NUM_REGULATORS; i++) {
-			reg_data = pdev->rk818_init_data[i];
+			reg_data = pdata->rk818_init_data[i];
 			if (!reg_data)
 				continue;
-			config.dev = rk818->dev;
-			config.driver_data = rk818;
-			if (rk818->dev->of_node)
-				config.of_node = pdev->of_node[i];
+			config.dev = chip->dev;
+			config.driver_data = chip;
+			if (chip->dev->of_node)
+				config.of_node = pdata->of_node[i];
 			if (reg_data && reg_data->constraints.name)
 				rail_name = reg_data->constraints.name;
 			else
 				rail_name = regulators[i].name;
 			reg_data->supply_regulator = rail_name;
 
-			config.init_data =reg_data;
+			config.init_data = reg_data;
 
-			rk818_rdev = regulator_register(&regulators[i],&config);
+			rk818_rdev = devm_regulator_register(chip->dev, &regulators[i], &config);
 			if (IS_ERR(rk818_rdev)) {
 				printk("failed to register %d regulator\n",i);
 			}
-			rk818->rdev[i] = rk818_rdev;
+			chip->rdev[i] = rk818_rdev;
 		}
 	}
 
-	rk818->irq_gpio = pdev->irq_gpio;
-	ret = rk818_irq_init(rk818, rk818->irq_gpio, pdev);
+	chip->irq_gpio = pdata->irq_gpio;
+	ret = rk818_irq_init(chip, chip->irq_gpio, pdata);
 	if (ret < 0)
 		printk("rk818 irq init error\n");
 
 	return 0;
 }
 
-static int rk818_i2c_remove(struct i2c_client *i2c)
+static int rk818_i2c_remove(struct i2c_client *client)
 {
-	struct rk818 *rk818 = i2c_get_clientdata(i2c);
-	int i;
-
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	for (i = 0; i < rk818->num_regulators; i++)
-		if (rk818->rdev[i])
-			regulator_unregister(rk818->rdev[i]);
-	i2c_set_clientdata(i2c, NULL);
+	i2c_set_clientdata(client, NULL);
 
 	return 0;
 }

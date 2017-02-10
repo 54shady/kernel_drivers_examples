@@ -115,6 +115,16 @@ done
 
 ## RK818 PMU驱动
 
+![PowerTree](./rk818_powertree.png)
+
+可以从上图中看出TP使用的LDO2,下面就测试这个LDO
+
+### Usage
+
+在主dts文件中包含下面的dtsi文件
+
+	#include "rk818_test.dtsi"
+
 ### 测试方法
 
 - 加载PMU驱动
