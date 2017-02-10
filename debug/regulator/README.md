@@ -123,6 +123,7 @@ done
 
 在主dts文件中包含下面的dtsi文件
 
+	#include "rk818.dtsi"
 	#include "rk818_test.dtsi"
 
 ### 测试方法

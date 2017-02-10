@@ -1,0 +1,251 @@
+&i2c0 {
+	rk818: rk818@1c {
+		reg = <0x1c>;
+		status = "okay";
+		compatible = "rockchip,rk818";
+		gpios =<&gpio0 GPIO_A1 GPIO_ACTIVE_HIGH>,<&gpio0 GPIO_A0 GPIO_ACTIVE_LOW>;
+		rk818,system-power-controller;
+        pinctrl-names = "default";
+        pinctrl-0 = <&gpio0_c1>;
+		battery {
+		   ocv_table = <3400 3650 3693 3707 3731 3749 3760
+			   3770 3782 3796 3812 3829 3852 3882
+			   3915 3951 3981 4047 4086 4132 4182>;
+		   design_capacity = <8650>;
+		   design_qmax = <8800>;
+		   max_overcharge = <100>;
+		   bat_res = <85>;
+		   max_input_currentmA  = <2000>;
+		   max_chrg_currentmA = <1800>;
+		   max_charge_voltagemV = <4200>;
+		   max_bat_voltagemV = <4200>;
+		   sleep_enter_current = <600>;
+		   sleep_exit_current = <600>;
+		   power_off_thresd = <3400>;
+		   chrg_diff_voltagemV = <0>;
+		   virtual_power = <0>;
+		   power_dc2otg = <1>;
+		   support_usb_adp = <1>;
+		   support_dc_adp = <1>;
+		   dc_det_gpio = <&gpio0 GPIO_C1 GPIO_ACTIVE_LOW>;
+		};
+
+		regulators {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			rk818_dcdc1_reg: regulator@0 {
+								 reg = <0>;
+								 regulator-compatible = "rk818_dcdc1";
+								 regulator-always-on;
+								 regulator-boot-on;
+								 regulator-name= "vdd_logic";/*vcc arm*/
+								 regulator-min-microvolt = <700000>;/*<725000>;*/
+								 regulator-max-microvolt = <1500000>;
+								 regulator-initial-mode = <0x2>;
+								 regulator-initial-state = <3>;
+								 regulator-state-mem {
+									 regulator-state-mode = <0x2>;
+									 regulator-state-enabled;
+									 regulator-state-uv =<1000000>;
+								 };
+							 };
+
+			rk818_dcdc2_reg: regulator@1 {
+								 reg = <1>;
+								 regulator-compatible = "rk818_dcdc2";
+								 regulator-always-on;
+								 regulator-boot-on;
+								 regulator-name= "rk818_dcdc2";/*vcc gpu*/
+								 regulator-min-microvolt = <700000>;
+								 regulator-max-microvolt = <1200000>;
+								 regulator-initial-mode = <0x2>;
+								 regulator-initial-state = <3>;
+								 regulator-state-mem {
+									 regulator-state-mode = <0x2>;
+									 regulator-state-enabled;
+									 regulator-state-uv = <1000000>;
+								 };
+							 };
+
+			rk818_dcdc3_reg: regulator@2 {
+								 reg = <2>;
+								 regulator-compatible = "rk818_dcdc3";
+								 regulator-always-on;
+								 regulator-boot-on;
+								 regulator-name= "vcc_ddr";
+								 regulator-min-microvolt = <1200000>;
+								 regulator-max-microvolt = <1200000>;
+								 regulator-initial-mode = <0x2>;
+								 regulator-initial-state = <3>;
+								 regulator-state-mem {
+									 regulator-state-mode = <0x2>;
+									 regulator-state-enabled;
+									 regulator-state-uv = <1200000>;
+								 };
+							 };
+
+			rk818_dcdc4_reg: regulator@3 {
+								 reg = <3>;
+								 regulator-compatible = "rk818_dcdc4";
+								 regulator-always-on;
+								 regulator-boot-on;
+								 regulator-name= "vccio";
+								 regulator-min-microvolt = <3300000>;
+								 regulator-max-microvolt = <3300000>;
+								 regulator-initial-mode = <0x2>;
+								 regulator-initial-state = <3>;
+								 regulator-state-mem {
+									 regulator-state-mode = <0x2>;
+									 regulator-state-enabled;
+									 regulator-state-uv = <3000000>;
+								 };
+							 };
+
+			rk818_ldo1_reg: regulator@4 {
+								reg = <4>;
+								regulator-compatible = "rk818_ldo1";
+								regulator-always-on;
+								regulator-boot-on;
+								regulator-name= "vcc_codec";
+								regulator-min-microvolt = <3300000>;
+								regulator-max-microvolt = <3300000>;
+								regulator-initial-state = <3>;
+								regulator-state-mem {
+									regulator-state-enabled;
+									regulator-state-uv = <3300000>;
+								};
+							};
+
+			rk818_ldo2_reg: regulator@5 {
+								reg = <5>;
+								regulator-compatible = "rk818_ldo2";
+								regulator-boot-on;
+								regulator-name= "vcc_tp";
+								regulator-min-microvolt = <3300000>;
+								regulator-max-microvolt = <3300000>;
+								regulator-initial-state = <3>;
+								regulator-state-mem {
+									regulator-state-enabled;
+									regulator-state-uv = <3300000>;
+								};
+							};
+
+			rk818_ldo3_reg: regulator@6 {
+								reg = <6>;
+								regulator-compatible = "rk818_ldo3";
+								regulator-always-on;
+								/*regulator-boot-on;*/
+								regulator-name= "vdd_10";
+								regulator-min-microvolt = <1000000>;
+								regulator-max-microvolt = <1000000>;
+								regulator-initial-state = <3>;
+								regulator-state-mem {
+									regulator-state-enabled;
+									regulator-state-uv = <1000000>;
+								};
+							};
+
+			rk818_ldo4_reg: regulator@7{
+								reg = <7>;
+								regulator-compatible = "rk818_ldo4";
+								regulator-always-on;
+								regulator-boot-on;
+								regulator-name= "vcc18_lcd";
+								regulator-min-microvolt = <1800000>;
+								regulator-max-microvolt = <1800000>;
+								regulator-initial-state = <3>;
+								regulator-state-mem {
+									regulator-state-disabled;
+									regulator-state-uv = <1800000>;
+								};
+							};
+
+			rk818_ldo5_reg: regulator@8{
+								reg = <8>;
+								regulator-compatible = "rk818_ldo5";
+								regulator-always-on;
+								regulator-boot-on;
+								regulator-name= "vccio_pmu";
+								regulator-min-microvolt = <2300000>;
+								regulator-max-microvolt = <2300000>;
+								regulator-initial-state = <3>;
+								regulator-state-mem {
+									regulator-state-enabled;
+									regulator-state-uv = <2300000>;
+								};
+							};
+
+			rk818_ldo6_reg: regulator@9{
+								reg = <9>;
+								regulator-compatible = "rk818_ldo6";
+								regulator-always-on;
+								regulator-boot-on;
+								regulator-name= "vdd10_lcd";
+								regulator-min-microvolt = <1000000>;
+								regulator-max-microvolt = <1000000>;
+								regulator-initial-state = <3>;
+								regulator-state-mem {
+									regulator-state-disabled;
+									regulator-state-uv = <1000000>;
+								};
+							};
+
+			rk818_ldo7_reg: regulator@10 {
+								reg = <10>;
+								regulator-compatible = "rk818_ldo7";
+								regulator-always-on;
+								regulator-boot-on;
+								regulator-name= "vcc_18";
+								regulator-min-microvolt = <1800000>;
+								regulator-max-microvolt = <1800000>;
+								regulator-initial-state = <3>;
+								regulator-state-mem {
+									regulator-state-enabled;
+									regulator-state-uv = <1800000>;
+								};
+							};
+
+			rk818_ldo8_reg: regulator@11{
+								reg = <11>;
+								regulator-compatible = "rk818_ldo8";
+								regulator-always-on;
+								regulator-boot-on;
+								regulator-name= "vccio_wl";
+								regulator-min-microvolt = <3300000>;
+								regulator-max-microvolt = <3300000>;
+								regulator-initial-state = <3>;
+								regulator-state-mem {
+									regulator-state-enabled;
+									regulator-state-uv = <3300000>;
+								};
+							};
+
+			rk818_ldo9_reg: regulator@12{
+								reg = <12>;
+								regulator-compatible = "rk818_ldo9";
+								regulator-always-on;
+								regulator-boot-on;
+								regulator-name= "vcc_sd";
+								regulator-min-microvolt = <1800000>;
+								regulator-max-microvolt = <3300000>;
+								regulator-initial-state = <3>;
+								regulator-state-mem {
+									regulator-state-enabled;
+									regulator-state-uv = <3300000>;
+								};
+							};
+
+			rk818_ldo10_reg: regulator@13{
+								 reg = <13>;
+								 regulator-compatible = "rk818_ldo10";
+								 regulator-always-on;
+								 regulator-boot-on;
+								 regulator-name= "rk818_ldo10";
+								 regulator-state-mem {
+									 regulator-state-disabled;
+								 };
+							 };
+		};
+	};
+};
