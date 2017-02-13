@@ -159,9 +159,9 @@ rk818_ldo2_reg: regulator@5 {
 	regulator_enable(supply);
 	regulator_disable(supply);
 
-### Usage
+### 如何使用本文中的代码
 
-在主dts文件中包含下面的dtsi文件
+编译相应代码得到相应模块,在主dts文件中包含下面的dtsi文件
 
 	#include "rk818.dtsi"
 	#include "rk818_test.dtsi"
@@ -190,6 +190,7 @@ done
 while true
 do
 cat /sys/class/regulator/regulator.7/state
+cat /sys/class/regulator/regulator.7/num_users
 sleep 2
 done
 ```
