@@ -119,6 +119,46 @@ done
 
 可以从上图中看出TP使用的LDO2,下面就测试这个LDO
 
+### 测试代码简单说明
+
+模拟一个I2C驱动(实际可以没有物理设备),假设是TP,其DeviceTree描述如下
+
+```c
+&i2c0 {
+	regulator_test@5d {
+		compatible = "Test,regulator";
+		status = "okay";
+		reg = <0x5d>;
+		VCC_TP-supply = <&rk818_ldo2_reg>;
+	};
+};
+```
+
+其中LDO2的设置如下(不能设置成regulator-always-on)
+否则无法看到关闭regulator的现象
+
+```c
+rk818_ldo2_reg: regulator@5 {
+					reg = <5>;
+					regulator-compatible = "rk818_ldo2";
+					regulator-boot-on;
+					regulator-name= "vcc_tp";
+					regulator-min-microvolt = <3300000>;
+					regulator-max-microvolt = <3300000>;
+					regulator-initial-state = <3>;
+					regulator-state-mem {
+						regulator-state-enabled;
+						regulator-state-uv = <3300000>;
+					};
+				};
+```
+
+测试代码中通过下面的方法来获取和使用这个LDO
+
+	supply = devm_regulator_get(&client->dev, "VCC_TP");
+	regulator_enable(supply);
+	regulator_disable(supply);
+
 ### Usage
 
 在主dts文件中包含下面的dtsi文件
