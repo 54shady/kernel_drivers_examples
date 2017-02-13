@@ -96,7 +96,7 @@
 
 #define RK818_NUM_IRQ  16
 
-#define rk818_NUM_REGULATORS 14
+#define RK818_NUM_REGULATORS 14
 struct rk818_chip;
 
 #define RK818_VBAT_LOW_2V8  0x00
@@ -112,13 +112,14 @@ struct rk818_chip;
 #define EN_VBAT_LOW_IRQ (0x1 <<4 )
 #define VBAT_LOW_ACT_MASK (0x1 << 4)
 
-struct rk818_chip_board {
+/* 用来表示device tree里的信息,用pdata表示 */
+struct rk818_board {
 	int irq;
 	int irq_base;
 	int irq_gpio;
 	int wakeup;
-	struct regulator_init_data *rk818_init_data[rk818_NUM_REGULATORS];
-	struct device_node *of_node[rk818_NUM_REGULATORS];
+	struct regulator_init_data *rid[RK818_NUM_REGULATORS];
+	struct device_node *np[RK818_NUM_REGULATORS];
 	int pmic_sleep_gpio; /* */
 	unsigned int dcdc_slp_voltage[3]; /* buckx_voltage in uV */
 	bool pmic_sleep;
@@ -164,7 +165,7 @@ struct rk818_chip_platform_data {
 	struct irq_domain *irq_domain;
 };
 
-int rk818_irq_init(struct rk818_chip *rk818, int irq,struct rk818_chip_board *pdata);
+int rk818_irq_init(struct rk818_chip *rk818, int irq,struct rk818_board *pdata);
 int rk818_i2c_read(struct rk818_chip *rk818, char reg, int count,u8 *dest);
 int rk818_i2c_write(struct rk818_chip *rk818, char reg, int count, const u8 src);
 int rk818_set_bits(struct rk818_chip *rk818, u8 reg, u8 mask, u8 val);

@@ -146,7 +146,7 @@ static struct act8846_board *act8846_parse_dt(struct act8846 *chip)
 		return NULL;
 	}
 
-	/* 获取regulators的node */
+	/* 根据chip node获取regulators的node */
 	regulators_np = of_find_node_by_name(chip_np, "regulators");
 	if (!regulators_np)
 	{
@@ -167,7 +167,7 @@ static struct act8846_board *act8846_parse_dt(struct act8846 *chip)
 		return NULL;
 	}
 
-	/* 自定义的平台数据 */
+	/* 给自定义的平台数据分配空间 */
 	pdata = devm_kzalloc(chip->dev, sizeof(struct act8846_board), GFP_KERNEL);
 	if (!pdata)
 	{
@@ -175,9 +175,9 @@ static struct act8846_board *act8846_parse_dt(struct act8846 *chip)
 		return NULL;
 	}
 
+	/* 保存regulator_init_data和pnode */
 	for (i = 0; i < count; i++)
 	{
-		/* 保存regulator_init_data和pnode */
 		pdata->rid[i] = act8846_reg_matches[i].init_data;
 		pdata->np[i] = act8846_reg_matches[i].of_node;
 	}
@@ -731,8 +731,9 @@ static int act8846_i2c_probe(struct i2c_client *client, const struct i2c_device_
 				rail_name = regulators[i].name;
 
 			rid->supply_regulator = rail_name;
-
 			rcfg.init_data = rid;
+
+			/* register regulatosr */
 			act_rdev = devm_regulator_register(chip->dev, &regulators[i], &rcfg);
 			if (IS_ERR(act_rdev)) {
 				printk("failed to register %d regulator\n",i);

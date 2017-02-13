@@ -35,7 +35,7 @@
 /* FIXME should not extern */
 extern struct regulator_dev *devm_regulator_register(struct device *dev,
 				  const struct regulator_desc *regulator_desc,
-				  const struct regulator_config *config);
+				  const struct regulator_config *rcfg);
 
 const static int buck_set_vol_base_addr[] = {
 	RK818_BUCK1_ON_REG,
@@ -265,7 +265,7 @@ static struct irq_domain_ops rk818_irq_domain_ops = {
 	.map = rk818_irq_domain_map,
 };
 
-int rk818_irq_init(struct rk818_chip *chip, int irq,struct rk818_chip_board *pdata)
+int rk818_irq_init(struct rk818_chip *chip, int irq,struct rk818_board *pdata)
 {
 	struct irq_domain *domain;
 	int ret,val,irq_type,flags;
@@ -1057,6 +1057,10 @@ static struct of_device_id rk818_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, rk818_of_match);
 
+/*
+ * 用名字和device tree里的信息匹配
+ * 将每个regulator的信息填到这个数据结构
+ */
 static struct of_regulator_match rk818_reg_matches[] = {
 	{ .name = "rk818_dcdc1", .driver_data = (void *)0 },
 	{ .name = "rk818_dcdc2", .driver_data = (void *)1 },
@@ -1074,54 +1078,63 @@ static struct of_regulator_match rk818_reg_matches[] = {
 	{ .name = "rk818_ldo10", .driver_data = (void *)13 },
 };
 
-static struct rk818_chip_board *rk818_parse_dt(struct rk818_chip *chip)
+static struct rk818_board *rk818_parse_dt(struct rk818_chip *chip)
 {
-	struct rk818_chip_board *pdata;
-	struct device_node *regs,*rk818_pmic_np;
+	struct rk818_board *pdata;
+	struct device_node *regulators_np;
+	struct device_node *chip_np;
 	int i, count;
 
-	rk818_pmic_np = of_node_get(chip->dev->of_node);
-	if (!rk818_pmic_np) {
+	/* 增加引用计数 */
+	chip_np = of_node_get(chip->dev->of_node);
+	if (!chip_np) {
 		printk("could not find pmic sub-node\n");
 		return NULL;
 	}
 
-	regs = of_find_node_by_name(rk818_pmic_np, "regulators");
-	if (!regs)
+	/* 根据chip node获取regulators的node */
+	regulators_np = of_find_node_by_name(chip_np, "regulators");
+	if (!regulators_np)
 		return NULL;
 
-	count = of_regulator_match(chip->dev, regs, rk818_reg_matches,
-			rk818_NUM_REGULATORS);
-	of_node_put(regs);
-	if ((count < 0) || (count > rk818_NUM_REGULATORS))
+	/* 获取regulator的个数,并且初始化init_data */
+	count = of_regulator_match(chip->dev, regulators_np, rk818_reg_matches,
+			RK818_NUM_REGULATORS);
+
+	/* 引用计数减一 */
+	of_node_put(regulators_np);
+	if ((count < 0) || (count > RK818_NUM_REGULATORS))
 		return NULL;
 
+	/* 给自定义的平台数据分配空间 */
 	pdata = devm_kzalloc(chip->dev, sizeof(*pdata), GFP_KERNEL);
 	if (!pdata)
 		return NULL;
 
-	for (i = 0; i < count; i++) {
+	/* 保存regulator_init_data和pnode */
+	for (i = 0; i < count; i++)
+	{
 		if (!rk818_reg_matches[i].init_data || !rk818_reg_matches[i].of_node)
 			continue;
 
-		pdata->rk818_init_data[i] = rk818_reg_matches[i].init_data;
-		pdata->of_node[i] = rk818_reg_matches[i].of_node;
+		pdata->rid[i] = rk818_reg_matches[i].init_data;
+		pdata->np[i] = rk818_reg_matches[i].of_node;
 	}
 	pdata->irq = chip->chip_irq;
 	pdata->irq_base = -1;
 
-	pdata->irq_gpio = of_get_named_gpio(rk818_pmic_np,"gpios",0);
+	pdata->irq_gpio = of_get_named_gpio(chip_np,"gpios",0);
 	if (!gpio_is_valid(pdata->irq_gpio)) {
 		printk("invalid gpio: %d\n",  pdata->irq_gpio);
 		return NULL;
 	}
 
-	pdata->pmic_sleep_gpio = of_get_named_gpio(rk818_pmic_np,"gpios",1);
+	pdata->pmic_sleep_gpio = of_get_named_gpio(chip_np,"gpios",1);
 	if (!gpio_is_valid(pdata->pmic_sleep_gpio)) {
 		printk("invalid gpio: %d\n",  pdata->pmic_sleep_gpio);
 	}
 	pdata->pmic_sleep = true;
-	pdata->pm_off = of_property_read_bool(rk818_pmic_np,"chip,system-power-controller");
+	pdata->pm_off = of_property_read_bool(chip_np,"chip,system-power-controller");
 
 	return pdata;
 }
@@ -1190,11 +1203,11 @@ static int rk818_pre_init(struct rk818_chip *chip)
 static int rk818_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct rk818_chip *chip;
-	struct rk818_chip_board *pdata;
+	struct rk818_board *pdata;
 	const struct of_device_id *match;
-	struct regulator_config config = { };
+	struct regulator_config rcfg;
 	struct regulator_dev *rk818_rdev;
-	struct regulator_init_data *reg_data;
+	struct regulator_init_data *rid;
 	const char *rail_name = NULL;
 	int ret, i = 0;
 
@@ -1223,11 +1236,13 @@ static int rk818_i2c_probe(struct i2c_client *client, const struct i2c_device_id
 
 	mutex_init(&chip->io_lock);
 
+	/* 判断芯片型号 */
 	ret = rk818_reg_read(chip,0x2f);
 	if ((ret < 0) || (ret == 0xff)){
 		printk("The device is not rk818 %d\n",ret);
 	}
 
+	/* 芯片初始化 */
 	ret = rk818_pre_init(chip);
 	if (ret < 0)
 		printk("The rk818_pre_init failed %d\n",ret);
@@ -1252,29 +1267,34 @@ static int rk818_i2c_probe(struct i2c_client *client, const struct i2c_device_id
 	/* If we got pdata, let's do some important */
 	if (pdata)
 	{
-		chip->num_regulators = rk818_NUM_REGULATORS;
-		chip->rdev = kcalloc(rk818_NUM_REGULATORS,sizeof(struct regulator_dev *), GFP_KERNEL);
+		chip->num_regulators = RK818_NUM_REGULATORS;
+		chip->rdev = kcalloc(RK818_NUM_REGULATORS,sizeof(struct regulator_dev *), GFP_KERNEL);
 		if (!chip->rdev) {
 			return -ENOMEM;
 		}
+
 		/* Instantiate the regulators */
-		for (i = 0; i < rk818_NUM_REGULATORS; i++) {
-			reg_data = pdata->rk818_init_data[i];
-			if (!reg_data)
+		for (i = 0; i < RK818_NUM_REGULATORS; i++)
+		{
+			rid = pdata->rid[i];
+			if (!rid)
 				continue;
-			config.dev = chip->dev;
-			config.driver_data = chip;
+
+			rcfg.dev = chip->dev;
+			rcfg.driver_data = chip;
 			if (chip->dev->of_node)
-				config.of_node = pdata->of_node[i];
-			if (reg_data && reg_data->constraints.name)
-				rail_name = reg_data->constraints.name;
+				rcfg.of_node = pdata->np[i];
+
+			if (rid && rid->constraints.name)
+				rail_name = rid->constraints.name;
 			else
 				rail_name = regulators[i].name;
-			reg_data->supply_regulator = rail_name;
 
-			config.init_data = reg_data;
+			rid->supply_regulator = rail_name;
+			rcfg.init_data = rid;
 
-			rk818_rdev = devm_regulator_register(chip->dev, &regulators[i], &config);
+			/* register regulatosr */
+			rk818_rdev = devm_regulator_register(chip->dev, &regulators[i], &rcfg);
 			if (IS_ERR(rk818_rdev)) {
 				printk("failed to register %d regulator\n",i);
 			}
