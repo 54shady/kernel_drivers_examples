@@ -141,12 +141,12 @@ done
 
 ### 测试代码简单说明
 
-模拟一个I2C驱动(实际可以没有物理设备),假设是TP,其DeviceTree描述如下
+模拟一个I2C驱动(实际可以没有物理设备),其DeviceTree描述如下
 
 ```c
 &i2c0 {
-	regulator_test@5d {
-		compatible = "Test,regulator";
+	consumer1@5d {
+		compatible = "Consumer1";
 		status = "okay";
 		reg = <0x5d>;
 		VCC_TP-supply = <&rk818_ldo2_reg>;
