@@ -89,7 +89,9 @@ ldo4_reg:regulator@7 {
 
 - 加载PMU驱动
 
+```shell
 	insmod act8846.ko
+```
 
 - 不断开关regulator7的电压
 
@@ -166,22 +168,43 @@ rk818_ldo2_reg: regulator@5 {
 	#include "rk818.dtsi"
 	#include "rk818_test.dtsi"
 
-### 测试方法
+### 测试方法1(1个consumer)
 
 - 加载PMU驱动
 
+```shell
 	insmod rk818.ko
+```
 
 - 不断开关LDO2的电压
 
 ```shell
-while true
-do
-insmod rk818_test.ko
-sleep 5
-rmmod rk818_test
-sleep 5
-done
+	while true
+	do
+	insmod consumer1.ko
+	sleep 5
+	rmmod consumer1
+	sleep 5
+	done
+```
+
+- 查看regulator开关状态
+
+```shell
+	while true
+	do
+	cat /sys/class/regulator/regulator.7/state
+	cat /sys/class/regulator/regulator.7/num_users
+	sleep 2
+	done
+```
+
+### 测试方法2(2个consumer)
+
+- 加载PMU驱动
+
+```shell
+	insmod rk818.ko
 ```
 
 - 查看regulator开关状态
@@ -193,4 +216,18 @@ cat /sys/class/regulator/regulator.7/state
 cat /sys/class/regulator/regulator.7/num_users
 sleep 2
 done
+```
+
+- 分别加载consumer1,2,并查看信息
+
+```shell
+	insmod consumer1.ko
+	insmod consumer2.ko
+```
+
+- 分别卸载consumer1,2(只有当num_users为0时state才会disabled)
+
+```shell
+	rmmod consumer1.ko
+	rmmod consumer2.ko
 ```
