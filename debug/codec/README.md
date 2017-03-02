@@ -2,6 +2,16 @@
 
 ## Codec驱动(es8323.c)
 
+### 硬件连接
+
+![es8323](./es8323.png)
+
+![spk_ctl](./spk_ctl.png)
+
+![hp_ctl](./hp_ctl.png)
+
+![hp_det](./hp_det.png)
+
 ### DeviceTree Describe
 
 	&i2c2 {
