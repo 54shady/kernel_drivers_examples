@@ -1,0 +1,22 @@
+/ {
+	rockchip-es8316 {
+		compatible = "rockchip-es8316";
+		dais {
+			dai0 {
+				audio-codec = <&es8316>;
+				audio-controller = <&i2s>;
+				format = "i2s";
+			};
+		};
+	};
+};
+
+&i2c2 {
+es8316: es8316@10 {
+			compatible = "es8316";
+			reg = <0x10>;
+			spk-con-gpio = <&gpio7 GPIO_B7 GPIO_ACTIVE_HIGH>;
+			hp-con-gpio = <&gpio0 GPIO_B5 GPIO_ACTIVE_HIGH>;
+			hp-det-gpio = <&gpio7 GPIO_A4 GPIO_ACTIVE_HIGH>;
+		};
+};

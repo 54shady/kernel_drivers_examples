@@ -93,6 +93,10 @@ static int es8316_volatile(struct snd_soc_codec *codec, unsigned int reg)
 }
 /* codec private data */
 struct es8316_chip {
+	/* alway include these two member */
+	struct device *dev;
+	struct i2c_client *client;
+
 	struct regmap *regmap;
 	unsigned int dmic_amic;
 	unsigned int sysclk;
@@ -1272,36 +1276,20 @@ err:
 	return;
 }
 
-static int es8316_i2c_probe(struct i2c_client *i2c_client,
-			    const struct i2c_device_id *id)
+int gpio_setup(struct es8316_chip *chip, struct i2c_client *client)
 {
-	struct es8316_chip *chip;
-	int ret = -1;
-	unsigned long irq_flag = 0;
-	int hp_irq = 0;
-	int val = 0;
+	int ret;
 	enum of_gpio_flags flags;
-	struct device_node *np = i2c_client->dev.of_node;
-
-	DBG("---%s---probe start\n", __func__);
-
-	chip = kzalloc(sizeof(*chip), GFP_KERNEL);
-	if (chip == NULL)
-		return -ENOMEM;
-	else
-		es8316_private = chip;
-
-	chip->dmic_amic = amic_used;     /*if internal mic is amic*/
-	chip->pwr_count = 0;
-	i2c_set_clientdata(i2c_client, chip);
-
-
+	struct device_node *np = client->dev.of_node;
 	chip->spk_ctl_gpio = of_get_named_gpio_flags(np,
 					"spk-con-gpio", 0, &flags);
-	if (chip->spk_ctl_gpio < 0) {
+	if (chip->spk_ctl_gpio < 0)
+	{
 		DBG("%s() Can not read property spk codec-en-gpio\n", __func__);
 		chip->spk_ctl_gpio = INVALID_GPIO;
-	} else {
+	}
+	else
+	{
 	    chip->spk_gpio_level = (flags & OF_GPIO_ACTIVE_LOW) ? 0 : 1;
 	    ret = gpio_request(chip->spk_ctl_gpio, NULL);
 	    gpio_direction_output(chip->spk_ctl_gpio,
@@ -1310,10 +1298,13 @@ static int es8316_i2c_probe(struct i2c_client *i2c_client,
 
 	chip->hp_ctl_gpio = of_get_named_gpio_flags(np,
 					"hp-con-gpio", 0, &flags);
-	if (chip->hp_ctl_gpio < 0) {
+	if (chip->hp_ctl_gpio < 0)
+	{
 		DBG("%s() Can not read property hp codec-en-gpio\n", __func__);
 		chip->hp_ctl_gpio = INVALID_GPIO;
-	} else {
+	}
+	else
+	{
 	    chip->hp_gpio_level = (flags & OF_GPIO_ACTIVE_LOW) ? 0 : 1;
 	    ret = gpio_request(chip->hp_ctl_gpio, NULL);
 	    gpio_direction_output(chip->hp_ctl_gpio, !chip->hp_gpio_level);
@@ -1321,44 +1312,75 @@ static int es8316_i2c_probe(struct i2c_client *i2c_client,
 
 	chip->hp_det_gpio = of_get_named_gpio_flags(np,
 					"hp-det-gpio", 0, &flags);
-	if (chip->hp_det_gpio < 0) {
+	if (chip->hp_det_gpio < 0)
+	{
 		DBG("%s() Can not read property hp_det gpio\n", __func__);
 		chip->hp_det_gpio = INVALID_GPIO;
-	} else {
+	}
+	else
+	{
 		chip->hp_det_level = (flags & OF_GPIO_ACTIVE_LOW) ? 0 : 1;
 		ret = gpio_request(chip->hp_det_gpio, NULL);
-		if (ret != 0) {
+		if (ret != 0)
+		{
 			DBG("%s request HP_DET error", __func__);
 			return ret;
 		}
 		gpio_direction_input(chip->hp_det_gpio);
+	}
+}
 
-		irq_flag = IRQF_TRIGGER_LOW | IRQF_ONESHOT;
-		hp_irq = gpio_to_irq(chip->hp_det_gpio);
+static int es8316_i2c_probe(struct i2c_client *client,
+			    const struct i2c_device_id *id)
+{
+	struct es8316_chip *chip;
+	int ret = -1;
+	unsigned long irq_flag = 0;
+	int hp_irq = 0;
+	int val = 0;
+	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
 
-		val = gpio_get_value(chip->hp_det_gpio);
-		if (val == chip->hp_det_level) {
-			pr_info("hp inserted.\n");
-			hp_irq_flag = 1;
-			es8316_set_gpio(ES8316_CODEC_SET_SPK, !chip->spk_gpio_level);
-			printk("%s, %d, %d\n", __FUNCTION__, __LINE__, !chip->spk_gpio_level);
-		}
-
-		if (hp_irq)
-			ret = request_threaded_irq(hp_irq, NULL,
-				hp_det_irq_handler, irq_flag, "ES8316", NULL);
+	/* Do i2c functionality check */
+	if (!i2c_check_functionality(adapter, I2C_FUNC_I2C)) {
+		dev_warn(&adapter->dev, "I2C-Adapter doesn't support I2C_FUNC_I2C\n");
+		return -EIO;
 	}
 
-	ret = snd_soc_register_codec(&i2c_client->dev,
+	/* alloc memory for chip data */
+	chip = devm_kzalloc(&client->dev, sizeof(struct es8316_chip), GFP_KERNEL);
+	if (chip == NULL)
+	{
+		printk("ERROR: No memory\n");
+		return -ENOMEM;
+	}
+	else
+		es8316_private = chip;
+
+	/* 设置chip */
+	chip->client = client;
+	chip->dev = &client->dev;
+	chip->dmic_amic = amic_used;     /*if internal mic is amic*/
+	chip->pwr_count = 0;
+
+	/* set client data */
+	i2c_set_clientdata(client, chip);
+
+	/* gpio setup */
+	ret = gpio_setup(chip, client);
+	if (ret < 0)
+	{
+		printk("parse gpios error\n");
+	}
+
+	/* irq setup */
+	ret = devm_request_threaded_irq(chip->dev, gpio_to_irq(chip->hp_det_gpio), NULL, hp_det_irq_handler, IRQF_TRIGGER_LOW | IRQF_ONESHOT, "ES8316", chip);
+	if(ret == 0)
+		printk("%s:register ISR (irq=%d)\n", __FUNCTION__, gpio_to_irq(chip->hp_det_gpio));
+
+	/* register codec */
+	ret = snd_soc_register_codec(&client->dev,
 				     &soc_codec_dev_es8316,
 				     &es8316_dai, 1);
-	if (ret < 0) {
-		kfree(chip);
-		return ret;
-	}
-
-
-
 	return ret;
 }
 

@@ -1,4 +1,4 @@
-# Codec driver example(es8323 on rockchip)
+# Codec driver example(es8323/es8316 on rockchip)
 
 ## Codec驱动(es8323.c)
 
@@ -140,6 +140,42 @@
 修改某个参数值
 
 	tinymix <ctrl id> <value>
+
+
+## Codec驱动(es8316.c)
+
+### 硬件连接(同ES8323)
+
+### DeviceTree Describe
+
+	&i2c2 {
+	es8316: es8316@10 {
+				compatible = "es8316";
+				reg = <0x10>;
+				spk-con-gpio = <&gpio7 GPIO_B7 GPIO_ACTIVE_HIGH>;
+				hp-con-gpio = <&gpio0 GPIO_B5 GPIO_ACTIVE_HIGH>;
+				hp-det-gpio = <&gpio7 GPIO_A4 GPIO_ACTIVE_HIGH>;
+			};
+	};
+
+## Machine驱动(rk_es8316.c rockchip平台)
+
+### DeviceTree Describe
+
+	/ {
+		rockchip-es8316 {
+			compatible = "rockchip-es8316";
+			dais {
+				dai0 {
+					audio-codec = <&es8316>;
+					audio-controller = <&i2s>;
+					format = "i2s";
+				};
+			};
+		};
+	};
+
+## Platform驱动(rk_i2s.c rockchip平台, 同ES8323)
 
 ## 耳机检测
 
