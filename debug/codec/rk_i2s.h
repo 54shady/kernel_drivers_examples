@@ -1,6 +1,6 @@
 #ifndef __RK_I2S_H__
 #define __RK_I2S_H__
-
+#include <sound/dmaengine_pcm.h>
 /*
  * TXCR
  * transmit operation control register
