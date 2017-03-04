@@ -643,8 +643,6 @@ void es8323_i2c_shutdown(struct i2c_client *client)
  */
 int gpio_setup(struct es8323_chip *chip, struct i2c_client *client)
 {
-	int hub_rest = -1;
-	int hub_en = -1;
 	int ret = 0;
 	enum of_gpio_flags flags;
 
@@ -703,35 +701,6 @@ int gpio_setup(struct es8323_chip *chip, struct i2c_client *client)
 			return ret;
 		}
 		gpio_direction_input(chip->hp_det_gpio);
-	}
-
-	hub_en = of_get_named_gpio_flags(client->dev.of_node, "hub_en", 0, &flags);
-	if (hub_en > 0)
-	{
-		printk("request gpio%d for hub enable gpio\n", hub_en);
-		ret = devm_gpio_request(chip->dev, hub_en, "hub_en");
-		if (ret != 0)
-		{
-			printk("%s request hub en error", __func__);
-			return ret;
-		}
-		gpio_direction_output(hub_en, 1);
-		msleep(10);
-	}
-
-	hub_rest = of_get_named_gpio_flags(client->dev.of_node, "hub_rest", 0, &flags);
-	if (hub_rest > 0)
-	{
-		printk("request gpio%d for hub reset gpio\n", hub_rest);
-		ret = devm_gpio_request(chip->dev, hub_rest, "hub_reset");
-		if (ret != 0)
-		{
-			printk("%s request hub rst error", __func__);
-			return ret;
-		}
-		gpio_direction_output(hub_rest, 0);
-		msleep(20);
-		gpio_set_value(hub_rest, 1);
 	}
 
 	return 0;

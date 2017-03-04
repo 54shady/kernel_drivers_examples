@@ -21,8 +21,6 @@
 				spk-con-gpio = <&gpio7 GPIO_B7 GPIO_ACTIVE_HIGH>;
 				hp-con-gpio = <&gpio0 GPIO_B5 GPIO_ACTIVE_HIGH>;
 				hp-det-gpio = <&gpio7 GPIO_A4 GPIO_ACTIVE_HIGH>;
-				hub_rest = <&gpio0 GPIO_B6 GPIO_ACTIVE_LOW>;
-				hub_en = <&gpio7 GPIO_B2 GPIO_ACTIVE_HIGH>;
 			};
 	};
 

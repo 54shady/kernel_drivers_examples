@@ -17,27 +17,25 @@ Codes test on the kernel version below
 
 [I2C](./debug/i2c/README.md)
 
-[REGULATOR (ACT8846 PMU)](./debug/regulator/README.md)
+[Regulator (ACT8846, RK818)](./debug/regulator/README.md)
 
-[REGULATOR (RK818 PMU)](./debug/regulator/README.md)
+[Platform_Driver_Test](./debug/platform_driver_test/README.md)
 
-[PLATFORM_DRIVER_TEST](./debug/platform_driver_test/README.md)
+[PWM Backlight](./debug/pwm/README.md)
 
-[PWM BACKLIGHT](./debug/pwm/README.md)
+[Regmap](./debug/regmap/README.md)
 
-[REGMAP](./debug/regmap/README.md)
+[Audio (ES8323, ES8316)](./debug/codec/README.md)
 
-[AUDIO (ES8323)](./debug/codec/README.md)
+[Timer](./debug/timer/README.md)
 
-[TIMER](./debug/timer/README.md)
+[Timer And Workqueue](./debug/timer_workq/README.md)
 
-[TIMER AND WORKQUEUE](./debug/timer_workq/README.md)
+[Workqueue](./debug/workqueue/README.md)
 
-[WORKQUEUE](./debug/workqueue/README.md)
+[Notify](./debug/notify_chain/README.md)
 
-[NOTIFY](./debug/notify_chain/README.md)
-
-[SCRIPT](./script/README.md)
+[Script](./script/README.md)
 
 # 使用方法(单独编译模块)或者放到内核目录中编译
 
