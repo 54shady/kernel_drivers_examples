@@ -1,5 +1,19 @@
 # Codec driver example(es8323/es8316 on rockchip)
 
+## Codec Block Diagram
+
+codec硬件框图如下(ES8323)
+
+![codec blcok diagram](./pngs/codec_block_diagram.png)
+
+### 录音过程(ADC data)
+
+模拟输入从LIN1/RIN1,经过MUX到ADC,通过ASDOUT发送给对端(CPU I2S控制器)
+
+### 放音过程(DAC data)
+
+数字信号从DSDIN进入(对端CPU I2S控制器),发送到DAC,DAC通过DACL/DACR连接到MixL/MixR,最后输出到LOUT1/ROUT1
+
 ## Codec驱动(es8323.c)
 
 ### 硬件连接
