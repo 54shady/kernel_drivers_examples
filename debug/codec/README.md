@@ -6,9 +6,15 @@
 
 ![es8323](./es8323.png)
 
+SPK_CTL连接GPIO7_B7
+
 ![spk_ctl](./spk_ctl.png)
 
+HP_CTL连接GPIO7_A4
+
 ![hp_ctl](./hp_ctl.png)
+
+HP_DET连接GPIO0_B5
 
 ![hp_det](./hp_det.png)
 
