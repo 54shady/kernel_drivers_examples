@@ -91,7 +91,7 @@ static int es8316_volatile(struct snd_soc_codec *codec, unsigned int reg)
 	else
 		return 0;
 }
-/* codec private data */
+
 struct es8316_chip {
 	/* alway include these two member */
 	struct device *dev;
@@ -1240,8 +1240,6 @@ static struct snd_soc_codec_driver soc_codec_dev_es8316 = {
 	.num_dapm_routes = ARRAY_SIZE(es8316_dapm_routes),
 };
 
-#if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
-
 static void es8316_i2c_shutdown(struct i2c_client *client)
 {
 	struct snd_soc_codec *codec;
@@ -1407,22 +1405,19 @@ static struct i2c_driver es8316_i2c_driver = {
 	.class = I2C_CLASS_HWMON,
 	.address_list = normal_i2c,
 };
-#endif
 
 static int es8316_init(void)
 {
 	return i2c_add_driver(&es8316_i2c_driver);
 }
+module_init(es8316_init);
 
 static void es8316_exit(void)
 {
 	return i2c_del_driver(&es8316_i2c_driver);
 }
-
-
-module_init(es8316_init);
 module_exit(es8316_exit);
 
 MODULE_DESCRIPTION("ASoC es8316 driver");
-MODULE_AUTHOR("Will <will@everset-semi.com>");
+MODULE_AUTHOR("M_O_Bz@163.com");
 MODULE_LICENSE("GPL");

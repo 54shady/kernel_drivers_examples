@@ -4,19 +4,19 @@
 
 ### 硬件连接
 
-![es8323](./es8323.png)
+![es8323](./pngs/es8323.png)
 
 SPK_CTL连接GPIO7_B7
 
-![spk_ctl](./spk_ctl.png)
+![spk_ctl](./pngs/spk_ctl.png)
 
 HP_CTL连接GPIO7_A4
 
-![hp_ctl](./hp_ctl.png)
+![hp_ctl](./pngs/hp_ctl.png)
 
 HP_DET连接GPIO0_B5
 
-![hp_det](./hp_det.png)
+![hp_det](./pngs/hp_det.png)
 
 ### DeviceTree Describe
 
@@ -68,21 +68,276 @@ HP_DET连接GPIO0_B5
 
 ### 从datasheet里Address Mapping可以找到I2S控制器被映射到的位置
 
-![I2S MAP](./I2S_MAP.png)
+![I2S MAP](./pngs/I2S_MAP.png)
 
 ### 中断号(SPI[85])
 
-![I2S INT](./I2S_INT.png)
+![I2S INT](./pngs/I2S_INT.png)
 
 ### DMA编号(tx[0], rx[1])
 
-![I2S DMA](./I2S_DMA.png)
+![I2S DMA](./pngs/I2S_DMA.png)
 
 ### I2S寄存器信息,32bit,步进4
 
-![I2S REG](./I2S_REG.png)
+![I2S REG](./pngs/I2S_REG.png)
 
-## Usage
+## Codec驱动(es8316.c)
+
+### 硬件连接(同ES8323)
+
+### DeviceTree Describe
+
+	&i2c2 {
+	es8316: es8316@10 {
+				compatible = "es8316";
+				reg = <0x10>;
+				spk-con-gpio = <&gpio7 GPIO_B7 GPIO_ACTIVE_HIGH>;
+				hp-con-gpio = <&gpio0 GPIO_B5 GPIO_ACTIVE_HIGH>;
+				hp-det-gpio = <&gpio7 GPIO_A4 GPIO_ACTIVE_HIGH>;
+			};
+	};
+
+## Machine驱动(rk_es8316.c rockchip平台)
+
+### DeviceTree Describe
+
+	/ {
+		rockchip-es8316 {
+			compatible = "rockchip-es8316";
+			dais {
+				dai0 {
+					audio-codec = <&es8316>;
+					audio-controller = <&i2s>;
+					format = "i2s";
+				};
+			};
+		};
+	};
+
+## Platform驱动(rk_i2s.c rockchip平台, 同ES8323)
+
+## ALSA DAPM
+
+[参考文章:ALSA声卡驱动中的DAPM详解](http://blog.csdn.net/droidphone)
+
+### kcontrol
+
+一个kcontrol代表着一个mixer(混音器),或是一个mux(多路开关),或是一个音量控制器等
+
+定义一个kcontrol主要就是定义一个snd_kcontrol_new结构
+
+	struct snd_kcontrol_new {
+		...
+		snd_kcontrol_get_t *get;
+		snd_kcontrol_put_t *put;
+		...
+		unsigned long private_value;
+	};
+
+get回调函数用于获取该控件当前的状态值
+
+put回调函数则用于设置控件的状态值
+
+private_value字段则根据不同的控件类型有不同的意义,比如对于普通的控件,private_value字段可以用来定义该控件所对应的寄存器的地址以及对应的控制位在寄存器中的位置信息
+
+- Mixer控件
+
+Mixer控件用于音频通道的路由控制,由多个输入和一个输出组成,多个输入可以自由地混合在一起,形成混合后的输出
+
+![mixer](./pngs/mixer.png)
+
+- Mux控件
+
+mux控件与mixer控件类似,也是多个输入端和一个输出端的组合控件,与mixer控件不同的是,mux控件的多个输入端同时只能有一个被选中
+
+- SOC_SINGLE(DAC Stereo Enhancement)
+
+这种控件只有一个控制量,比如一个开关,Codec中某个频率,FIFO大小等
+
+寄存器描述如下
+
+![reg32](./pngs/reg32.png)
+
+用寄存器0x32偏移量0,最大值7,描述DAC stereo
+
+	SOC_SINGLE("DAC Stereo Enhancement", ES8316_DAC_SET3_REG32, 0, 7, 0),
+
+- SOC_SINGLE_TLV(Mic Boost)
+
+SOC_SINGLE_TLV是SOC_SINGLE的一种扩展,主要用于定义那些有增益控制的控件,例如音量控制器,EQ均衡器等
+
+寄存器描述如下
+
+![reg24](./pngs/reg24.png)
+
+对应dB数是0.01dB*1200 = 12dB
+
+	static const DECLARE_TLV_DB_SCALE(mic_bst_tlv, 0, 1200, 0);
+	SOC_SINGLE_TLV("MIC Boost", ES8316_ADC_D2SEPGA_REG24, 0, 1, 0, mic_bst_tlv),
+
+- Headphone Mixer Mux
+
+硬件框图如下
+
+![headphone mux](./pngs/hp_mux.png)
+
+寄存器描述如下
+
+![reg13](./pngs/reg13.png)
+
+文字描述
+
+	static const char *const es8316_hpmux_texts[] = {
+		"lin1-rin1",
+		"lin2-rin2",
+		"lin-rin with Boost",
+		"lin-rin with Boost and PGA"
+	};
+
+取值范围
+
+	static const unsigned int es8316_hpmux_values[] = {0, 1, 2, 3};
+
+用REG13寄存器偏移4位起来控制左通道,最大值7,取值见values数组
+
+	static const struct soc_enum es8316_left_hpmux_enum =
+		SOC_VALUE_ENUM_SINGLE(ES8316_HPMIX_SEL_REG13, 4, 7,
+					  ARRAY_SIZE(es8316_hpmux_texts),
+					  es8316_hpmux_texts,
+					  es8316_hpmux_values);
+
+添加到kcontrol
+
+	static const struct snd_kcontrol_new es8316_left_hpmux_controls =
+		SOC_DAPM_VALUE_ENUM("Route", es8316_left_hpmux_enum);
+
+用REG13寄存器偏移0位起来控制右通道,最大值7,取值见values数组
+
+	static const struct soc_enum es8316_right_hpmux_enum =
+		SOC_VALUE_ENUM_SINGLE(ES8316_HPMIX_SEL_REG13, 0, 7,
+					  ARRAY_SIZE(es8316_hpmux_texts),
+					  es8316_hpmux_texts,
+					  es8316_hpmux_values);
+
+添加到kcontrol
+
+	static const struct snd_kcontrol_new es8316_right_hpmux_controls =
+		SOC_DAPM_VALUE_ENUM("Route", es8316_right_hpmux_enum);
+
+将kcontrol添加到dapm widget中,用tinymix可以看到对应的名字
+
+	SND_SOC_DAPM_MUX("Left Hp mux", SND_SOC_NOPM, 0, 0,
+			 &es8316_left_hpmux_controls),
+	SND_SOC_DAPM_MUX("Right Hp mux", SND_SOC_NOPM, 0, 0,
+			 &es8316_right_hpmux_controls),
+
+- Analog Input MUX
+
+硬件框图
+
+![blcok](./pngs/analog_input.png)
+
+寄存器描述
+
+![reg22](./pngs/reg22.png)
+
+名字
+
+	static const char * const es8316_analog_in_txt[] = {
+			"lin1-rin1",
+			"lin2-rin2",
+			"lin1-rin1 with 20db Boost",
+			"lin2-rin2 with 20db Boost"
+	};
+
+取值范围
+
+	static const unsigned int es8316_analog_in_values[] = {
+			0,/*1,*/
+			1,
+			2,
+			3
+	};
+
+用寄存器0x22第4位起控制,最大值3,取值范围见values数组
+
+	static const struct soc_enum es8316_analog_input_enum =
+		SOC_VALUE_ENUM_SINGLE(ES8316_ADC_PDN_LINSEL_REG22, 4, 3,
+					  ARRAY_SIZE(es8316_analog_in_txt),
+					  es8316_analog_in_txt,
+					  es8316_analog_in_values);
+
+添加到kcontrol
+
+	static const struct snd_kcontrol_new es8316_analog_in_mux_controls =
+		SOC_DAPM_ENUM("Route", es8316_analog_input_enum);
+
+将kcontrol添加到dapm widget中,用tinymix可以看到对应的名字
+
+	SND_SOC_DAPM_MUX("Differential Mux", SND_SOC_NOPM, 0, 0,
+			 &es8316_analog_in_mux_controls),
+
+### Widget
+
+所谓widget,其实可以理解为是kcontrol的进一步升级和封装,它同样是指音频系统中的某个部件,比如mixer,mux,输入输出引脚,电源供应器等,用结构体snd_soc_dapm_widget来描述
+
+### Widget之间的连接关系(route)
+
+一个路径的连接至少包含以下几个元素
+起始端widget,跳线path,到达端widget,在DAPM中,用snd_soc_dapm_route结构来描述这样一个连接关系
+
+	struct snd_soc_dapm_route {
+		const char *sink;
+		const char *control;
+		const char *source;
+
+		/* Note: currently only supported for links where source is a supply */
+		int (*connected)(struct snd_soc_dapm_widget *source,
+				 struct snd_soc_dapm_widget *sink);
+	};
+
+sink指向到达端widget的名字字符串
+
+source指向起始端widget的名字字符串
+
+control指向负责控制该连接所对应的kcontrol名字字符串
+
+connected回调则定义了自定义连接检查回调函数
+
+该结构的意义是:source通过一个kcontrol,和sink连接在一起,现在是否处于连接状态,请调用connected回调函数检查
+
+有如下route
+
+	static const struct snd_soc_dapm_route es8316_dapm_routes[] = {
+		...
+		{"Digital Mic Mux", "dmic disable", "Mono ADC"},
+		{"Digital Mic Mux", "dmic data at high level", "DMIC"},
+		{"Digital Mic Mux", "dmic data at low level", "DMIC"},
+		...
+	};
+
+从代码中可以知道"Digital Mic Mux"有下面3个输入管脚
+
+	"dmic disable"
+	"dmic data at high level"
+	"dmic data at low level"
+
+"Mono ADC"连接到"dmic disable"
+
+"DMIC"连接到"dmic data at high level"
+
+"DMIC"连接到"dmic data at low level"
+
+### kcontrol 和 DAPM kcontrol
+
+SOC_DAPM_SINGLE对应与普通控件的SOC_SINGLE
+
+SOC_DAPM_SINGLE_TLV对应SOC_SINGLE_TLV等
+
+相比普通的kcontrol控件,dapm的kcontrol控件只是把info,get,put回调函数换掉了
+
+## 如何使用(以ES8323为例)
 
 将es8323.dtsi包含到主dts中
 
@@ -123,7 +378,7 @@ HP_DET连接GPIO0_B5
 	/sys/kernel/debug/asoc/
 	/sys/class/sound/
 
-## Test
+## 测试方法
 
 录音
 
@@ -145,41 +400,6 @@ HP_DET连接GPIO0_B5
 
 	tinymix <ctrl id> <value>
 
-
-## Codec驱动(es8316.c)
-
-### 硬件连接(同ES8323)
-
-### DeviceTree Describe
-
-	&i2c2 {
-	es8316: es8316@10 {
-				compatible = "es8316";
-				reg = <0x10>;
-				spk-con-gpio = <&gpio7 GPIO_B7 GPIO_ACTIVE_HIGH>;
-				hp-con-gpio = <&gpio0 GPIO_B5 GPIO_ACTIVE_HIGH>;
-				hp-det-gpio = <&gpio7 GPIO_A4 GPIO_ACTIVE_HIGH>;
-			};
-	};
-
-## Machine驱动(rk_es8316.c rockchip平台)
-
-### DeviceTree Describe
-
-	/ {
-		rockchip-es8316 {
-			compatible = "rockchip-es8316";
-			dais {
-				dai0 {
-					audio-codec = <&es8316>;
-					audio-controller = <&i2s>;
-					format = "i2s";
-				};
-			};
-		};
-	};
-
-## Platform驱动(rk_i2s.c rockchip平台, 同ES8323)
 
 ## 耳机检测
 
