@@ -113,8 +113,6 @@ struct es8316_chip {
 	int pwr_count;
 };
 
-struct es8316_chip *es8316_private;
-
 /*
  * es8316_reset
  * write value 0xff to reg0x00, the chip will be in reset mode
@@ -127,10 +125,8 @@ static int es8316_reset(struct snd_soc_codec *codec)
 	return snd_soc_write(codec, ES8316_RESET_REG00, 0x03);
 }
 
-static int es8316_set_gpio(int gpio, bool level)
+static int es8316_set_gpio(struct es8316_chip *chip, int gpio, bool level)
 {
-	struct es8316_chip *chip = es8316_private;
-
 	if (!chip) {
 		DBG("%s : es8316_chip is NULL\n", __func__);
 		return 0;
@@ -153,7 +149,7 @@ static irqreturn_t hp_det_irq_handler(int irq, void *dev_id)
 {
 	int ret;
 	unsigned int type;
-	struct es8316_chip *chip = es8316_private;
+	struct es8316_chip *chip = (struct es8316_chip *)dev_id;
 
 	disable_irq_nosync(irq);
 
@@ -173,12 +169,12 @@ static irqreturn_t hp_det_irq_handler(int irq, void *dev_id)
 	if (mute_flag == 0) {
 		if (chip->hp_det_level == gpio_get_value(chip->hp_det_gpio))
 		{
-			es8316_set_gpio(ES8316_CODEC_SET_SPK, !chip->spk_gpio_level);
+			es8316_set_gpio(chip, ES8316_CODEC_SET_SPK, !chip->spk_gpio_level);
 			printk("%s, %d, %d\n", __FUNCTION__, __LINE__, !chip->spk_gpio_level);
 		}
 		else
 		{
-			es8316_set_gpio(ES8316_CODEC_SET_SPK, chip->spk_gpio_level);
+			es8316_set_gpio(chip, ES8316_CODEC_SET_SPK, chip->spk_gpio_level);
 			printk("%s, %d, %d\n", __FUNCTION__, __LINE__, chip->spk_gpio_level);
 		}
 	}
@@ -955,12 +951,13 @@ static int es8316_pcm_hw_params(struct snd_pcm_substream *substream,
 
 static int es8316_mute(struct snd_soc_dai *dai, int mute)
 {
+	/* 根据DAI来获取chip */
 	struct snd_soc_codec *codec = dai->codec;
-	struct es8316_chip *chip = es8316_private;
+	struct es8316_chip *chip = snd_soc_codec_get_drvdata(codec);
 
 	mute_flag = mute;
 	if (mute) {
-		es8316_set_gpio(ES8316_CODEC_SET_SPK, chip->spk_gpio_level);
+		es8316_set_gpio(chip, ES8316_CODEC_SET_SPK, chip->spk_gpio_level);
 		printk("%s, %d, %d\n", __FUNCTION__, __LINE__, !chip->spk_gpio_level);
 		msleep(100);
 		snd_soc_write(codec, ES8316_DAC_SET1_REG30, 0x20);
@@ -969,7 +966,7 @@ static int es8316_mute(struct snd_soc_dai *dai, int mute)
 		msleep(130);
 		if (hp_irq_flag == 0)
 		{
-			es8316_set_gpio(ES8316_CODEC_SET_SPK, chip->spk_gpio_level);
+			es8316_set_gpio(chip, ES8316_CODEC_SET_SPK, chip->spk_gpio_level);
 			printk("%s, %d, %d\n", __FUNCTION__, __LINE__, chip->spk_gpio_level);
 		}
 		msleep(150);
@@ -1245,15 +1242,15 @@ static struct snd_soc_codec_driver soc_codec_dev_es8316 = {
 
 #if defined(CONFIG_I2C) || defined(CONFIG_I2C_MODULE)
 
-static void es8316_i2c_shutdown(struct i2c_client *i2c)
+static void es8316_i2c_shutdown(struct i2c_client *client)
 {
 	struct snd_soc_codec *codec;
-	struct es8316_chip *chip = es8316_private;
+	struct es8316_chip *chip = container_of(client, struct es8316_chip, client);
 
 	if (!es8316_codec)
 		goto err;
 
-	es8316_set_gpio(ES8316_CODEC_SET_SPK, !chip->spk_gpio_level);
+	es8316_set_gpio(chip, ES8316_CODEC_SET_SPK, !chip->spk_gpio_level);
 	printk("%s, %d, %d\n", __FUNCTION__, __LINE__, !chip->spk_gpio_level);
 	mdelay(150);
 
@@ -1353,8 +1350,6 @@ static int es8316_i2c_probe(struct i2c_client *client,
 		printk("ERROR: No memory\n");
 		return -ENOMEM;
 	}
-	else
-		es8316_private = chip;
 
 	/* 设置chip */
 	chip->client = client;
