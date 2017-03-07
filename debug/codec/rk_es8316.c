@@ -8,20 +8,7 @@
 #include <sound/soc-dapm.h>
 
 #include "es8316.h"
-//#include "card_info.h"
-//#include "rk_pcm.h"
 #include "rk_i2s.h"
-
-#ifdef CONFIG_MACH_RK_FAC
-#include <plat/config.h>
-/*extern int codec_type;*/
-#endif
-
-#if 1
-#define	DBG(x...)	printk(x)
-#else
-#define	DBG(x...)
-#endif
 
 /* 设置CODEC DAI 和 CPU DAI 参数 */
 static int rk3288_hw_params(struct snd_pcm_substream *substream,
@@ -36,14 +23,14 @@ static int rk3288_hw_params(struct snd_pcm_substream *substream,
 	/* set codec DAI configuration */
 	ret = snd_soc_dai_set_fmt(codec_dai, dai_fmt);
 	if (ret < 0) {
-		DBG("%s():failed to set the format for codec side\n", __func__);
+		printk("%s():failed to set the format for codec side\n", __func__);
 		return ret;
 	}
 
 	/* set cpu DAI configuration */
 	ret = snd_soc_dai_set_fmt(cpu_dai, dai_fmt);
 	if (ret < 0) {
-		DBG("%s():failed to set the format for cpu side\n", __func__);
+		printk("%s():failed to set the format for cpu side\n", __func__);
 		return ret;
 	}
 
@@ -62,11 +49,11 @@ static int rk3288_hw_params(struct snd_pcm_substream *substream,
 			pll_out = 11289600;
 			break;
 		default:
-			DBG("Enter:%s, %d, Error rate=%d\n",
+			printk("Enter:%s, %d, Error rate=%d\n",
 					__func__, __LINE__, params_rate(params));
 			return -EINVAL;
 	}
-	DBG("Enter:%s, %d, rate=%d\n", __func__, __LINE__, params_rate(params));
+	printk("Enter:%s, %d, rate=%d\n", __func__, __LINE__, params_rate(params));
 
 	/* 根据dai_fmt设置时钟分频系数 */
 	if ((dai_fmt & SND_SOC_DAIFMT_MASTER_MASK) == SND_SOC_DAIFMT_CBS_CFS) {
@@ -76,7 +63,7 @@ static int rk3288_hw_params(struct snd_pcm_substream *substream,
 		snd_soc_dai_set_clkdiv(cpu_dai, ROCKCHIP_DIV_MCLK, 3);
 	}
 
-	DBG("Enter:%s, %d, LRCK=%d\n", __func__, __LINE__,
+	printk("Enter:%s, %d, LRCK=%d\n", __func__, __LINE__,
 			(pll_out/4)/params_rate(params));
 	return 0;
 }
@@ -94,19 +81,16 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"Micp", NULL, "LINPUT1"},
 };
 
-/*
- * Logic for a es8316 as connected on a rockchip board.
- */
 static int rk3288_es8316_init(struct snd_soc_pcm_runtime *pcm_rt)
 {
-	struct snd_soc_dai *codec_dai = pcm_rt->codec_dai;
 	int ret;
+	struct snd_soc_dai *codec_dai = pcm_rt->codec_dai;
 
-	DBG("Enter::%s----%d\n", __func__, __LINE__);
+	/* 设置CODEC SYSCLK */
 	ret = snd_soc_dai_set_sysclk(codec_dai, 0,
 			11289600, SND_SOC_CLOCK_IN);
 	if (ret < 0) {
-		DBG(KERN_ERR "Failed to set es8316 SYSCLK: %d\n", ret);
+		printk(KERN_ERR "Failed to set es8316 SYSCLK: %d\n", ret);
 		return ret;
 	}
 	return 0;

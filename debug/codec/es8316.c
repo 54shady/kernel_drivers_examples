@@ -424,30 +424,12 @@ static const struct snd_soc_dapm_widget es8316_dapm_widgets[] = {
 	SND_SOC_DAPM_MIXER("Right Hp mixer", ES8316_HPMIX_PDN_REG15,
 			   0, 1, &es8316_out_right_mix[0],
 			   ARRAY_SIZE(es8316_out_right_mix)),
-	SND_SOC_DAPM_MIXER("Left Hp mixer", SND_SOC_NOPM,
-			   4, 1, &es8316_out_left_mix[0],
-			   ARRAY_SIZE(es8316_out_left_mix)),
-	SND_SOC_DAPM_MIXER("Right Hp mixer", SND_SOC_NOPM,
-			   0, 1, &es8316_out_right_mix[0],
-			   ARRAY_SIZE(es8316_out_right_mix)),
 
 	/* Ouput charge pump */
-
-	SND_SOC_DAPM_PGA("HPCP L", SND_SOC_NOPM,
-			 0, 0, NULL, 0),
-	SND_SOC_DAPM_PGA("HPCP R", SND_SOC_NOPM,
-			 0, 0, NULL, 0),
-
 	SND_SOC_DAPM_PGA("HPCP L", ES8316_CPHP_OUTEN_REG17,
 			 6, 0, NULL, 0),
 	SND_SOC_DAPM_PGA("HPCP R", ES8316_CPHP_OUTEN_REG17,
 			 2, 0, NULL, 0),
-
-	/* Ouput Driver */
-	SND_SOC_DAPM_PGA("HPVOL L", SND_SOC_NOPM,
-			 0, 0, NULL, 0),
-	SND_SOC_DAPM_PGA("HPVOL R", SND_SOC_NOPM,
-			 0, 0, NULL, 0),
 
 	/* Ouput Driver */
 	SND_SOC_DAPM_PGA("HPVOL L", ES8316_CPHP_OUTEN_REG17,
