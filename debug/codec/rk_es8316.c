@@ -68,19 +68,6 @@ static int rk3288_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-static const struct snd_soc_dapm_widget rk29_dapm_widgets[] = {
-	SND_SOC_DAPM_LINE("Audio Out", NULL),
-	SND_SOC_DAPM_MIC("Micn", NULL),
-	SND_SOC_DAPM_MIC("Micp", NULL),
-};
-
-static const struct snd_soc_dapm_route audio_map[] = {
-	{"Audio Out", NULL, "LOUT1"},
-	{"Audio Out", NULL, "ROUT1"},
-	{"Micn", NULL, "RINPUT1"},
-	{"Micp", NULL, "LINPUT1"},
-};
-
 static int rk3288_es8316_init(struct snd_soc_pcm_runtime *pcm_rt)
 {
 	int ret;
@@ -205,13 +192,11 @@ static int rockchip_es8316_audio_remove(struct platform_device *pdev)
 	return 0;
 }
 
-#ifdef CONFIG_OF
 static const struct of_device_id rockchip_es8316_of_match[] = {
 	{ .compatible = "rockchip-es8316", },
 	{},
 };
 MODULE_DEVICE_TABLE(of, rockchip_es8316_of_match);
-#endif /* CONFIG_OF */
 
 static struct platform_driver rockchip_es8316_audio_driver = {
 	.driver         = {
