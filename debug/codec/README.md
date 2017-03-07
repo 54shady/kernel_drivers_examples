@@ -345,6 +345,54 @@ connected回调则定义了自定义连接检查回调函数
 
 "DMIC"连接到"dmic data at low level"
 
+### widget的event回调函数
+
+对于那些位于codec之外的widget,好像喇叭功放,外部的前置放大器等等,由于不是使用codec内部的寄存器进行电源控制,我们就必须利用dapm的事件机制,获得相应的上下电事件,从而可以定制widget自身的电源控制功能
+
+在snd_soc_widget结构有一个event字段用于保存该widget的事件回调函数,同时event_flags字段用于保存该widget需要关心的dapm事件种类,只有event_flags字段中相应的事件位被设置了的事件才会发到event回调函数中进行处理
+
+下面这些widget都是位于codec外部的器件,它们无法使用通用的寄存器操作来控制widget的电源状态,所以需要我们提供event回调函数
+
+	SND_SOC_DAPM_MIC
+	SND_SOC_DAPM_HP
+	SND_SOC_DAPM_SPK
+	SND_SOC_DAPM_LINE
+
+### stream widget
+
+通常是指那些要处理音频流数据的widget
+
+dai widget和stream widget是通过stream name进行匹配的
+
+ES8316代码中的例子
+
+定义I2S输入输出stream name为Capture和Playback的stream widget
+
+	SND_SOC_DAPM_AIF_OUT("I2S OUT", "Capture",  1, ES8316_SDP_ADCFMT_REG0A, 6, 0),
+	SND_SOC_DAPM_AIF_IN("I2S IN", "Playback", 0, SND_SOC_NOPM, 0, 0),
+
+对应的dai driver如下
+
+	static struct snd_soc_dai_driver es8316_dai = {
+		.name = "ES8316 HiFi",
+		.playback = {
+			.stream_name = "Playback",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = es8316_RATES,
+			.formats = es8316_FORMATS,
+		},
+		.capture = {
+			.stream_name = "Capture",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = es8316_RATES,
+			.formats = es8316_FORMATS,
+		},
+		.ops = &es8316_ops,
+		.symmetric_rates = 1,
+	};
+
 ### kcontrol 和 DAPM kcontrol
 
 SOC_DAPM_SINGLE对应与普通控件的SOC_SINGLE

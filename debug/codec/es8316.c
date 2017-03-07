@@ -398,10 +398,10 @@ static const struct snd_soc_dapm_widget es8316_dapm_widgets[] = {
 			 &es8316_dmic_src_controls),
 
 	/* Digital Interface */
-	SND_SOC_DAPM_AIF_OUT("I2S OUT", "I2S1 Capture",  1,
+	SND_SOC_DAPM_AIF_OUT("I2S OUT", "Capture",  1,
 			     ES8316_SDP_ADCFMT_REG0A, 6, 0),
 
-	SND_SOC_DAPM_AIF_IN("I2S IN", "I2S1 Playback", 0,
+	SND_SOC_DAPM_AIF_IN("I2S IN", "Playback", 0,
 			    SND_SOC_NOPM, 0, 0),
 
 	/*  DACs DATA SRC MUX */
