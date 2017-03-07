@@ -23,16 +23,15 @@
 #define	DBG(x...)
 #endif
 
-static int rk29_hw_params(struct snd_pcm_substream *substream,
+/* 设置CODEC DAI 和 CPU DAI 参数 */
+static int rk3288_hw_params(struct snd_pcm_substream *substream,
 		struct snd_pcm_hw_params *params)
 {
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *codec_dai = rtd->codec_dai;
-	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
-	unsigned int pll_out = 0, dai_fmt = rtd->card->dai_link->dai_fmt;
+	struct snd_soc_pcm_runtime *pcm_rt = substream->private_data;
+	struct snd_soc_dai *codec_dai = pcm_rt->codec_dai;
+	struct snd_soc_dai *cpu_dai = pcm_rt->cpu_dai;
+	unsigned int pll_out = 0, dai_fmt = pcm_rt->card->dai_link->dai_fmt;
 	int ret;
-
-	DBG("Enter::%s----%d\n", __func__, __LINE__);
 
 	/* set codec DAI configuration */
 	ret = snd_soc_dai_set_fmt(codec_dai, dai_fmt);
@@ -48,6 +47,7 @@ static int rk29_hw_params(struct snd_pcm_substream *substream,
 		return ret;
 	}
 
+	/* 根据采样率设置PLL */
 	switch (params_rate(params)) {
 		case 8000:
 		case 16000:
@@ -68,6 +68,7 @@ static int rk29_hw_params(struct snd_pcm_substream *substream,
 	}
 	DBG("Enter:%s, %d, rate=%d\n", __func__, __LINE__, params_rate(params));
 
+	/* 根据dai_fmt设置时钟分频系数 */
 	if ((dai_fmt & SND_SOC_DAIFMT_MASTER_MASK) == SND_SOC_DAIFMT_CBS_CFS) {
 		snd_soc_dai_set_sysclk(cpu_dai, 0, pll_out, 0);
 		snd_soc_dai_set_clkdiv(cpu_dai, ROCKCHIP_DIV_BCLK,
@@ -96,9 +97,9 @@ static const struct snd_soc_dapm_route audio_map[] = {
 /*
  * Logic for a es8316 as connected on a rockchip board.
  */
-static int rk29_es8316_init(struct snd_soc_pcm_runtime *rtd)
+static int rk3288_es8316_init(struct snd_soc_pcm_runtime *pcm_rt)
 {
-	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	struct snd_soc_dai *codec_dai = pcm_rt->codec_dai;
 	int ret;
 
 	DBG("Enter::%s----%d\n", __func__, __LINE__);
@@ -111,24 +112,21 @@ static int rk29_es8316_init(struct snd_soc_pcm_runtime *rtd)
 	return 0;
 }
 
-static struct snd_soc_ops rk29_ops = {
-	.hw_params = rk29_hw_params,
+static struct snd_soc_ops rk3288_ops = {
+	.hw_params = rk3288_hw_params,
 };
 
-static struct snd_soc_dai_link rk29_dai = {
+static struct snd_soc_dai_link rk3288_dai_link = {
 	.name = "ES8316",
 	.stream_name = "ES8316 PCM",
-	.codec_name = "ES8316.v01a",
-	.platform_name = "rockchip-audio",
-	.cpu_dai_name = "rk29_i2s.0",
 	.codec_dai_name = "ES8316 HiFi",
-	.init = rk29_es8316_init,
-	.ops = &rk29_ops,
+	.init = rk3288_es8316_init,
+	.ops = &rk3288_ops,
 };
 
 static struct snd_soc_card rockchip_es8316_snd_card = {
 	.name = "RK_ES8316",
-	.dai_link = &rk29_dai,
+	.dai_link = &rk3288_dai_link,
 	.num_links = 1,
 };
 
@@ -245,7 +243,6 @@ static struct platform_driver rockchip_es8316_audio_driver = {
 module_platform_driver(rockchip_es8316_audio_driver);
 
 /* Module information */
-MODULE_AUTHOR("rockchip");
+MODULE_AUTHOR("zeroway");
 MODULE_DESCRIPTION("ROCKCHIP i2s ASoC Interface");
 MODULE_LICENSE("GPL");
-
