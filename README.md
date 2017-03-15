@@ -1,55 +1,35 @@
-# kernel_drivers_examples
+# Firefly_RK3399
 
-Codes test on the kernel version below
+## GPIO类型
 
-	3.10.49
-	3.10.79
+如何确定开发板上调试串口电平是3.0v还是1.8v的
 
-# 目录说明
+![debug port](./debug_port.png)
 
-- app 是测试驱动的应用程序
-- debug 是驱动模板
-- script 是测试脚本
+硬件原理图连接如下
 
-# 各模块入口
+![port1](./port1.png)
 
-[HELLO](./debug/hello/README.md)
+TX和RX是从主控AJ4,AK2连出来的
 
-[I2C](./debug/i2c/README.md)
+![port2](./port2.png)
 
-[Regulator (ACT8846, RK818)](./debug/regulator/README.md)
+AJ4和AK2所在的电源域(GPIO类型)为APIO4
 
-[Platform_Driver_Test](./debug/platform_driver_test/README.md)
+![port3](./port3.png)
 
-[PWM Backlight](./debug/pwm/README.md)
+APIO4电源域如下图(可以根据硬件电路来配置是1.8v/3.0v)
 
-[Regmap](./debug/regmap/README.md)
+![apio4](./apio4.png)
 
-[Audio (ES8323, ES8316)](./debug/codec/README.md)
+电源设置1.8v模式硬件电路
 
-[Timer](./debug/timer/README.md)
+![1p8](./1p8.png)
 
-[Timer And Workqueue](./debug/timer_workq/README.md)
+电源设置3.0v模式硬件电路
 
-[Workqueue](./debug/workqueue/README.md)
+![3p0](./3p0.png)
 
-[Notify](./debug/notify_chain/README.md)
+查看开发板原理图如下(所以是3.0v)
 
-[Script](./script/README.md)
-
-# 使用方法(单独编译模块)或者放到内核目录中编译
-
-- make CC=your_compiler_path KERNELDIR=your_kernel_dir
-
-## 举例(以hello模块为例)
-
-### 编译内核时没有指定O选项
-
-- cd debug/hello
-- make CC=/home/zeroway/3288/src/3288_4.4/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-gcc KERNELDIR=/home/zeroway/3288/src/3288_4.4/kernel
-
-### 编译内核时有指定O选项
-
-- cd debug/hello
-- make CROSS_COMPILE=/home/zeroway/3288/51/src/3288_5.1_v2/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi- KERNEL_DIR=/home/zeroway/3288/51/src/3288_5.1_v2/kernel KERNEL_BUID_OUTPUT=/home/zeroway/3288/51/src/3288_5.1_v2/out/target/product/rk3288/obj/KERNEL
-
+![apio4_vdd](./apio4_vdd.png)
