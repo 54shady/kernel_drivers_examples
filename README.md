@@ -1,5 +1,13 @@
 # Firefly_RK3399
 
+## 编译脚本参考gen_star
+
+[rk3399编译脚本](https://github.com/54shady/gen_star/tree/rk3399)
+
+## 编译时出现"缺少libtinfo.so.5解决办法"
+
+	ln -s /lib/libncurses.so.5 /lib/libtinfo.so.5
+
 ## GPIO类型
 
 如何确定开发板上调试串口电平是3.0v还是1.8v的
