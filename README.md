@@ -8,6 +8,13 @@
 
 	ln -s /lib/libncurses.so.5 /lib/libtinfo.so.5
 
+## 烧写
+
+	upgrade_tool ul RK3399MiniLoaderAll_V1.05.bin
+	upgrade_tool di uboot uboot.img rk3399_parameter.txt
+	upgrade_tool di trust trust.img rk3399_parameter.txt
+	upgrade_tool rd
+
 ## GPIO类型
 
 如何确定开发板上调试串口电平是3.0v还是1.8v的
