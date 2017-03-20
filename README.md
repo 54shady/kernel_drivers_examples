@@ -48,3 +48,13 @@ APIO4电源域如下图(可以根据硬件电路来配置是1.8v/3.0v)
 查看开发板原理图如下(所以是3.0v)
 
 ![apio4_vdd](./apio4_vdd.png)
+
+## Misc
+
+DT里rockchip,pins描述(写的不易读,后续改)
+
+	rockchip,pins = <4 17 RK_FUNC_3 &pcfg_pull_none>
+	4 GPIO bank号,从1开始
+	17 GPIO offset,从0开始(A0-A7,B0-B7,C0-C7)
+	RK_FUNC_3 GPIO mux功能
+	pcfg_pull_none GPIO是否上下拉,高阻配置
