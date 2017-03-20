@@ -58,3 +58,28 @@ DT里rockchip,pins描述(写的不易读,后续改)
 	17 GPIO offset,从0开始(A0-A7,B0-B7,C0-C7)
 	RK_FUNC_3 GPIO mux功能
 	pcfg_pull_none GPIO是否上下拉,高阻配置
+
+## 使用如下脚本修改DT里的GPIO使代码可读性更强(修改OFFSET为宏)
+
+代码修改前
+
+	gpio = <&gpio1 0 GPIO_ACTIVE_HIGH>;
+
+代码修改后
+
+	gpio = <&gpio1 A0 GPIO_ACTIVE_HIGH>;
+
+使用sed批量替换用数字描述的gpio offset
+
+```shell
+GPIO_OFFSET=(
+A0 A1 A2 A3 A4 A5 A6 A7
+B0 B1 B2 B3 B4 B5 B6 B7
+C0 C1 C2 C3 C4 C5 C6 C7
+D0 D1 D2 D3 D4 D5 D6 D7)
+
+for (( offset = 31; offset >= 0; offset-- ))
+do
+	sed -i "/&gpio/s/\ $offset/\ ${GPIO_OFFSET[offset]}/g" $1
+done
+```
