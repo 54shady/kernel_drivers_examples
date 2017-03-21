@@ -160,6 +160,8 @@ gpio_demo: gpio_demo {
 
 ## Misc
 
+### pincontrl,gpio修改
+
 DT里rockchip,pins描述(写的不易读,使用下面提供的脚本批量修改)
 
 	rockchip,pins = <4 17 RK_FUNC_3 &pcfg_pull_none>
@@ -217,3 +219,13 @@ done
 代码修改后
 
 	rockchip,pins = <GPIO4_D0 RK_FUNC_1 &pcfg_pull_none>;
+
+### 使用7yuv显示fb里的图像
+
+抓取fb里的图像数据
+
+	echo bmp > /sys/class/graphics/fb0/dump_buf
+
+会在/data/dmp_buf/里保存图片数据,假设名为frame0_win0_0_1920x1080_XBGR888.bin
+
+使用7yuv设置好分辨率1920x1080和格式RGBA888就能显示该图片
