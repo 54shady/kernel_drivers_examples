@@ -113,6 +113,51 @@ leds {
 
 	echo "timer" > /sys/class/leds/firefly\:blue\:power/trigger
 
+## GPIO使用(以GPIO0_B4为例)
+
+DT里描述GPIO0_B4如下
+
+配置管脚MUX为GPIO模式(默认是GPIO模式,这里是为了读者更明白原理)
+```c
+gpio_demo_pin: gpio_demo_pin {
+	rockchip,pins = <GPIO0_B4 RK_FUNC_GPIO &pcfg_pull_none>;
+};
+```
+
+以GPIO的模式使用该PIN脚
+```c
+gpio_demo: gpio_demo {
+	status = "okay";
+	compatible = "firefly,rk3399-gpio";
+	firefly-gpio = <&gpio0 B4 GPIO_ACTIVE_HIGH>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&gpio_demo_pin>;
+};
+```
+
+### IO-Domain
+在复杂的片上系统(SOC)中,设计者一般会将系统的供电分为多个独立的block,这称作电源域(Power Domain),这样做有很多好处,例如:
+
+- 在IO-Domain的DTS节点统一配置电压域,不需要每个驱动都去配置一次,便于管理
+- 依照的是Upstream的做法,以后如果需要Upstream比较方便
+- IO-Domain的驱动支持运行过程中动态调整电压域,例如PMIC的某个Regulator可以1.8v和3.3v的动态切换,一旦Regulator电压发生改变,会通知IO-Domain驱动去重新设置电压域
+
+### 使用工具IO来调试
+
+查看GPIO1_B3引脚的复用情况
+
+1. 从主控的datasheet查到GPIO1对应寄存器基地址为:0xff320000
+2. 从主控的datasheet查到GPIO1B_IOMUX的偏移量为:0x00014
+3. GPIO1_B3的iomux寄存器地址为:基址(Operational Base) + 偏移量(offset)=0xff320000+0x00014=0xff320014
+4. 用以下指令查看GPIO1_B3的复用情况:
+
+	io -4 -r 0xff320014
+	ff320014:  0000816a
+
+5. 如果想复用为GPIO,可以使用以下指令设置
+
+	io -4 -w 0xff320014 0x0000812a
+
 ## Misc
 
 DT里rockchip,pins描述(写的不易读,使用下面提供的脚本批量修改)
