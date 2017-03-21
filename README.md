@@ -49,6 +49,70 @@ APIO4电源域如下图(可以根据硬件电路来配置是1.8v/3.0v)
 
 ![apio4_vdd](./apio4_vdd.png)
 
+## LED使用
+
+Firefly-RK3399开发板上有2个LED灯,如下表所示
+
+|LED|GPIO|PIN NUMBER|
+|---|---|---
+|Blue|GPIO2_D3|91
+|Yellow|GPIO0_B5|13
+
+### 以设备(LED子系统)的方式控制LED
+
+	echo 0 > /sys/class/leds/firefly:blue:power/brightness
+	echo 1 > /sys/class/leds/firefly:blue:power/brightness
+
+### 使用trigger方式控制LED(参考leds-class.txt)
+
+首先在DT里将两个LED描述如下
+
+```c
+leds {
+   compatible = "gpio-leds";
+   power {
+	   label = "firefly:blue:power";
+	   linux,default-trigger = "ir-power-click";
+	   default-state = "on";
+	   gpios = <&gpio2 D3 GPIO_ACTIVE_HIGH>;
+	   pinctrl-names = "default";
+	   pinctrl-0 = <&led_power>;
+   };
+   user {
+	   label = "firefly:yellow:user";
+	   linux,default-trigger = "ir-user-click";
+	   default-state = "off";
+	   gpios = <&gpio0 B5 GPIO_ACTIVE_HIGH>;
+	   pinctrl-names = "default";
+	   pinctrl-0 = <&led_user>;
+   };
+};
+```
+
+#### Simple trigger LED
+
+1. 定义LED触发器
+
+	DEFINE_LED_TRIGGER(ledtrig_default_control);
+
+2. 注册该触发器
+
+	led_trigger_register_simple("ir-user-click", &ledtrig_default_control);
+
+3. 控制LED的亮
+
+	led_trigger_event(ledtrig_default_control, LED_FULL);
+
+#### Complex trigger LED
+
+查看都支持那些trigger
+
+	cat /sys/class/leds/firefly\:blue\:power/trigger
+
+使用某个trigger触发
+
+	echo "timer" > /sys/class/leds/firefly\:blue\:power/trigger
+
 ## Misc
 
 DT里rockchip,pins描述(写的不易读,使用下面提供的脚本批量修改)
