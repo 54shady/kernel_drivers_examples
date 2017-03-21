@@ -51,7 +51,7 @@ APIO4电源域如下图(可以根据硬件电路来配置是1.8v/3.0v)
 
 ## Misc
 
-DT里rockchip,pins描述(写的不易读,后续改)
+DT里rockchip,pins描述(写的不易读,使用下面提供的脚本批量修改)
 
 	rockchip,pins = <4 17 RK_FUNC_3 &pcfg_pull_none>
 	4 GPIO bank号,从1开始
@@ -59,17 +59,7 @@ DT里rockchip,pins描述(写的不易读,后续改)
 	RK_FUNC_3 GPIO mux功能
 	pcfg_pull_none GPIO是否上下拉,高阻配置
 
-## 使用如下脚本修改DT里的GPIO使代码可读性更强(修改OFFSET为宏)
-
-代码修改前
-
-	gpio = <&gpio1 0 GPIO_ACTIVE_HIGH>;
-
-代码修改后
-
-	gpio = <&gpio1 A0 GPIO_ACTIVE_HIGH>;
-
-使用sed批量替换用数字描述的gpio offset
+- 使用脚本replace_gpio.sh修改DT里的GPIO使代码可读性更强(修改OFFSET为宏)
 
 ```shell
 GPIO_OFFSET=(
@@ -83,3 +73,38 @@ do
 	sed -i "/&gpio/s/\ $offset/\ ${GPIO_OFFSET[offset]}/g" $1
 done
 ```
+
+代码修改前
+
+	gpio = <&gpio1 0 GPIO_ACTIVE_HIGH>;
+
+代码修改后
+
+	gpio = <&gpio1 A0 GPIO_ACTIVE_HIGH>;
+
+
+- 使用脚本replace_pin.sh修改DT里的PIN使代码可读性更强(修改该为BANK_OFFSET宏)
+
+```shell
+GPIO_OFFSET=(
+A0 A1 A2 A3 A4 A5 A6 A7
+B0 B1 B2 B3 B4 B5 B6 B7
+C0 C1 C2 C3 C4 C5 C6 C7
+D0 D1 D2 D3 D4 D5 D6 D7)
+
+for (( offset = 31; offset >= 0; offset-- ))
+do
+	for (( bank = 4;  bank >= 0; bank-- ))
+	do
+		sed -i "/RK_FUNC_/s/<$bank $offset/<GPIO${bank}_${GPIO_OFFSET[offset]}/g" $1
+	done
+done
+```
+
+代码修改前
+
+	rockchip,pins = <4 24 RK_FUNC_1 &pcfg_pull_none>;
+
+代码修改后
+
+	rockchip,pins = <GPIO4_D0 RK_FUNC_1 &pcfg_pull_none>;
