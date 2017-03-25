@@ -8,12 +8,20 @@
 
 	ln -s /lib/libncurses.so.5 /lib/libtinfo.so.5
 
-## 烧写
+## 使用upgrade_tool烧写
 
 	upgrade_tool ul RK3399MiniLoaderAll_V1.05.bin
 	upgrade_tool di uboot uboot.img rk3399_parameter.txt
 	upgrade_tool di trust trust.img rk3399_parameter.txt
 	upgrade_tool rd
+
+## 使用rkflashtool烧写(nsector = 512byte)
+
+参考rkflashtool帮助
+
+读出misc分区(假设起始地址为0x6000)前48K的内容
+
+	rkflashtool r 0x6000 96 > misc.img
 
 ## GPIO类型
 
