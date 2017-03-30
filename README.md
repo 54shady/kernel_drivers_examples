@@ -237,3 +237,42 @@ done
 会在/data/dmp_buf/里保存图片数据,假设名为frame0_win0_0_1920x1080_XBGR888.bin
 
 使用7yuv设置好分辨率1920x1080和格式RGBA888就能显示该图片
+
+## 使用Linaro编译器编译
+
+[gcc-linaro-4.9.4-2017.01-i686_aarch64-linux-gnu.tar.xz下载地址](http://releases.linaro.org/components/toolchain/binaries/4.9-2017.01/aarch64-linux-gnu/)
+
+修改对应的gen脚本里的LOCAL_CROSS_COMPILE为指定的编译器即可
+
+### 编译u-boot
+
+烧写u-boot
+
+	upgrade_tool di uboot uboot.img
+	upgrade_tool di trust trust.img
+	upgrade_tool ul RK3399MiniLoaderAll_V1.05.bin
+
+进入uboot后查看是否是新编译器编译的,执行下面命令
+
+	version
+
+结果中能看到如下信息
+
+	U-Boot 2014.10-RK3399-10 (Mar 30 2017 - 00:42:40)
+	aarch64-linux-gnu-gcc (Linaro GCC 4.9-2017.01) 4.9.4
+	GNU ld (Linaro_Binutils-2017.01) 2.24.0.20141017 Linaro 2014_11-3-git
+
+### 编译kernel
+
+烧写kernel
+
+	upgrade_tool di -k kernel.img
+	upgrade_tool di resource resource.img
+
+查编译内核的编译器版本
+
+	cat /proc/version
+
+结果中能看到如下信息
+
+	Linux version 4.4.16 (gcc version 4.9.4 (Linaro GCC 4.9-2017.01) )
