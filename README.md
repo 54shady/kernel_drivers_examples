@@ -276,3 +276,146 @@ done
 结果中能看到如下信息
 
 	Linux version 4.4.16 (gcc version 4.9.4 (Linaro GCC 4.9-2017.01) )
+
+### 编译ramdisk(busybox-1.22.0)
+
+修改busybox源码中的xconnect.c解决ping bad addr bug
+
+[参考文章](http://hankjin.blog.163.com/blog/static/337319372009327101324432/)
+
+设置交叉编译工具和安装路径等(参考rk3399_busybox_defconfig)
+
+	Build BusyBox as a static binary (no shared libs)
+
+可以在.config中直接设置
+
+	CONFIG_PREFIX="/home/zeroway/rk3399/bsp/ramdiskfs"
+	CONFIG_CROSS_COMPILER_PREFIX="/home/zeroway/rk3399/tool/gcc-linaro-4.9.4-2017.01-i686_aarch64-linux-gnu/bin/aarch64-linux-gnu-"
+
+编译安装
+
+	make
+	make install
+
+经过上一步已经将busybox安装到ramdiskfs文件夹中,有如下内容(linuxrc是指向busybox的链接)
+
+	bin  linuxrc  sbin  usr
+
+继续在ramdiskfs目录中创建必要的目录结构
+
+	mkdir var tmp sys root proc opt mnt lib home etc dev
+
+再在etc下创建一个init.d的目录用于保存一些初始化的脚本
+
+	mkdir etc/init.d
+	touch etc/init.d/rcS
+
+rcS脚本如下
+
+	mount -a
+	mkdir /dev/pts
+	mount -t devpts devpts /dev/pts
+	echo /sbin/mdev > /proc/sys/kernel/hotplug
+	/sbin/mdev -s
+
+给rcS脚本添加可执行权限
+
+	chmod +x etc/init.d/rcS
+
+创建sysconfig
+
+	mkdir etc/sysconfig
+	echo "rk3399" > etc/sysconfig/HOSTNAME
+
+添加/etc/fstab内容如下
+
+	proc		/proc			proc		defaults	0			0
+	tmpfs		/tmp			tmpfs		defaults	0			0
+	sysfs		/sys			sysfs		defaults	0			0
+	tmpfs		/dev			tmpfs		defaults	0			0
+
+添加必要的设备节点
+
+	sudo mknod dev/console c 5 1
+	sudo mknod dev/null c 1 3
+
+添加/etc/inittab内容如下
+
+	::sysinit:/etc/init.d/rcS
+	console::askfirst:-/bin/sh
+	::ctrlaltdel:/sbin/reboot
+	::shutdown:/bin/umount -a -r
+
+添加/etc/profile内容如下
+
+	ulimit -S -c 0 > /dev/null 2>&1
+	USER="`id -un`"
+	LOGNAME=$USER
+	PS1='[\u@\h \W]\# '
+	PATH=$PATH:/usr/local/bin
+	HOSTNAME=`/bin/hostname`
+	export USER LOGNAME PS1 PATH
+
+添加/etc/passwd内容如下
+
+	root:x:0:0:root:/:/bin/sh
+	ftp::14:50:FTP User:/var/ftp:
+	bin:*:1:1:bin:/bin:
+	daemon:*:2:2:daemon:/sbin:
+	nobody:*:99:99:Nobody:/:
+
+添加/etc/group内容如下
+
+	root:*:0:
+	daemon:*:1:
+	bin:*:2:
+	sys:*:3:
+	adm:*:4:
+	tty:*:5:
+	disk:*:6:
+	lp:*:7:lp
+	mail:*:8:
+	news:*:9:
+	uucp:*:10:
+	proxy:*:13:
+	kmem:*:15:
+	dialout:*:20:
+	fax:*:21:
+	voice:*:22:
+	cdrom:*:24:
+	floppy:*:25:
+	tape:*:26:
+	sudo:*:27:
+	audio:*:29:
+	ppp:x:99:
+
+修改[cmdline](./cmdline_linux)参数如下(主要修改init=/linuxrc)
+
+	CMDLINE: androidboot.baseband=N/A androidboot.selinux=disabled androidboot.hardware=rk30board androidboot.console=ttyFIQ0 init=/linuxrc mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(trust),0x00002000@0x00006000(misc),0x00008000@0x00008000(resource),0x0000A000@0x00010000(kernel),0x00010000@0x0001A000(boot),0x00010000@0x0002A000(recovery),0x00038000@0x0003A000(backup),0x00040000@0x00072000(cache),0x00200000@0x000B2000(system),0x00008000@0x002B2000(metadata),0x00002000@0x002BA000(baseparamer),-@0x002BC000(userdata)
+
+
+制作一个大小位8M的ext2格式镜像文件,并挂载到/mnt/initrd目录下
+拷贝ramdiskfs里所有文件到/mnt/initrd下
+
+	dd if=/dev/zero of=initrd.img bs=1k count=8192
+	sudo mkfs.ext2 -F initrd.img
+	sudo mkdir /mnt/initrd
+	sudo mount -t ext2 -o loop initrd.img /mnt/initrd
+	sudo cp -rfvd ramdiskfs/* /mnt/initrd
+	sudo umount /mnt/initrd
+	gzip --best -c initrd.img > ramdisk.img
+	sudo chmod 777 ramdisk.img
+
+使用RK提供的打包工具将ramdisk打包成boot
+
+	rkst/mkkrnlimg ramdisk.img boot.img
+
+烧写ramdisk镜像
+
+	rkflashtool w boot < boot.img
+
+上网设置(配置网卡,设置域名服务和默认网关)
+
+	ifconfig eth0 192.168.1.234 up
+	echo "nameserver 192.168.1.1" > /etc/resolv.conf
+	route add default gw 192.168.1.1
