@@ -419,3 +419,64 @@ rcS脚本如下
 	ifconfig eth0 192.168.1.234 up
 	echo "nameserver 192.168.1.1" > /etc/resolv.conf
 	route add default gw 192.168.1.1
+
+## Gentoo根文件系统制作(在PC主机上操作)
+
+[参考文章Crossdev qemu-static-user-chroot](https://wiki.gentoo.org/wiki/Crossdev_qemu-static-user-chroot)
+
+[参考文章Gentoo Arm in a QEmu Chroot](https://cqlug.linux.org.au//node/19)
+
+[下载QEMU user mode emulation binaries](https://launchpad.net/ubuntu/trusty/+package/qemu-user-static)
+
+[下载stage3-arm64-arm64-20170223.tar.bz2](http://gentoo.osuosl.org/experimental/arm/arm64/)
+
+解压stage3到本地目录temp
+
+	mkdir temp
+	sudo tar jxvf stage3-arm64-arm64-20170223.tar.bz2 -C temp
+
+安装alien
+
+	emerge alien
+
+解压deb,得到qemu-user-static-2.0.0~rc1+dfsg.tgz
+
+	alien -t qemu-user-static_2.0.0~rc1+dfsg-0ubuntu3_amd64.deb
+
+解压qemu-user-static-2.0.0~rc1+dfsg.tgz得到qemu-aarch64-static
+
+	sudo cp qemu-aarch64-static /usr/bin/qemu-aarch64
+	sudo cp /usr/bin/qemu-aarch64 temp/usb/bin/qemu-aarch64
+
+安装app-emulation/qemu-user为了获得脚本(用的是overlay安装)
+
+	emerge app-emulation/qemu-user
+
+执行脚本(确保aarch64的执行正确, /usr/bin/qemu-arm如果存在会导致失败,删除即可)
+
+	sudo /etc/init.d/qemu-binfmt start
+
+到这里就可以执行chroot了
+
+	sudo chroot temp
+
+制作Gentoo文件系统
+
+	TBD
+
+将制作好的temp打包成镜像文件(根据temp的大小来设定count值)
+
+这里制作一个2G的ext4格式的镜像文件
+
+	dd if=/dev/zero of=linuxroot.img bs=1M count=2048
+	sudo  mkfs.ext4  linuxroot.img
+	mkdir  rootfs
+	sudo mount linuxroot.img rootfs/
+	sudo cp -rfp temp/*  rootfs/
+	sudo umount rootfs/
+	e2fsck -p -f linuxroot.img
+	resize2fs  -M linuxroot.img
+
+烧写制作好的gentoo文件系统
+
+	rkflashtool w linuxroot < linuxroot.img
