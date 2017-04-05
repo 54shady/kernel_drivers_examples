@@ -483,6 +483,8 @@ rcS脚本如下
 
 ## 解包和打包
 
+[rk3399 ramdisk下载地址](https://github.com/54shady/firefly_rk3399_ramdisk)
+
 [参考文章android boot.img unpack pack](http://www.cnblogs.com/helloworldtoyou/p/6473661.html)
 
 [参考文章Boot.img tools unpack, repack, ramdisk](https://forum.xda-developers.com/showthread.php?t=2319018)
