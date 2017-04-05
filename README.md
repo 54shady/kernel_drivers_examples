@@ -238,7 +238,7 @@ done
 
 使用7yuv设置好分辨率1920x1080和格式RGBA888就能显示该图片
 
-## 使用Linaro编译器编译
+## 使用Linaro编译器编译(android和linux都验证通过)
 
 [gcc-linaro-4.9.4-2017.01-i686_aarch64-linux-gnu.tar.xz下载地址](http://releases.linaro.org/components/toolchain/binaries/4.9-2017.01/aarch64-linux-gnu/)
 
@@ -480,3 +480,32 @@ rcS脚本如下
 烧写制作好的gentoo文件系统
 
 	rkflashtool w linuxroot < linuxroot.img
+
+## 解包和打包
+
+[参考文章android boot.img unpack pack](http://www.cnblogs.com/helloworldtoyou/p/6473661.html)
+
+[参考文章Boot.img tools unpack, repack, ramdisk](https://forum.xda-developers.com/showthread.php?t=2319018)
+
+工具源码下载
+
+	git clone https://github.com/neo-technologies/rockchip-mkbootimg.git
+	cd rockchip-mkbootimg
+	make
+
+打包boot
+
+	mkbootimg --kernel Image --ramdisk ramdisk_linux.cpio.gz --second resource.img -o linux_boot.img
+
+解包boot
+
+	unmkbootimg -i linux-boot.img
+
+解包ramdisk到当前目录
+
+	gzip -d ramdisk_linux.cpio.gz
+	cpio -idmv < ramdisk_linux.cpio
+
+打包当前目录到ramdisk.cpio.gz
+
+	find . | cpio -o -H newc | gzip > ../ramdisk.cpio.gz
