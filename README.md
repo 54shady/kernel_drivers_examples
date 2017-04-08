@@ -435,6 +435,8 @@ rcS脚本如下
 	mkdir temp
 	sudo tar jxvf stage3-arm64-arm64-20170223.tar.bz2 -C temp
 
+### Qemu for chroot(gentoo user only)
+
 安装alien
 
 	emerge alien
@@ -460,11 +462,25 @@ rcS脚本如下
 
 	sudo chroot temp
 
-制作Gentoo文件系统
+### 制作Gentoo文件系统
 
-	TBD
+[参考mygentoo](https://github.com/54shady/mygentoo)
 
-将制作好的temp打包成镜像文件(根据temp的大小来设定count值)
+挂载必要目录
+
+	mount -t proc proc temp/proc
+	mount --rbind /sys temp/sys
+	mount --make-rslave temp/sys
+	mount --rbind /dev temp/dev
+	mount --make-rslave temp/dev
+
+	chroot temp
+
+拷贝DNS信息
+
+	cp -L /etc/resolv.conf temp/etc/
+
+### 镜像制作
 
 这里制作一个2G的ext4格式的镜像文件
 
