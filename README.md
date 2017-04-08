@@ -17,6 +17,8 @@
 
 ## 使用rkflashtool烧写(nsector = 512byte)
 
+[rkflashtool for rk3399下载地址](https://github.com/54shady/rkflashtool)
+
 参考rkflashtool帮助
 
 读出misc分区(假设起始地址为0x6000)前48K的内容
