@@ -499,6 +499,38 @@ rcS脚本如下
 
 	rkflashtool w linuxroot < linuxroot.img
 
+## Ubuntu根文件系统制作(在PC主机上操作)
+
+下载ubuntu base
+
+	mkdir temp
+	sudo tar -xpf ubuntu-base-16.04.1-base-arm64.tar.gz -C temp
+
+拷贝DNS信息
+
+	cp -L /etc/resolv.conf temp/etc/resolv.conf
+
+进入根文件系统进行操作
+
+	sudo chroot temp
+
+更新及安装必要软件
+
+	apt update
+	apt-get install iputils-ping
+
+添加用户
+
+	useradd -s '/bin/bash' -m -G adm,sudo zeroway
+
+给用户设置密码
+
+	passwd zeroway
+
+设置分区信息(/etc/fstab)
+
+	/dev/mmcblk0p5  /  ext4      defaults,noatime,errors=remount-ro   0      1
+
 ## 解包和打包
 
 [rk3399 ramdisk下载地址](https://github.com/54shady/firefly_rk3399_ramdisk)
