@@ -432,6 +432,8 @@ rcS脚本如下
 
 [下载stage3-arm64-arm64-20170223.tar.bz2](http://gentoo.osuosl.org/experimental/arm/arm64/)
 
+### 准备stage3
+
 解压stage3到本地目录temp
 
 	mkdir temp
@@ -464,9 +466,15 @@ rcS脚本如下
 
 	sudo chroot temp
 
-### 制作Gentoo文件系统
+### 基本配置
 
-[参考mygentoo](https://github.com/54shady/mygentoo)
+拷贝DNS信息
+
+	cp -L /etc/resolv.conf temp/etc/
+
+### 制作文件系统
+
+[可以完全参考mygentoo,此处不详细描述](https://github.com/54shady/mygentoo)
 
 挂载必要目录
 
@@ -478,16 +486,16 @@ rcS脚本如下
 
 	chroot temp
 
-拷贝DNS信息
-
-	cp -L /etc/resolv.conf temp/etc/
-
 ## Ubuntu根文件系统制作(在PC主机上操作)
 
-下载ubuntu base
+### 准备ubuntu base
+
+解压ubuntu core到本地目录temp
 
 	mkdir temp
 	sudo tar -xpf ubuntu-base-16.04.1-base-arm64.tar.gz -C temp
+
+### 基本配置
 
 拷贝DNS信息
 
@@ -496,6 +504,8 @@ rcS脚本如下
 Qemu static user
 
 	sudo cp /usr/bin/qemu-aarch64 temp/usr/bin/
+
+### 制作文件系统
 
 进入根文件系统进行操作
 
@@ -542,7 +552,7 @@ Qemu static user
 	e2fsck -p -f linuxroot.img
 	resize2fs  -M linuxroot.img
 
-烧写制作好的gentoo文件系统
+烧写制作好的文件系统镜像
 
 	rkflashtool w linuxroot < linuxroot.img
 
