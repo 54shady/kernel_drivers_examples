@@ -482,23 +482,6 @@ rcS脚本如下
 
 	cp -L /etc/resolv.conf temp/etc/
 
-### 镜像制作
-
-这里制作一个2G的ext4格式的镜像文件
-
-	dd if=/dev/zero of=linuxroot.img bs=1M count=2048
-	sudo  mkfs.ext4  linuxroot.img
-	mkdir  rootfs
-	sudo mount linuxroot.img rootfs/
-	sudo cp -rfp temp/*  rootfs/
-	sudo umount rootfs/
-	e2fsck -p -f linuxroot.img
-	resize2fs  -M linuxroot.img
-
-烧写制作好的gentoo文件系统
-
-	rkflashtool w linuxroot < linuxroot.img
-
 ## Ubuntu根文件系统制作(在PC主机上操作)
 
 下载ubuntu base
@@ -510,6 +493,10 @@ rcS脚本如下
 
 	cp -L /etc/resolv.conf temp/etc/resolv.conf
 
+Qemu static user
+
+	sudo cp /usr/bin/qemu-aarch64 temp/usr/bin/
+
 进入根文件系统进行操作
 
 	sudo chroot temp
@@ -517,7 +504,10 @@ rcS脚本如下
 更新及安装必要软件
 
 	apt update
-	apt-get install iputils-ping
+	apt-get install console-setup iputils-ping sudo vim net-tools
+
+其中console-setup encoding选的是utf-8(该软件不安装串口无法输入)
+这里并不需要/etc/init/目录下有类似ttyFIQ0.conf的文件
 
 添加用户
 
@@ -527,9 +517,34 @@ rcS脚本如下
 
 	passwd zeroway
 
-设置分区信息(/etc/fstab)
+修改/etc/sudoers
+
+	zeroway    ALL=(ALL:ALL) ALL
+
+设置分区信息(/etc/fstab,推荐这种方法)
 
 	/dev/mmcblk0p5  /  ext4      defaults,noatime,errors=remount-ro   0      1
+
+或者用下面这种
+
+	ln -fs /proc/self/mounts /etc/mtab
+
+## 将根文件系统制作成镜像
+
+这里制作一个8G的ext4格式的镜像文件
+
+	dd if=/dev/zero of=linuxroot.img bs=1M count=8192
+	sudo  mkfs.ext4  linuxroot.img
+	mkdir  rootfs
+	sudo mount linuxroot.img rootfs/
+	sudo cp -rfp temp/*  rootfs/
+	sudo umount rootfs/
+	e2fsck -p -f linuxroot.img
+	resize2fs  -M linuxroot.img
+
+烧写制作好的gentoo文件系统
+
+	rkflashtool w linuxroot < linuxroot.img
 
 ## 解包和打包
 
