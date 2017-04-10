@@ -493,7 +493,7 @@ rcS脚本如下
 解压ubuntu core到本地目录temp
 
 	mkdir temp
-	sudo tar -xpf ubuntu-base-16.04.1-base-arm64.tar.gz -C temp
+	sudo tar xzvf ubuntu-base-16.04.1-base-arm64.tar.gz -C temp
 
 ### 基本配置
 
