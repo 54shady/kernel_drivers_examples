@@ -505,6 +505,15 @@ Qemu static user
 
 	sudo cp /usr/bin/qemu-aarch64 temp/usr/bin/
 
+设置主机名(不设置sudo会有问题)
+
+	echo"rk3399" >/etc/hostname
+
+设置主机入口IP(hosts中要包含hostname)
+
+	echo "127.0.0.1 localhost" >> /etc/hosts
+	echo "127.0.1.1 rk3399" >> /etc/hosts
+
 ### 制作文件系统
 
 进入根文件系统进行操作
