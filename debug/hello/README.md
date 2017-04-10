@@ -57,7 +57,7 @@ arm-eabi-objdump your_module.ko -D > output.dis
 	r4 为变量t
 	push {r4, lr} 是压栈操作
 	move r4, #0 对应 t = NULL
-	ldr r1, [pc, #20] 这里答应__FUNCTION__
+	ldr r1, [pc, #20] 这里打印__FUNCTION__
 	mov r2, #13 是对应行号
 	ldrb r3, [r4] 这里将r4存入r3,但是这里r4是空指针,所以这里崩溃了
 
