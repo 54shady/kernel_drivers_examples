@@ -17,6 +17,8 @@ Codes test on the kernel version below
 
 [I2C](./debug/i2c/README.md)
 
+[SPI](./debug/spi/README.md)
+
 [Regulator (ACT8846, RK818)](./debug/regulator/README.md)
 
 [Platform_Driver_Test](./debug/platform_driver_test/README.md)

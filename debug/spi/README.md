@@ -1,5 +1,58 @@
 # SPI
 
+## 设备树描述
+
+每一个spi对应一个SPI控制器(可以叫做一个bus)
+
+	spi0 ==> bus 0
+	spi1 ==> bus 1
+	spi2 ==> bus 2
+
+其中每个SPI控制器上有两个片选在原理图上描述如下
+
+	SPI0_CSn0
+	SPI0_CSn1
+
+	SPI1_CSn0
+	SPI1_CSn1
+
+	SPI2_CSn0
+	SPI2_CSn1
+
+
+## 应用实例
+
+SPI2控制器上接有两个SPI设备分别使用cs0(demoAAA),cs1(demoBBB)
+
+	&spi2 {
+		demoAAA@20 {
+			compatible = "spi_test_bus2_cs0";
+			reg = <0>;
+		};
+
+		demoBBB@21 {
+			compatible = "spi_test_bus2_cs1";
+			reg = <1>;
+		};
+	};
+
+其中注意以下两个地方
+
+@后面的地址
+
+	demoAAA@20
+	2 : 表示spi2
+	0 : 表示使用的是片选0
+
+	demoBBB@21
+	2 : 表示spi2
+	1 : 表示使用的是片选1
+
+reg表示使用的片选
+
+	reg = <0> 表示使用的是片选0
+	reg = <1> 表示使用的是片选1
+
 ## 数据结构
 
 spi_transfer
