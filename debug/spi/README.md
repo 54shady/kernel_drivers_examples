@@ -8,17 +8,22 @@
 	spi1 ==> bus 1
 	spi2 ==> bus 2
 
-其中每个SPI控制器上有两个片选在原理图上描述如下
+其中每个SPI控制器上片选数在原理图上描述如下
+在控制器描述上也可以找得到相应信息
 
 	SPI0_CSn0
 	SPI0_CSn1
 
 	SPI1_CSn0
-	SPI1_CSn1
 
 	SPI2_CSn0
 	SPI2_CSn1
 
+![spi0_cs](./spi0_cs.png)
+
+![spi1_cs](./spi1_cs.png)
+
+![spi2_cs](./spi2_cs.png)
 
 ## 应用实例
 
