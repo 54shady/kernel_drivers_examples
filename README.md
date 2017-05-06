@@ -640,12 +640,14 @@ Qemu static user
 		max-freq = <48000000>;
 		dev-port = <1>;
 
-		spi_demo: spi-demo@10{
+		w25q128fv@10{
 			status = "okay";
-			compatible = "firefly,rk3399-spi";
+			compatible = "firefly,w25q128fv";
 			reg = <0x0>;
-			spi-max-frequency = <1000000>;
+			spi-max-frequency = <48000000>;
 		};
 	};
 
-### 驱动代码
+dev-port表示bus_num,因为这里用的是spi1,所以配置为1
+
+w25q128fv@10中@10的含义: 1表示bus_num,需要和dev-port一致, 0表示使用csn0

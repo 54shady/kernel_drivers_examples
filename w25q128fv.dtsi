@@ -1,0 +1,12 @@
+&spi1 {
+	status = "okay";
+	max-freq = <48000000>;
+	dev-port = <1>;
+
+	w25q128fv@10{
+		status = "okay";
+		compatible = "firefly,w25q128fv";
+		reg = <0x0>;
+		spi-max-frequency = <48000000>;
+	};
+};
