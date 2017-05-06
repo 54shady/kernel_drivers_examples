@@ -648,6 +648,14 @@ Qemu static user
 		};
 	};
 
-dev-port表示bus_num,因为这里用的是spi1,所以配置为1
+dev-port
 
-w25q128fv@10中@10的含义: 1表示bus_num,需要和dev-port一致, 0表示使用csn0
+	表示bus_num,因为这里用的是spi1,所以配置为1
+
+@10的含义
+
+	1表示bus_num,需要和dev-port一致, 0表示spi设备使用CSN0作为片选
+
+reg = <0x0>
+
+	表示spi设备使用的片选,需要和上面一致,即CSN0
