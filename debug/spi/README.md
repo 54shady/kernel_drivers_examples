@@ -2,6 +2,24 @@
 
 以W25Q128FV为例子介绍
 
+## 软件基础
+
+在设备树中每一个spi节点对应一个SPI控制器(一般情况下软件将bus和控制器配置成如下对应关系)
+
+	spi0 <==> bus 0
+	spi1 <==> bus 1
+	spi2 <==> bus 2
+
+其中每个SPI控制器上片选数有一个或多个,具体看芯片
+
+	SPI0_CSN0
+	SPI0_CSN1
+
+	SPI1_CSN0
+
+	SPI2_CSN0
+	SPI2_CSN1
+
 ## 硬件连接
 
 	CS		<--> 	SPI1_CSN0
