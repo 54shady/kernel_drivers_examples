@@ -422,6 +422,20 @@ rcS脚本如下
 	echo "nameserver 192.168.1.1" > /etc/resolv.conf
 	route add default gw 192.168.1.1
 
+## linux_boot.img制作
+
+编译内核得到Image和resource.img
+
+ramdisk镜像制作
+
+	git clone https://github.com/54shady/firefly_rk3399_ramdisk
+	cd firefly_rk3399_ramdisk
+	find . | cpio -o -H newc | gzip > ../ramdisk.cpio.gz
+
+打包成linux_boot.img
+
+	mkbootimg --kernel Image --ramdisk ramdisk_linux.cpio.gz --second resource.img -o linux_boot.img
+
 ## Gentoo根文件系统制作(在PC主机上操作)
 
 [参考文章Crossdev qemu-static-user-chroot](https://wiki.gentoo.org/wiki/Crossdev_qemu-static-user-chroot)
@@ -524,6 +538,7 @@ Qemu static user
 
 	apt update
 	apt-get install console-setup iputils-ping sudo vim net-tools
+	ssh software-properties-common
 
 其中console-setup encoding选的是utf-8(该软件不安装串口无法输入)
 这里并不需要/etc/init/目录下有类似ttyFIQ0.conf的文件
@@ -547,6 +562,14 @@ Qemu static user
 或者用下面这种
 
 	ln -fs /proc/self/mounts /etc/mtab
+
+### ubuntu 应用
+
+安装aria2
+
+	add-apt-repository ppa:t-tujikawa/ppa
+	apt-get update
+	apt-get install aria2
 
 ## 将根文件系统制作成镜像
 
@@ -585,7 +608,7 @@ Qemu static user
 
 解包boot
 
-	unmkbootimg -i linux-boot.img
+	unmkbootimg -i linux_boot.img
 
 解包ramdisk到当前目录
 
@@ -595,3 +618,34 @@ Qemu static user
 打包当前目录到ramdisk.cpio.gz
 
 	find . | cpio -o -H newc | gzip > ../ramdisk.cpio.gz
+
+## SPI
+
+以W25Q128FV为例子介绍
+
+### 硬件连接
+
+	CS		<--> 	SPI1_CSN0
+	VCC		<--> 	VCC3V3_SYS
+	DO		<--> 	SPI1_RXD
+	DI		<--> 	SPI1_TXD
+	GND		<--> 	GND
+	HOLD	<--> 	TP_RST(需要拉高到3V)
+	CLK 	<--> 	SPI1_CLK
+
+### DeviceTree
+
+	&spi1 {
+		status = "okay";
+		max-freq = <48000000>;
+		dev-port = <1>;
+
+		spi_demo: spi-demo@10{
+			status = "okay";
+			compatible = "firefly,rk3399-spi";
+			reg = <0x0>;
+			spi-max-frequency = <1000000>;
+		};
+	};
+
+### 驱动代码
