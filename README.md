@@ -19,6 +19,8 @@ Codes test on the kernel version below
 
 [SPI](./debug/spi/README.md)
 
+[USB](./debug/usb/README.md)
+
 [Regulator (ACT8846, RK818)](./debug/regulator/README.md)
 
 [Platform_Driver_Test](./debug/platform_driver_test/README.md)
