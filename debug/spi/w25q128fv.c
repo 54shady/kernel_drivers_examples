@@ -34,11 +34,17 @@ static int w25q128fv_spi_read_w25x_id_0(struct spi_device *spi)
 	};
 	struct spi_message      m;
 
+	/* 初始化message */
 	spi_message_init(&m);
+
+	/* 将tx rx buffer加入到message */
 	spi_message_add_tail(&t, &m);
 	spi_message_add_tail(&r, &m);
+
+	/* 发送message */
 	status = spi_sync(spi, &m);
 	dev_err(&spi->dev, "%s: ID = %02x %02x %02x %02x %02x\n", __FUNCTION__, rbuf[0], rbuf[1], rbuf[2], rbuf[3], rbuf[4]);
+
 	return status;
 }
 
@@ -48,8 +54,10 @@ static int w25q128fv_spi_read_w25x_id_1(struct spi_device *spi)
 	char tbuf[] = {FIREFLY_SPI_READ_ID_CMD};
 	char rbuf[5];
 
+	/* 先发送写数据后读回数据 */
 	status = spi_write_then_read(spi, tbuf, sizeof(tbuf), rbuf, sizeof(rbuf));
 	dev_err(&spi->dev, "%s: ID = %02x %02x %02x %02x %02x\n", __FUNCTION__, rbuf[0], rbuf[1], rbuf[2], rbuf[3], rbuf[4]);
+
 	return status;
 }
 

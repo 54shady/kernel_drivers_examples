@@ -1,6 +1,5 @@
 # SPI
 
-以W25Q128FV为例子介绍
 
 ## 软件基础
 
@@ -20,7 +19,31 @@
 	SPI2_CSN0
 	SPI2_CSN1
 
-## 硬件连接
+## SPI工作方式
+
+SPI以主从方式工作,这种模式通常有一个主设备和一个或多个从设备,需要至少4根线
+
+	CS			片选信号
+	SCLK		时钟信号
+	MOSI		主设备数据输出,从设备数据输入
+	MISO		主设备数据输入,从设备数据输出
+
+Linux内核用CPOL和CPHA的组合来表示当前SPI的四种工作模式
+
+	CPOL＝0,CPHA＝0		SPI_MODE_0
+	CPOL＝0,CPHA＝1		SPI_MODE_1
+	CPOL＝1,CPHA＝0		SPI_MODE_2
+	CPOL＝1,CPHA＝1		SPI_MODE_3
+
+CPOL:表示时钟信号的初始电平的状态,０为低电平,１为高电平
+
+CPHA:表示在哪个时钟沿采样,０为第一个时钟沿采样,１为第二个时钟沿采样
+
+SPI的四种工作模式波形图如下
+
+![spi mode](./spi4mode.png)
+
+## 硬件连接(以W25Q128FV为例子介绍)
 
 	CS		<--> 	SPI1_CSN0
 	VCC		<--> 	VCC3V3_SYS
