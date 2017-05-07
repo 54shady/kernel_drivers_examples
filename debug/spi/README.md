@@ -45,13 +45,15 @@ SPI的四种工作模式波形图如下
 
 ## 硬件连接(以W25Q128FV为例子介绍)
 
-	CS		<--> 	SPI1_CSN0
-	VCC		<--> 	VCC3V3_SYS
-	DO		<--> 	SPI1_RXD
-	DI		<--> 	SPI1_TXD
-	GND		<--> 	GND
-	HOLD	<--> 	TP_RST(需要拉高到3V)
-	CLK 	<--> 	SPI1_CLK
+|w25q128fv|Firefly-RK3399|
+|----|-----
+|CS		|SPI1_CSN0
+|VCC	| 	VCC3V3_SYS
+|DO		|SPI1_RXD
+|DI		|SPI1_TXD
+|GND	| 	GND
+|HOLD	|TP_RST(需要拉高到3V)
+|CLK 	|SPI1_CLK
 
 ## DeviceTree
 
