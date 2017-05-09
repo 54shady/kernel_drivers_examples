@@ -14,6 +14,27 @@ codec硬件框图如下(ES8323)
 
 数字信号从DSDIN进入(对端CPU I2S控制器),发送到DAC,DAC通过DACL/DACR连接到MixL/MixR,最后输出到LOUT1/ROUT1
 
+## 基础知识
+
+参考文章
+
+[Linux ALSA 音频系统:逻辑设备篇](http://blog.csdn.net/zyuanyun/article/details/59180272)
+
+### Frame & Period
+
++ Sample:样本长度,音频数据最基本的单位,常见的有8位和16位
++ Channel:声道数,分为单声道mono和立体声stereo
++ Frame:帧,构成一个完整的声音单元,所谓的声音单元是指一个采样样本,Frame = Sample * channel
++ Rate:又称 sample rate,采样率,即每秒的采样次数,针对帧而言
++ Period Size:周期,每次硬件中断处理音频数据的帧数,对于音频设备的数据读写,以此为单位
++ Buffer Size:数据缓冲区大小,这里指runtime的buffer size一般来说 buffer_size = period_size * period_count, period_count 相当于处理完一个 buffer 数据所需的硬件中断次数
+
+下面一张图直观的表示buffer/period/frame/sample之间的关系
+
+![bpfs](./pngs/bpfs.png)
+
+这个buffer中有4个period,每当DMA搬运完一个period的数据就会出生一次中断,因此搬运这个buffer中的数据将产生4次中断.ALSA 为什么这样做？因为数据缓存区可能很大,一次传输可能会导致不可接受的延迟,为了解决这个问题,alsa 把缓存区拆分成多个周期,以周期为单元传输数据
+
 ## Codec驱动(es8323.c)
 
 ### 硬件连接
