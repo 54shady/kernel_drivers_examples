@@ -8,14 +8,39 @@
 
 	ln -s /lib/libncurses.so.5 /lib/libtinfo.so.5
 
-## 使用upgrade_tool烧写
+## 烧写
+
+### 分区和对应文件
+
+Linux系统
+
+|分区名|镜像文件名|
+|----|-----
+|uboot|uboot.img
+|trust|trust.img
+|boot|linux_boot.img
+|linuxroot|linuxroot.img
+
+Android系统
+
+|分区名|镜像文件名|
+|----|-----
+|uboot|uboot.img
+|trust|trust.img
+|misc|misc.img
+|resource|resource.img
+|boot|boot.img
+|recovery|recovery.img
+|system|system.img
+
+### 使用upgrade_tool烧写
 
 	upgrade_tool ul RK3399MiniLoaderAll_V1.05.bin
-	upgrade_tool di uboot uboot.img rk3399_parameter.txt
-	upgrade_tool di trust trust.img rk3399_parameter.txt
+	upgrade_tool di uboot uboot.img
+	upgrade_tool di trust trust.img
 	upgrade_tool rd
 
-## 使用rkflashtool烧写(nsector = 512byte)
+### 使用rkflashtool烧写(nsector = 512byte)
 
 [rkflashtool for rk3399下载地址](https://github.com/54shady/rkflashtool)
 
@@ -167,78 +192,6 @@ gpio_demo: gpio_demo {
 5. 如果想复用为GPIO,可以使用以下指令设置
 
 	io -4 -w 0xff320014 0x0000812a
-
-## Misc
-
-### pincontrl,gpio修改
-
-DT里rockchip,pins描述(写的不易读,使用下面提供的脚本批量修改)
-
-	rockchip,pins = <4 17 RK_FUNC_3 &pcfg_pull_none>
-	4 GPIO bank号,从1开始
-	17 GPIO offset,从0开始(A0-A7,B0-B7,C0-C7)
-	RK_FUNC_3 GPIO mux功能
-	pcfg_pull_none GPIO是否上下拉,高阻配置
-
-- 使用脚本replace_gpio.sh修改DT里的GPIO使代码可读性更强(修改OFFSET为宏)
-
-```shell
-GPIO_OFFSET=(
-A0 A1 A2 A3 A4 A5 A6 A7
-B0 B1 B2 B3 B4 B5 B6 B7
-C0 C1 C2 C3 C4 C5 C6 C7
-D0 D1 D2 D3 D4 D5 D6 D7)
-
-for (( offset = 31; offset >= 0; offset-- ))
-do
-	sed -i "/&gpio/s/\ $offset/\ ${GPIO_OFFSET[offset]}/g" $1
-done
-```
-
-代码修改前
-
-	gpio = <&gpio1 0 GPIO_ACTIVE_HIGH>;
-
-代码修改后
-
-	gpio = <&gpio1 A0 GPIO_ACTIVE_HIGH>;
-
-
-- 使用脚本replace_pin.sh修改DT里的PIN使代码可读性更强(修改该为BANK_OFFSET宏)
-
-```shell
-GPIO_OFFSET=(
-A0 A1 A2 A3 A4 A5 A6 A7
-B0 B1 B2 B3 B4 B5 B6 B7
-C0 C1 C2 C3 C4 C5 C6 C7
-D0 D1 D2 D3 D4 D5 D6 D7)
-
-for (( offset = 31; offset >= 0; offset-- ))
-do
-	for (( bank = 4;  bank >= 0; bank-- ))
-	do
-		sed -i "/RK_FUNC_/s/<$bank $offset/<GPIO${bank}_${GPIO_OFFSET[offset]}/g" $1
-	done
-done
-```
-
-代码修改前
-
-	rockchip,pins = <4 24 RK_FUNC_1 &pcfg_pull_none>;
-
-代码修改后
-
-	rockchip,pins = <GPIO4_D0 RK_FUNC_1 &pcfg_pull_none>;
-
-### 使用7yuv显示fb里的图像
-
-抓取fb里的图像数据
-
-	echo bmp > /sys/class/graphics/fb0/dump_buf
-
-会在/data/dmp_buf/里保存图片数据,假设名为frame0_win0_0_1920x1080_XBGR888.bin
-
-使用7yuv设置好分辨率1920x1080和格式RGBA888就能显示该图片
 
 ## 使用Linaro编译器编译(android和linux都验证通过)
 
@@ -622,3 +575,75 @@ Qemu static user
 ## 驱动开发
 
 [SPI driver](./debug/spi/README.md)
+## Misc
+
+### pincontrl,gpio修改
+
+DT里rockchip,pins描述(写的不易读,使用下面提供的脚本批量修改)
+
+	rockchip,pins = <4 17 RK_FUNC_3 &pcfg_pull_none>
+	4 GPIO bank号,从1开始
+	17 GPIO offset,从0开始(A0-A7,B0-B7,C0-C7)
+	RK_FUNC_3 GPIO mux功能
+	pcfg_pull_none GPIO是否上下拉,高阻配置
+
+- 使用脚本replace_gpio.sh修改DT里的GPIO使代码可读性更强(修改OFFSET为宏)
+
+```shell
+GPIO_OFFSET=(
+A0 A1 A2 A3 A4 A5 A6 A7
+B0 B1 B2 B3 B4 B5 B6 B7
+C0 C1 C2 C3 C4 C5 C6 C7
+D0 D1 D2 D3 D4 D5 D6 D7)
+
+for (( offset = 31; offset >= 0; offset-- ))
+do
+	sed -i "/&gpio/s/\ $offset/\ ${GPIO_OFFSET[offset]}/g" $1
+done
+```
+
+代码修改前
+
+	gpio = <&gpio1 0 GPIO_ACTIVE_HIGH>;
+
+代码修改后
+
+	gpio = <&gpio1 A0 GPIO_ACTIVE_HIGH>;
+
+
+- 使用脚本replace_pin.sh修改DT里的PIN使代码可读性更强(修改该为BANK_OFFSET宏)
+
+```shell
+GPIO_OFFSET=(
+A0 A1 A2 A3 A4 A5 A6 A7
+B0 B1 B2 B3 B4 B5 B6 B7
+C0 C1 C2 C3 C4 C5 C6 C7
+D0 D1 D2 D3 D4 D5 D6 D7)
+
+for (( offset = 31; offset >= 0; offset-- ))
+do
+	for (( bank = 4;  bank >= 0; bank-- ))
+	do
+		sed -i "/RK_FUNC_/s/<$bank $offset/<GPIO${bank}_${GPIO_OFFSET[offset]}/g" $1
+	done
+done
+```
+
+代码修改前
+
+	rockchip,pins = <4 24 RK_FUNC_1 &pcfg_pull_none>;
+
+代码修改后
+
+	rockchip,pins = <GPIO4_D0 RK_FUNC_1 &pcfg_pull_none>;
+
+### 使用7yuv显示fb里的图像
+
+抓取fb里的图像数据
+
+	echo bmp > /sys/class/graphics/fb0/dump_buf
+
+会在/data/dmp_buf/里保存图片数据,假设名为frame0_win0_0_1920x1080_XBGR888.bin
+
+使用7yuv设置好分辨率1920x1080和格式RGBA888就能显示该图片
+
