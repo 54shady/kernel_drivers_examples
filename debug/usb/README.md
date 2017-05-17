@@ -71,6 +71,14 @@ Status
 
 ## 应用实例
 
+本应用实例为一个使用usb来传输数据的烧写工具软件rkflashtool
+
+Host端rkflashtool,使用libusb库进行usb通讯
+
+其中CBW中的CDB自定义为相应的命令,详细见代码
+
+Slave端(开发板),进入下载模式后枚举成MassStroage设备,循环等待接收命令,处理命令
+
 [HOST端软件代码rkflashtool](https://github.com/54shady/rkflashtool)
 
 [SLAVE端软件代码rockusb](./cmd_rockusb.c)
@@ -79,9 +87,7 @@ Status
 
 ![work flow](./sequenceDiagram.png)
 
-Host端代码
-
-使用libusb库进行usb通讯,大致流程如下
+Libusb编程核心步骤
 
 初始化,设置调试级别,使用vid,pid打开设备,连接设备,获取设备通讯接口,获取描述符
 
@@ -99,9 +105,3 @@ Host端代码
 bulk传输接口
 
     libusb_bulk_transfer
-
-Slave端
-
-进入下载模式后会枚举成为MassStroage
-
-循环等待接收命令,处理命令,具体见代码注释
