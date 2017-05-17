@@ -574,7 +574,10 @@ Qemu static user
 
 ## 驱动开发
 
-[SPI driver](./debug/spi/README.md)
+[SPI驱动开发](./debug/spi/README.md)
+
+[USB驱动,应用开发](./debug/usb/README.md)
+
 ## Misc
 
 ### pincontrl,gpio修改

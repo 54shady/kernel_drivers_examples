@@ -69,6 +69,39 @@ Status
 
 	指示命令的执行状态.如果命令正确执行,bCSWStatus返回0 即可
 
-## 应用
+## 应用实例
 
-[主机端软件代码](https://github.com/54shady/rkflashtool)
+[HOST端软件代码rkflashtool](https://github.com/54shady/rkflashtool)
+
+[SLAVE端软件代码rockusb](./cmd_rockusb.c)
+
+数据通信流程简图
+
+![work flow](./sequenceDiagram.png)
+
+Host端代码
+
+使用libusb库进行usb通讯,大致流程如下
+
+初始化,设置调试级别,使用vid,pid打开设备,连接设备,获取设备通讯接口,获取描述符
+
+    libusb_init
+    libusb_set_debug
+	libusb_open_device_with_vid_pid
+    libusb_kernel_driver_active
+    libusb_claim_interface
+    libusb_get_device_descriptor
+
+控制传输接口
+
+	libusb_control_transfer
+
+bulk传输接口
+
+    libusb_bulk_transfer
+
+Slave端
+
+进入下载模式后会枚举成为MassStroage
+
+循环等待接收命令,处理命令,具体见代码注释
