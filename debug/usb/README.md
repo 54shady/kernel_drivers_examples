@@ -160,3 +160,81 @@ Libusb编程核心步骤
 bulk传输接口
 
     libusb_bulk_transfer
+
+## Firefly_RK3399 USB
+
+RK3399支持两个Type-C USB3, DP,两个USB2.0 HOST
+
+Type-C0 USB3支持OTG(USB Peripheral和USB HOST)
+
+Type-C1 USB3仅支持USB3 HOST
+
+在Firefly_RK3399上,两路TypeC物理形态如下
+
+Type-C0 USB3设计为Type-C USB3
+
+Type-C1 USB3设计为Type-A USB3 HOST
+
+RK3399DTS的默认配置支持Type-C0 USB3 OTG,Type-C1 USB3 HOST
+
+Type-C0 USB3 OTG(dr_mode = otg)
+
+	usbdrd3_0: usb@fe800000 {
+		compatible = "rockchip,rk3399-dwc3";
+		clocks = <&cru SCLK_USB3OTG0_REF>, <&cru SCLK_USB3OTG0_SUSPEND>,
+			 <&cru ACLK_USB3OTG0>, <&cru ACLK_USB3_GRF>;
+		clock-names = "ref_clk", "suspend_clk",
+			      "bus_clk", "grf_clk";
+		power-domains = <&power RK3399_PD_USB3>;
+		resets = <&cru SRST_A_USB3_OTG0>;
+		reset-names = "usb3-otg";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+		status = "disabled";
+		usbdrd_dwc3_0: dwc3@fe800000 {
+			compatible = "snps,dwc3";
+			reg = <0x0 0xfe800000 0x0 0x100000>;
+			interrupts = <GIC_SPI 105 IRQ_TYPE_LEVEL_HIGH 0>;
+			dr_mode = "otg";
+			phys = <&u2phy0_otg>, <&tcphy0 1>;
+			phy-names = "usb2-phy", "usb3-phy";
+			phy_type = "utmi_wide";
+			snps,dis_enblslpm_quirk;
+			snps,dis-u2-freeclk-exists-quirk;
+			snps,dis-del-phy-power-chg-quirk;
+			snps,xhci-slow-suspend-quirk;
+			status = "disabled";
+		};
+	};
+
+Type-C1 USB3 HOST(dr_mode = host)
+
+	usbdrd3_1: usb@fe900000 {
+		compatible = "rockchip,rk3399-dwc3";
+		clocks = <&cru SCLK_USB3OTG1_REF>, <&cru SCLK_USB3OTG1_SUSPEND>,
+			 <&cru ACLK_USB3OTG1>, <&cru ACLK_USB3_GRF>;
+		clock-names = "ref_clk", "suspend_clk",
+			      "bus_clk", "grf_clk";
+		power-domains = <&power RK3399_PD_USB3>;
+		resets = <&cru SRST_A_USB3_OTG1>;
+		reset-names = "usb3-otg";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+		status = "disabled";
+		usbdrd_dwc3_1: dwc3@fe900000 {
+			compatible = "snps,dwc3";
+			reg = <0x0 0xfe900000 0x0 0x100000>;
+			interrupts = <GIC_SPI 110 IRQ_TYPE_LEVEL_HIGH 0>;
+			dr_mode = "host";
+			phys = <&u2phy1_otg>, <&tcphy1 1>;
+			phy-names = "usb2-phy", "usb3-phy";
+			phy_type = "utmi_wide";
+			snps,dis_enblslpm_quirk;
+			snps,dis-u2-freeclk-exists-quirk;
+			snps,dis-del-phy-power-chg-quirk;
+			snps,xhci-slow-suspend-quirk;
+			status = "disabled";
+		};
+	};
