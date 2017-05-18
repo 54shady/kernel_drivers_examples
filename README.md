@@ -2,11 +2,15 @@
 
 ## 编译脚本参考gen_star
 
-[rk3399编译脚本](https://github.com/54shady/gen_star/tree/rk3399)
+[RK3399编译脚本](https://github.com/54shady/gen_star/tree/rk3399)
 
-## 编译时出现"缺少libtinfo.so.5解决办法"
+## 驱动开发
 
-	ln -s /lib/libncurses.so.5 /lib/libtinfo.so.5
+[SPI驱动开发](./debug/spi/README.md)
+
+[USB驱动,应用开发](./debug/usb/README.md)
+
+[UART驱动](./debug/uart/README.md)
 
 ## 烧写
 
@@ -572,14 +576,6 @@ Qemu static user
 
 	find . | cpio -o -H newc | gzip > ../ramdisk.cpio.gz
 
-## 驱动开发
-
-[SPI驱动开发](./debug/spi/README.md)
-
-[USB驱动,应用开发](./debug/usb/README.md)
-
-[UART驱动](./debug/uart/README.md)
-
 ## Misc
 
 ### pincontrl,gpio修改
@@ -652,3 +648,6 @@ done
 
 使用7yuv设置好分辨率1920x1080和格式RGBA888就能显示该图片
 
+### 编译时出现"缺少libtinfo.so.5解决办法"
+
+	ln -s /lib/libncurses.so.5 /lib/libtinfo.so.5
