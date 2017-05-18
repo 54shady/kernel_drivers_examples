@@ -476,9 +476,13 @@ Qemu static user
 
 	sudo cp /usr/bin/qemu-aarch64 temp/usr/bin/
 
+到这里就可以执行chroot了
+
+	sudo chroot temp
+
 设置主机名(不设置sudo会有问题)
 
-	echo"rk3399" >/etc/hostname
+	echo"rk3399" > /etc/hostname
 
 设置主机入口IP(hosts中要包含hostname)
 
@@ -527,6 +531,44 @@ Qemu static user
 	add-apt-repository ppa:t-tujikawa/ppa
 	apt-get update
 	apt-get install aria2
+
+## Arch根文件系统制作(在PC主机上操作)
+
+[下载ArchLinuxARM-aarch64-latest.tar.gz](http://sg.mirror.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz)
+
+解压到本地
+
+	mkdir temp
+	sudo tar xzvf ArchLinuxARM-aarch64-latest.tar.gz -C temp/
+
+Qemu static user
+
+	sudo cp /usr/bin/qemu-aarch64 temp/usr/bin/
+
+到这里就可以执行chroot了
+
+	sudo chroot temp
+
+设置用户和密码
+
+	useradd -m -s /bin/bash zeroway
+	passwd zeroway
+
+设置主机名
+
+	echo"rk3399" > /etc/hostname
+
+修改支持开发板默认串口
+
+	cp /lib/systemd/system/serial-getty\@.service /lib/systemd/system/serial-getty@ttyFIQ0.service
+
+把里面的"%i.device"改为"%i"
+
+设置开机启动服务
+
+	systemctl enable serial-getty@ttyFIQ0.service
+
+设置到这里就可以制作成镜像烧写,烧写开机后切换到root用户,默认root密码为root
 
 ## 将根文件系统制作成镜像
 
