@@ -578,6 +578,8 @@ Qemu static user
 
 [USB驱动,应用开发](./debug/usb/README.md)
 
+[UART驱动](./debug/uart/README.md)
+
 ## Misc
 
 ### pincontrl,gpio修改
