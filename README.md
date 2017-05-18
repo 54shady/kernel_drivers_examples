@@ -393,7 +393,9 @@ ramdisk镜像制作
 
 	mkbootimg --kernel Image --ramdisk ramdisk_linux.cpio.gz --second resource.img -o linux_boot.img
 
-## Gentoo根文件系统制作(在PC主机上操作)
+## Linux发行版根文件系统制作
+
+### Gentoo根文件系统制作(在PC主机上操作)
 
 [参考文章Crossdev qemu-static-user-chroot](https://wiki.gentoo.org/wiki/Crossdev_qemu-static-user-chroot)
 
@@ -403,14 +405,14 @@ ramdisk镜像制作
 
 [下载stage3-arm64-arm64-20170223.tar.bz2](http://gentoo.osuosl.org/experimental/arm/arm64/)
 
-### 准备stage3
+#### 准备stage3
 
 解压stage3到本地目录temp
 
 	mkdir temp
 	sudo tar jxvf stage3-arm64-arm64-20170223.tar.bz2 -C temp
 
-### Qemu for chroot(gentoo user only)
+#### Qemu for chroot(gentoo user only)
 
 安装alien
 
@@ -437,13 +439,13 @@ ramdisk镜像制作
 
 	sudo chroot temp
 
-### 基本配置
+#### 基本配置
 
 拷贝DNS信息
 
 	cp -L /etc/resolv.conf temp/etc/
 
-### 制作文件系统
+#### 制作文件系统
 
 [可以完全参考mygentoo,此处不详细描述](https://github.com/54shady/mygentoo)
 
@@ -457,16 +459,16 @@ ramdisk镜像制作
 
 	chroot temp
 
-## Ubuntu根文件系统制作(在PC主机上操作)
+### Ubuntu根文件系统制作(在PC主机上操作)
 
-### 准备ubuntu base
+#### 准备ubuntu base
 
 解压ubuntu core到本地目录temp
 
 	mkdir temp
 	sudo tar xzvf ubuntu-base-16.04.1-base-arm64.tar.gz -C temp
 
-### 基本配置
+#### 基本配置
 
 拷贝DNS信息
 
@@ -489,7 +491,7 @@ Qemu static user
 	echo "127.0.0.1 localhost" >> /etc/hosts
 	echo "127.0.1.1 rk3399" >> /etc/hosts
 
-### 制作文件系统
+#### 制作文件系统
 
 进入根文件系统进行操作
 
@@ -524,7 +526,7 @@ Qemu static user
 
 	ln -fs /proc/self/mounts /etc/mtab
 
-### ubuntu 应用
+#### ubuntu 应用
 
 安装aria2
 
@@ -532,7 +534,7 @@ Qemu static user
 	apt-get update
 	apt-get install aria2
 
-## Arch根文件系统制作(在PC主机上操作)
+### Arch根文件系统制作(在PC主机上操作)
 
 [下载ArchLinuxARM-aarch64-latest.tar.gz](http://sg.mirror.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz)
 
