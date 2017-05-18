@@ -1,5 +1,60 @@
 # USB
 
+[Linux Core DWC3 User's Guide](http://processors.wiki.ti.com/index.php/Linux_Core_DWC3_User%27s_Guide)
+
+[Usbgeneralpage](http://processors.wiki.ti.com/index.php/Usbgeneralpage)
+
+## USB在Linux系统中的架构框图
+
+![architecture](./architecture.png)
+
+![mass_storage](./mass_storage.png)
+
+## Host设备在sysfs的信息
+
+下面的是rk3399中的usb信息
+
+	ls /sys/bus/usb/devices/
+	1-0:1.0  1-1:1.0  3-0:1.0  5-0:1.0  usb1  usb3  usb5
+	1-1      2-0:1.0  4-0:1.0  6-0:1.0  usb2  usb4  usb6
+
+usb1-usb6表示有6个usb控制器
+
+usb设备命名格式如下
+
+	bus-port:config.interface
+
+## Host设备在debugfs的信息
+
+debugfs中信息位置如下
+
+	cat /sys/kernel/debug/usb/devices
+
+## usbmon 架构
+
+![usbmon](./usbmon.png)
+
+### usbmon ASCII capture
+
+编译内核支持usbmon为模块
+
+	mount -t debugfs none_debugfs /sys/kernel/debug
+	mdprobe usbmon
+	cat /sys/kernel/debug/usbmon/1u > usbmon.mon
+	./vusb-analyzer usbmon.mon
+
+### usbmon binary capture
+
+编译内核支持usbmon为模块
+
+	modprobe usbmon
+
+	ls /dev/usbmon*
+	/dev/usbmon0  /dev/usbmon1  /dev/usbmon2
+
+	tcpdump -i usbmon1 -w usbmon.pcap &
+	./wireshark usbmon.pcap
+
 ## Bulk-Only传输协议
 
 设备插入到USB后,USB即对设备进行搜索,并要求设备提供相应的描述符.在USBHost得到上述描述符后,即完成了设备的配置,识别出为Bulk-Only的Mass Storage设备,然后即进入Bulk-Only传输方式
