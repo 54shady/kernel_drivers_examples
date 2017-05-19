@@ -18,24 +18,39 @@
 
 Linux系统
 
-|分区名|镜像文件名|
-|----|-----
-|uboot|uboot.img
-|trust|trust.img
-|boot|linux_boot.img
-|linuxroot|linuxroot.img
+|分区编号|分区名|镜像文件名|
+|--|--|--
+|mmcblk1p1|uboot|uboot.img
+|mmcblk1p2|trust|trust.img
+|mmcblk1p3|boot|linux_boot.img
+|mmcblk1p4|backup|
+|mmcblk1p5|linuxroot|linuxroot.img
+
+parameter里分区如下
+
+	mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(trust),0x00010000@0x00006000(boot),0x00002000@0x00016000(backup),-@0x00018000(linuxroot)
 
 Android系统
 
-|分区名|镜像文件名|
-|----|-----
-|uboot|uboot.img
-|trust|trust.img
-|misc|misc.img
-|resource|resource.img
-|boot|boot.img
-|recovery|recovery.img
-|system|system.img
+|分区编号|分区名|镜像文件名|
+|--|--|--
+|mmcblk1p1|uboot|uboot.img
+|mmcblk1p2|trust|trust.img
+|mmcblk1p3|misc|misc.img
+|mmcblk1p4|resource|resource.img
+|mmcblk1p5|kernel|kernel.img
+|mmcblk1p6|boot|boot.img
+|mmcblk1p7|recovery|recovery.img
+|mmcblk1p8|backup|
+|mmcblk1p9|cache|
+|mmcblk1p10|system|system.img
+|mmcblk1p11|metadata|
+|mmcblk1p12|baseparamer|
+|mmcblk1p13|userdata|
+
+parameter里分区如下
+
+	mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(trust),0x00002000@0x00006000(misc),0x00008000@0x00008000(resource),0x0000A000@0x00010000(kernel),0x00010000@0x0001A000(boot),0x00010000@0x0002A000(recovery),0x00038000@0x0003A000(backup),0x00040000@0x00072000(cache),0x00200000@0x000B2000(system),0x00008000@0x002B2000(metadata),0x00002000@0x002BA000(baseparamer),-@0x002BC000(userdata)
 
 ### 使用upgrade_tool烧写
 
