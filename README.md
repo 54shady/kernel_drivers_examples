@@ -6,6 +6,10 @@
 
 ## 驱动开发
 
+编译方法(具体可参考Makefile中的注释)
+
+	make CROSS_COMPILE=<path_to_you_crosscompile>aarch64-linux-gnu- KERNEL_DIR=<you_kernel_source> KERNEL_BUID_OUTPUT=<if_use_new_out_dir>
+
 [SPI驱动开发](./debug/spi/README.md)
 
 [USB驱动,应用开发](./debug/usb/README.md)
