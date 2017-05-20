@@ -363,7 +363,7 @@ rcS脚本如下
 	audio:*:29:
 	ppp:x:99:
 
-修改[cmdline](./cmdline_linux)参数如下(主要修改init=/linuxrc)
+修改[cmdline](./cmdline_android)参数如下(主要修改init=/linuxrc)
 
 	CMDLINE: androidboot.baseband=N/A androidboot.selinux=disabled androidboot.hardware=rk30board androidboot.console=ttyFIQ0 init=/linuxrc mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(trust),0x00002000@0x00006000(misc),0x00008000@0x00008000(resource),0x0000A000@0x00010000(kernel),0x00010000@0x0001A000(boot),0x00010000@0x0002A000(recovery),0x00038000@0x0003A000(backup),0x00040000@0x00072000(cache),0x00200000@0x000B2000(system),0x00008000@0x002B2000(metadata),0x00002000@0x002BA000(baseparamer),-@0x002BC000(userdata)
 

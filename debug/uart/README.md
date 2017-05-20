@@ -10,7 +10,7 @@
 
 	uart2: serial@ff1a0000
 
-在cmdline中设置了console使用节点ttyFIQ0
+在cmdline中设置了console使用节点ttyFIQ0(等价与ttyS2)
 
 	androidboot.console=ttyFIQ0
 

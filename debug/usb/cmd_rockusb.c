@@ -801,7 +801,7 @@ void do_rockusb_cmd(void)
 
 	/* 获取到cdb */
 	usbcmd.cmnd = usbcmd.cbw.CDB[0];
-	printf("CBW Tag: %x Flags: %x Length : %x CDB[0] : %x\n", usbcmd.cbw.Tag, usbcmd.cbw.Flags, usbcmd.cbw.Length, usbcmd.cmnd);
+	//printf("CBW Tag: %x Flags: %x Length : %x CDB[0] : %x\n", usbcmd.cbw.Tag, usbcmd.cbw.Flags, usbcmd.cbw.Length, usbcmd.cmnd);
 
 	switch (usbcmd.cmnd) {
 	case K_FW_TEST_UNIT_READY:
