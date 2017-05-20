@@ -612,6 +612,10 @@ Qemu static user
 
 	rkflashtool w linuxroot < linuxroot.img
 
+开机进入系统在系统正确加载后执行扩展文件系统命令(这里的mmcblk1p5对应的linuxroot分区)
+
+	 resize2fs /dev/mmcblk1p5
+
 ## 解包和打包
 
 [rk3399 ramdisk下载地址](https://github.com/54shady/firefly_rk3399_ramdisk)
