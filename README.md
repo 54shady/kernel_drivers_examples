@@ -12,6 +12,8 @@
 
 [UART驱动](./debug/uart/README.md)
 
+[I2C驱动](./debug/i2c/README.md)
+
 ## 烧写
 
 ### 分区和对应文件
