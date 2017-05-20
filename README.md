@@ -12,11 +12,13 @@
 
 [SPI驱动开发](./debug/spi/README.md)
 
-[USB驱动,应用开发](./debug/usb/README.md)
+[USB驱动和应用开发](./debug/usb/README.md)
 
-[UART驱动](./debug/uart/README.md)
+[UART驱动开发](./debug/uart/README.md)
 
-[I2C驱动](./debug/i2c/README.md)
+[I2C驱动开发](./debug/i2c/README.md)
+
+[Regmap 驱动实例](./debug/regmap/README.md)
 
 ## 烧写
 
