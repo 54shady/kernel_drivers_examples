@@ -13,33 +13,33 @@ Codes test on the kernel version below
 
 # 各模块入口
 
-[HELLO](./debug/hello/README.md)
+[HELLO](./debug/hello)
 
-[I2C](./debug/i2c/README.md)
+[I2C](./debug/i2c)
 
-[SPI](./debug/spi/README.md)
+[SPI](./debug/spi)
 
-[USB](./debug/usb/README.md)
+[USB](./debug/usb)
 
-[Regulator (ACT8846, RK818)](./debug/regulator/README.md)
+[Regulator (ACT8846, RK818)](./debug/regulator)
 
-[Platform_Driver_Test](./debug/platform_driver_test/README.md)
+[Platform_Driver_Test](./debug/platform_driver_test)
 
-[PWM Backlight](./debug/pwm/README.md)
+[PWM Backlight](./debug/pwm)
 
-[Regmap](./debug/regmap/README.md)
+[Regmap](./debug/regmap)
 
-[Audio (ES8323, ES8316)](./debug/codec/README.md)
+[Audio (ES8323, ES8316)](./debug/codec)
 
-[Timer](./debug/timer/README.md)
+[Timer](./debug/timer)
 
-[Timer And Workqueue](./debug/timer_workq/README.md)
+[Timer And Workqueue](./debug/timer_workq)
 
-[Workqueue](./debug/workqueue/README.md)
+[Workqueue](./debug/workqueue)
 
-[Notify](./debug/notify_chain/README.md)
+[Notify](./debug/notify_chain)
 
-[Script](./script/README.md)
+[Script](./script)
 
 # 使用方法(单独编译模块)或者放到内核目录中编译
 
