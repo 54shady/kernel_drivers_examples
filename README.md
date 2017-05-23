@@ -10,19 +10,19 @@
 
 	make CROSS_COMPILE=<path_to_you_crosscompile>aarch64-linux-gnu- KERNEL_DIR=<you_kernel_source> KERNEL_BUID_OUTPUT=<if_use_new_out_dir>
 
-[SPI驱动开发](./debug/spi/README.md)
+[SPI驱动开发](./debug/spi)
 
-[USB驱动和应用开发](./debug/usb/README.md)
+[USB驱动和应用开发](./debug/usb)
 
-[UART驱动开发](./debug/uart/README.md)
+[UART驱动开发](./debug/uart)
 
-[I2C驱动开发](./debug/i2c/README.md)
+[I2C驱动开发](./debug/i2c)
 
-[Regmap 驱动实例](./debug/regmap/README.md)
+[Regmap 驱动实例](./debug/regmap)
 
 ## Uboot中驱动开发
 
-[GPIO驱动](./uboot/README.md)
+[GPIO驱动](./uboot)
 
 ## 烧写
 
