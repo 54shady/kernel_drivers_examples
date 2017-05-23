@@ -6,9 +6,7 @@
 
 ## 驱动开发
 
-编译方法(具体可参考Makefile中的注释)
-
-	make CROSS_COMPILE=<path_to_you_crosscompile>aarch64-linux-gnu- KERNEL_DIR=<you_kernel_source> KERNEL_BUID_OUTPUT=<if_use_new_out_dir>
+[代码编译方法(具体可参考Makefile中的注释)](https://github.com/54shady/kernel_drivers_examples)
 
 [SPI驱动开发](./debug/spi)
 
