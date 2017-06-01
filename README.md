@@ -18,6 +18,8 @@
 
 [Regmap 驱动实例](./debug/regmap)
 
+[SD/MMC](./debug/mmc)
+
 ## Uboot中驱动开发
 
 [GPIO驱动](./uboot)
