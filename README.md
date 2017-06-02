@@ -603,6 +603,30 @@ Qemu static user
 
 设置到这里就可以制作成镜像烧写,烧写开机后切换到root用户,默认root密码为root
 
+更新软件源
+
+	pacman -Syu
+
+安装X Window
+
+	pacman -S xorg-server
+	pacman -S xorg-twm xorg-xclock xterm
+	pacman -S xorg
+	pacman -S xorg-xinit
+
+测试是否安装成功
+
+	startx
+
+安装slim和xfce4
+
+	pacman -S slim
+	pacman -S xfce4
+
+测试是否安装成功
+
+	startxfce4
+
 ## 将根文件系统制作成镜像
 
 这里制作一个8G的ext4格式的镜像文件
