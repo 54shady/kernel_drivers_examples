@@ -597,6 +597,10 @@ Qemu static user
 
 	systemctl enable serial-getty@ttyFIQ0.service
 
+修改源(/etc/pacman.d/mirrorlist)
+
+	Server = http://mirrors.ustc.edu.cn/archlinuxarm/$arch/$repo
+
 设置到这里就可以制作成镜像烧写,烧写开机后切换到root用户,默认root密码为root
 
 ## 将根文件系统制作成镜像

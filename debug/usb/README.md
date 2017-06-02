@@ -1,8 +1,8 @@
 # USB
 
-[Linux Core DWC3 User's Guide](http://processors.wiki.ti.com/index.php/Linux_Core_DWC3_User%27s_Guide)
+[参考文章Linux Core DWC3 User's Guide](http://processors.wiki.ti.com/index.php/Linux_Core_DWC3_User%27s_Guide)
 
-[Usbgeneralpage](http://processors.wiki.ti.com/index.php/Usbgeneralpage)
+[参考文章Usbgeneralpage](http://processors.wiki.ti.com/index.php/Usbgeneralpage)
 
 ## USB在Linux系统中的架构框图
 
