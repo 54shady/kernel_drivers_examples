@@ -603,6 +603,8 @@ Qemu static user
 
 设置到这里就可以制作成镜像烧写,烧写开机后切换到root用户,默认root密码为root
 
+#### 安装桌面
+
 更新软件源
 
 	pacman -Syu
@@ -626,6 +628,33 @@ Qemu static user
 测试是否安装成功
 
 	startxfce4
+
+#### wifi使用
+
+拷贝下面的固件到/lib/firmware目录下
+
+	fw_bcm4356a2_ag.bin
+	nvram_ap6356s.txt
+
+使用ssid和密码生成配置文件
+
+	wpa_passphrase yourssid yourpassphrase > /etc/wpa_supplicant.conf
+
+在配置文件最顶部添加下面内容
+
+	ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=wheel
+
+确保有相应的目录
+
+	mkdir -p /var/run/wpa_supplicant
+
+启动wpa_supplicant
+
+	wpa_supplicant -B -Dnl80211 -i wlan0 -c /etc/wpa_supplicant.conf
+
+使用DHCP获得IP地址后即可上网
+
+	dhcpcd wlan0
 
 ## 将根文件系统制作成镜像
 
