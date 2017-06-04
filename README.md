@@ -600,6 +600,8 @@ Qemu static user
 修改源(/etc/pacman.d/mirrorlist)
 
 	Server = http://mirrors.ustc.edu.cn/archlinuxarm/$arch/$repo
+	Server = http://mirrors.tuna.tsinghua.edu.cn/archlinuxarm/$arch/$repo
+	Server = http://mirrors.stuhome.net/archlinuxarm/$arch/$repo
 
 设置到这里就可以制作成镜像烧写,烧写开机后切换到root用户,默认root密码为root
 
