@@ -124,7 +124,7 @@ Status
 
 	指示命令的执行状态.如果命令正确执行,bCSWStatus返回0 即可
 
-## 应用实例
+## 应用实例1
 
 本应用实例为一个使用usb来传输数据的烧写工具软件rkflashtool
 
@@ -160,6 +160,27 @@ Libusb编程核心步骤
 bulk传输接口
 
     libusb_bulk_transfer
+
+## 应用实例2
+
+需要去掉下面两个配置才能做下面的实验
+
+	CONFIG_USB_HID
+	CONFIG_HID_GENERIC
+
+[详细流程见代码注释](./usbmouse_as_key.c)
+
+驱动大致说明如下
+
+使用usb鼠标来模拟一个键盘设备,将鼠标左键定义为按键"L", 鼠标右键定义为按键"S",滚轮按键定义为"Enter"
+
+测试方法1
+
+	hexdump /dev/input/event3 //这里的event3对应我的鼠标设备
+
+测试方法2
+
+	cat /dev/tty1    //按下鼠标左右,和滚轮查看是否有相应字符输出到串口
 
 ## Firefly_RK3399 USB
 
