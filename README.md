@@ -20,6 +20,9 @@
 
 [SD/MMC](./debug/mmc)
 
+## 应用开发
+
+[LCD应用编程](./apps)
 ## Uboot中驱动开发
 
 [GPIO驱动](./uboot)
