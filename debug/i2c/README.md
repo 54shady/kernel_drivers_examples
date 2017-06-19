@@ -1,5 +1,9 @@
 # I2C
 
+## 读写时序
+
+![timing](./i2c_timing.png)
+
 ## regmap i2c
 
 ### Intro
