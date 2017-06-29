@@ -124,7 +124,19 @@ Status
 
 	指示命令的执行状态.如果命令正确执行,bCSWStatus返回0 即可
 
-## 应用实例1
+## 应用实例1(USB应用编程)
+
+### 基础概念(核心数据结构)
+
+CBW(Command Block Wrapper)
+
+CDB(Command Data Block)
+
+CSW(Command Status Wrapper)
+
+每一个CBW都对应有一个CSW,且它们的Tag是相同且唯一的
+
+### 简介
 
 本应用实例为一个使用usb来传输数据的烧写工具软件rkflashtool
 
@@ -161,7 +173,7 @@ bulk传输接口
 
     libusb_bulk_transfer
 
-## 应用实例2
+## 应用实例2(USB设备驱动编程)
 
 需要去掉下面两个配置才能做下面的实验
 
