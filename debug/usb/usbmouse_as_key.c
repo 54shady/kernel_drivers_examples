@@ -115,7 +115,7 @@ static int usbmouse_as_key_probe(struct usb_interface *intf, const struct usb_de
 	/* 数据传输三要素: 源,目的,长度 */
 
 	/* 源 : USB设备的某个端点 */
-	/* pipe 包含usb设备地址,端点地址,端点方向, 端点方向 */
+	/* pipe 包含usb设备地址,端点地址,端点方向 */
 	pipe = usb_rcvintpipe(dev, endpoint->bEndpointAddress);
 
 	/* 目的 */

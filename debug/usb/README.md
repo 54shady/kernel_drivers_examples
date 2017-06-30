@@ -68,7 +68,6 @@ USB设备需要将SCSI(自定义的)命令从CBW中提取出来,执行相应的�
 
 Host要求USB设备执行的命令可能为发送数据,则此时需要将特定数据传送出去,完毕后发出CSW,以使Host进行下一步的操作
 
-
 CBW数据结构如下
 
 	struct fsg_bulk_cb_wrap {
@@ -136,7 +135,7 @@ CSW(Command Status Wrapper)
 
 每一个CBW都对应有一个CSW,且它们的Tag是相同且唯一的
 
-### 简介
+### 情景简介
 
 本应用实例为一个使用usb来传输数据的烧写工具软件rkflashtool
 
@@ -146,11 +145,13 @@ Host端rkflashtool,使用libusb库进行usb通讯
 
 Slave端(开发板),进入下载模式后枚举成MassStroage设备,循环等待接收命令,处理命令
 
-[HOST端软件代码rkflashtool](https://github.com/54shady/rkflashtool)
+### 数据通信流程简图
 
-[SLAVE端软件代码rockusb](./cmd_rockusb.c)
+读流程(usb_read)
+- Host发送cbw,其中cdb里包含读命令,Slave解析后返回相应的数据,Slave返回csw
 
-数据通信流程简图
+写流程(usb_write)
+- Host发送cbw,其中cdb里包含写命令,并发送要写的数据,Slave返回csw
 
 ![work flow](./sequenceDiagram.png)
 
@@ -172,6 +173,12 @@ Libusb编程核心步骤
 bulk传输接口
 
     libusb_bulk_transfer
+
+### 源代码
+
+[HOST端软件代码rkflashtool](https://github.com/54shady/rkflashtool)
+
+[SLAVE端软件代码rockusb](./cmd_rockusb.c)
 
 ## 应用实例2(USB设备驱动编程)
 
