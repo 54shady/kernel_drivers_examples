@@ -20,6 +20,8 @@
 
 [SD/MMC](./debug/mmc)
 
+[字符设备驱动](./debug/char)
+
 ## 应用开发
 
 [LCD应用编程](./apps)

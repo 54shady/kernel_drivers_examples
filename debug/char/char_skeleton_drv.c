@@ -46,7 +46,7 @@ static struct file_operations char_skeleton_fops = {
 	.write  = char_skeleton_write,
 };
 
-static int  char_skeleton_init(void)
+static int char_skeleton_init(void)
 {
 	dev_t dev_id;
 	int retval;
