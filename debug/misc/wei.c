@@ -6,24 +6,33 @@
 #include <linux/types.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
+#include <linux/sched.h>
+#include <linux/kthread.h>
 
-static int g_x = -1;
-static int g_y = -1;
-static int g_z = -1;
+/* modules data */
+struct self_define_data {
+	struct task_struct *task;
+	wait_queue_head_t wqh;
+};
+
+static struct self_define_data sdd;
+static int g_condition = 0;
 
 static ssize_t BBBBB_debug_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	printk("x = %d y = %d z = %d\n", g_x, g_y, g_z);
+	printk("g_condition = %d\n", g_condition);
 	return 0;
 }
 
-static ssize_t BBBBB_debug_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
+static ssize_t BBBBB_debug_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
-	sscanf(buf, "%d %d %d", &g_x, &g_y, &g_z);
+	printk("trigger g_condition ok\n");
+	g_condition = 1;
+	wake_up(&sdd.wqh);
 	return count;
 }
 
+/* /sys/devices/my_test_node/BBBBB_debug */
 static DEVICE_ATTR(BBBBB_debug, S_IRUGO | S_IWUSR, BBBBB_debug_show, BBBBB_debug_store);
 
 static struct attribute *BBBBB_attrs[] = {
@@ -35,9 +44,38 @@ static const struct attribute_group BBBBB_attr_group = {
 	.attrs = BBBBB_attrs,
 };
 
+static int A_test_kthread(void *arg)
+{
+	int ret;
+
+	/*
+	 * running the thread while the g_condition equal to 1
+	 * other wise just sleeping here
+	 */
+	while(!kthread_should_stop())
+	{
+		printk("g_condition = %d\n", g_condition);
+		ret = wait_event_interruptible(sdd.wqh, g_condition);
+		g_condition = 0;
+		printk("ret = %d\n", ret);
+		if(ret)
+			continue;
+
+		/* contition true, do something */
+		printk("Do something...\n");
+	}
+}
+
 static int AAAAA_platform_probe(struct platform_device *pdev)
 {
 	int ret;
+
+	/* create a kthread */
+	sdd.task = kthread_run(A_test_kthread, NULL, "A_test_kthread");
+	if(IS_ERR(sdd.task)){
+		printk("create A_test_kthread failed");
+		return -1;
+	}
 
 	ret = sysfs_create_group(&pdev->dev.kobj, &BBBBB_attr_group);
 	if (ret) {
@@ -74,6 +112,7 @@ static struct platform_driver AAAAA_platform_driver = {
 
 static int AAAAA_platform_init(void)
 {
+	init_waitqueue_head(&sdd.wqh);
 	return platform_driver_register(&AAAAA_platform_driver);
 }
 

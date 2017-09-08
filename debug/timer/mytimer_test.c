@@ -4,7 +4,7 @@
 #include <linux/delay.h>
 #include <linux/timer.h>
 
-#define EXPIRES_PERIOD	(5*HZ)
+#define EXPIRES_PERIOD	(HZ / 2)
 
 struct self_define_struct {
 	struct timer_list timer;
@@ -40,7 +40,7 @@ static int mytimer_test_init(void)
 	add_timer(&g_sds.timer);
 }
 
-static void  mytimer_test_exit(void)
+static void mytimer_test_exit(void)
 {
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
 	del_timer(&g_sds.timer);

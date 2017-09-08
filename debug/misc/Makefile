@@ -7,6 +7,8 @@
 #
 # make CROSS_COMPILE=/home/zeroway/3288/51/src/3288_5.1_v2/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi- KERNEL_DIR=/home/zeroway/3288/51/src/3288_5.1_v2/kernel KERNEL_BUID_OUTPUT=/home/zeroway/3288/51/src/3288_5.1_v2/out/target/product/rk3288/obj/KERNEL
 
+# make CROSS_COMPILE=/home/zeroway/rk3288-e810-android6.0/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi- KERNEL_DIR=/home/zeroway/rk3288-e810-android6.0/kernel KERNEL_BUID_OUTPUT=/home/zeroway/rk3288-e810-android6.0/out/target/product/rk3288/obj/KERNEL
+
 # Add your debugging flag (or not) to CFLAGS
 ifeq ($(DEBUG),y)
 DEBFLAGS = -O -g -DSCULL_DEBUG # "-O" is needed to expand inlines
@@ -14,7 +16,7 @@ else
 DEBFLAGS = -O2
 endif
 
-obj-m := mytimer_test.o
+obj-m := wei.o
 
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
 KERNEL_BUID_OUTPUT ?=$(KERNEL_DIR)
