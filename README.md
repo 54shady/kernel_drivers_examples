@@ -22,6 +22,8 @@
 
 [字符设备驱动](./debug/char)
 
+[GPIO操作实例](./debug/platform_driver_test)
+
 ## 应用开发
 
 [LCD应用编程](./apps)
