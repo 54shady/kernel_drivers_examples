@@ -1,17 +1,12 @@
-# kernel_drivers_examples
+# RK3288 kernel driver example
 
-Codes test on the kernel version below
-
-	3.10.49
-	3.10.79
-
-# 目录说明
+## 目录说明
 
 - app 是测试驱动的应用程序
 - debug 是驱动模板
 - script 是测试脚本
 
-# 各模块入口
+## 各模块入口
 
 [HELLO](./debug/hello)
 
@@ -41,7 +36,7 @@ Codes test on the kernel version below
 
 [Script](./script)
 
-# 使用方法(单独编译模块)或者放到内核目录中编译
+## 使用方法(单独编译模块)或者放到内核目录中编译
 
 - make CC=your_compiler_path KERNELDIR=your_kernel_dir
 
@@ -50,10 +45,9 @@ Codes test on the kernel version below
 ### 编译内核时没有指定O选项
 
 - cd debug/hello
-- make CC=/home/zeroway/3288/src/3288_4.4/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-gcc KERNELDIR=/home/zeroway/3288/src/3288_4.4/kernel
+- make CC=/3288androidsrc/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-gcc KERNELDIR=/3288androidsrc/kernel
 
 ### 编译内核时有指定O选项
 
 - cd debug/hello
-- make CROSS_COMPILE=/home/zeroway/3288/51/src/3288_5.1_v2/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi- KERNEL_DIR=/home/zeroway/3288/51/src/3288_5.1_v2/kernel KERNEL_BUID_OUTPUT=/home/zeroway/3288/51/src/3288_5.1_v2/out/target/product/rk3288/obj/KERNEL
-
+- make CROSS_COMPILE=/3288androidsrc/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi- KERNEL_DIR=/3288androidsrc/kernel KERNEL_BUID_OUTPUT=/3288androidsrc/out/target/product/rk3288/obj/KERNEL
