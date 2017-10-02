@@ -1,6 +1,0 @@
-/ {
-	my_test_node {
-		compatible = "test_platform";
-		VCC_TP-supply = <&ldo4_reg>;
-	};
-};

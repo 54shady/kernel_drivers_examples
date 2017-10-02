@@ -1,6 +1,0 @@
-/ {
-	my_test_node {
-		compatible = "test_platform";
-		irq_gpio = <&gpio0 GPIO_B1 IRQ_TYPE_EDGE_FALLING>;
-	};
-};

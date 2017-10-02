@@ -1,5 +1,0 @@
-/ {
-	my_test_node {
-		compatible = "test_platform";
-	};
-};
