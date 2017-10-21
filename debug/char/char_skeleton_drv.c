@@ -7,7 +7,6 @@
 #include <linux/cdev.h>
 #include <linux/ioport.h>
 #include <linux/device.h>
-#include <linux/device.h>
 #include <asm/uaccess.h>
 
 #define CHAR_SKELETON_COUNT	1
