@@ -24,6 +24,8 @@
 
 [GPIO操作实例](./debug/platform_driver_test)
 
+[DVFS User Guide](./debug/misc)
+
 ## 应用开发
 
 [LCD应用编程](./apps)
