@@ -15,6 +15,7 @@ DEBFLAGS = -O2
 endif
 
 obj-m := skeleton_ss.o
+obj-m += kset_skeleton.o
 
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
 KERNEL_BUID_OUTPUT ?=$(KERNEL_DIR)
