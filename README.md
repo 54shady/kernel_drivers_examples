@@ -8,6 +8,8 @@
 
 [代码编译方法(具体可参考Makefile中的注释)](https://github.com/54shady/kernel_drivers_examples)
 
+[FIQ-Debugger](./debug/fiq_debugger)
+
 [SPI驱动开发](./debug/spi)
 
 [USB驱动和应用开发](./debug/usb)
