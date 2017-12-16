@@ -1,5 +1,27 @@
 # BSP for Firefly_RK3399
 
+## 分区表
+
+![默认分区表](default_storage_map.png)
+
+更新分区表方法1(烧写分区表文件)
+
+	rkdeveloptool db rk3399_loader_v1.08.106.bin
+	rkdeveloptool gpt parameter_gpt.txt
+
+parameter_gpt.txt内容如下
+
+	CMDLINE:
+	mtdparts=rk29xxnand:0x00001f40@0x00000040(loader1),0x00000080@0x00001f80(reserved1),0x00002000@0x00002000(reserved2),0x00002000@0x00004000(loader2),0x00002000@0x00006000(atf),0x00038000@0x00008000(boot:bootable),-@0x0040000(rootfs)
+
+更新分区表方法2(uboot中操作)
+
+	=> env set partitions name=rootfs,size=-,type=system
+	=> gpt write mmc 0 $partitions
+
+
+更新分区表方法3(fastboot烧写,参考官网)
+
 ## U-Boot 2017.09
 
 获取ROCKCHIP官方代码
