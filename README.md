@@ -796,3 +796,7 @@ done
 ### 编译时出现"缺少libtinfo.so.5解决办法"
 
 	ln -s /lib/libncurses.so.5 /lib/libtinfo.so.5
+
+## 新版本BSP
+
+[http://opensource.rock-chips.com](./bsp/README.md)
