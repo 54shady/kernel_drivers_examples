@@ -24,7 +24,7 @@ parameter_gpt.txt内容如下
 
 ## U-Boot 2017.09
 
-获取ROCKCHIP官方代码
+使用ROCKCHIP官方代码
 
 	mkdir rk-linux
 	cd rk-linux
@@ -35,6 +35,10 @@ parameter_gpt.txt内容如下
 编译Uboot
 
 	build/mk-uboot.sh rk3399-firefly
+
+使用54shady的代码
+
+[firefly_rk3399_uboot](https://github.com/54shady/firefly_rk3399_uboot)
 
 ## Kernel (4.4.16)
 
