@@ -40,6 +40,32 @@ parameter_gpt.txt内容如下
 
 [Firefly_RK3399_UBOOT_Usage](https://github.com/54shady/firefly_rk3399_uboot)
 
+### 启动分析
+
+启动参数涉及下面环境变量
+
+	bootcmd=run distro_bootcmd
+
+	distro_bootcmd=for target in ${boot_targets}; do run bootcmd_${target}; done
+
+	boot_targets=mmc0 mmc1 usb0 pxe dhcp
+
+	bootcmd_mmc0=setenv devnum 0; run mmc_boot
+
+	mmc_boot=if mmc dev ${devnum}; then setenv devtype mmc; run scan_dev_for_boot_part; fi
+
+	scan_dev_for_boot_part=part list ${devtype} ${devnum} -bootable devplist; env exists devpli st || setenv devplist 1; for distro_bootpart in ${devplist}; do if fstype ${devtype} ${devn um}:${distro_bootpart} bootfstype; then run scan_dev_for_boot; fi; done
+
+	scan_dev_for_boot=echo Scanning ${devtype} ${devnum}:${distro_bootpart}...; for prefix in $ {boot_prefixes}; do run scan_dev_for_extlinux; run scan_dev_for_scripts; done;run scan_dev_ for_efi;
+
+	scan_dev_for_extlinux=if test -e ${devtype} ${devnum}:${distro_bootpart} ${prefix}extlinux/ extlinux.conf; then echo Found ${prefix}extlinux/extlinux.conf; run boot_extlinux; echo SCR IPT FAILED: continuing...; fi
+
+	boot_extlinux=sysboot ${devtype} ${devnum}:${distro_bootpart} any ${scriptaddr} ${prefix}extlinux/extlinux.conf
+
+上面环境变量最终结果
+
+	sysboot mmc 0:4 any 0x00500000 /extlinux/extlinux.conf
+
 ## Kernel (4.4.16)
 
 获取代码
