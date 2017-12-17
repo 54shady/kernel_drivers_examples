@@ -36,21 +36,19 @@ parameter_gpt.txt内容如下
 
 	build/mk-uboot.sh rk3399-firefly
 
-使用54shady的代码
+或者使用54shady的代码
 
-[firefly_rk3399_uboot](https://github.com/54shady/firefly_rk3399_uboot)
+[Firefly_RK3399_UBOOT_Usage](https://github.com/54shady/firefly_rk3399_uboot)
 
 ## Kernel (4.4.16)
 
-获取代码,这里使用Firefly官网提供的android 6.0里的内核代码
+获取代码
+
+	git clone https://github.com/54shady/firefly_rk3399_kernel.git
 
 编译出Image和dtb
 
-拷贝到rk-linux/out/kernel目录下
-
-再打包生成boot.img
-
-	build/mk-image.sh -c rk3399 -t boot
+	./mk-kernel.sh
 
 ## Rootfs
 
