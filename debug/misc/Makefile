@@ -17,6 +17,7 @@ DEBFLAGS = -O2
 endif
 
 obj-m := wei.o
+obj-m += uk_io.o
 
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
 KERNEL_BUID_OUTPUT ?=$(KERNEL_DIR)

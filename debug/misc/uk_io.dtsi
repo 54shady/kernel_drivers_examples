@@ -1,0 +1,5 @@
+/ {
+	uk_io_node {
+		compatible = "test_platform";
+	};
+};
