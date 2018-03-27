@@ -14,24 +14,23 @@
 
 #include "skeleton_ss.h"
 
-/* cat egpios_debug */
+/* FIXME : should use container_of to get the chip */
+static struct skeleton_chip *g_chip;
+
+/* cat /sys/kernel/skeleton_pins/egpios_debug */
 static ssize_t egpios_debug_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	int size = 0;
-	struct skleton_chip *chip;
-
-	chip = dev_get_drvdata(dev);
+	struct skeleton_chip *chip = g_chip;
 
 	size = sprintf(buf, "%s value is %d\n", chip->pd[chip->pin_name_index]->name, gpio_get_value(chip->pd[chip->pin_name_index]->gpio_pin));
 	return size;
 }
 
-/* echo <pin_index> <val> > egpios_debug */
+/* echo <pin_index> <val> > /sys/kernel/skeleton_pins/egpios_debug */
 static ssize_t egpios_debug_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
-	struct skleton_chip *chip;
-
-	chip = dev_get_drvdata(dev);
+	struct skeleton_chip *chip = g_chip;
 
 	sscanf(buf, "%d %d", &chip->pin_name_index, &chip->value);
 	gpio_set_value(chip->pd[chip->pin_name_index]->gpio_pin, chip->value);
@@ -54,15 +53,16 @@ static int skeleton_ss_probe(struct platform_device *pdev)
 	struct device_node *node = pdev->dev.of_node;
 	int i;
 	enum of_gpio_flags flag;
-	struct skleton_chip *chip;
+	struct skeleton_chip *chip;
 
 	int gpio_nr;
 	int ret;
 
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
 	gpio_nr = sizeof(dts_name) / sizeof(dts_name[0]);
 
 	/* alloc for chip point */
-	chip = devm_kzalloc(&pdev->dev, sizeof(struct skleton_chip), GFP_KERNEL);
+	chip = devm_kzalloc(&pdev->dev, sizeof(struct skeleton_chip), GFP_KERNEL);
 	if (!chip)
 	{
 		printk("no memory\n");
@@ -76,6 +76,12 @@ static int skeleton_ss_probe(struct platform_device *pdev)
 		printk("no memory\n");
 		ret = -ENOMEM;
 	}
+
+	g_chip = chip;
+	strcpy(chip->name, "Skeleton Chip");
+
+	/* defualt pin index */
+	chip->pin_name_index = 0;
 
 	/* alloc memory for every point in the array */
 	for (i = 0; i < gpio_nr; i++)
@@ -117,8 +123,13 @@ static int skeleton_ss_probe(struct platform_device *pdev)
 		}
 	}
 
+	/* /sys/kerne/skeleton_pins */
+	chip->skeleton_kobj = kobject_create_and_add("skeleton_pins", kernel_kobj);
+	if (!chip->skeleton_kobj)
+		return -ENOMEM;
+
 	/* sysfs */
-	ret = sysfs_create_group(&pdev->dev.kobj, &egpios_attr_group);
+	ret = sysfs_create_group(chip->skeleton_kobj, &egpios_attr_group);
 	if (ret)
 	{
 		printk("failed to create sysfs device attributes\n");
@@ -129,8 +140,9 @@ static int skeleton_ss_probe(struct platform_device *pdev)
 
 static int skeleton_ss_remove(struct platform_device *pdev)
 {
-	sysfs_remove_group(&pdev->dev.kobj, &egpios_attr_group);
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
+	kobject_del(g_chip->skeleton_kobj);
+	sysfs_remove_group(g_chip->skeleton_kobj, &egpios_attr_group);
 
 	return 0;
 }
@@ -150,7 +162,7 @@ int skeleton_ss_resume(struct platform_device *pdev)
 {
 	int i;
 	int gpio_nr;
-	struct skleton_chip *chip;
+	struct skeleton_chip *chip;
 
 	gpio_nr = sizeof(dts_name) / sizeof(dts_name[0]);
 	chip = dev_get_drvdata(&pdev->dev);

@@ -13,12 +13,16 @@ struct pin_desc {
 };
 
 /* skeleton gpios, pdata or chip */
-struct skleton_chip {
+struct skeleton_chip {
+	char name[20];
 	int pin_name_index;
 	int value;
 
 	/* a struct point array which contain of gpio_nr struct point */
 	struct pin_desc **pd;
+
+	/* kobject */
+	struct kobject *skeleton_kobj;
 };
 
 /* equal to dts pin name which is low case in pcb file */

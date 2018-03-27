@@ -16,6 +16,8 @@ endif
 
 obj-m := test_pf.o
 obj-m += show_store_pf.o
+obj-m += skeleton_ss.o
+
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
 KERNEL_BUID_OUTPUT ?=$(KERNEL_DIR)
 CC = $(CROSS_COMPILE)gcc
