@@ -36,6 +36,8 @@
 
 [Script](./script)
 
+[PowerDomain](./debug/misc)
+
 [GDB on android](./android_gdb.md)
 
 ## 使用方法(单独编译模块)或者放到内核目录中编译
