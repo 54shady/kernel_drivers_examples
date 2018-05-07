@@ -791,6 +791,10 @@ done
 
 会在/data/dmp_buf/里保存图片数据,假设名为frame0_win0_0_1920x1080_XBGR888.bin
 
+或者直接拷贝fb里的数据
+
+	cp /dev/graphics/fb0 current_fb_datas
+
 使用7yuv设置好分辨率1920x1080和格式RGBA888就能显示该图片
 
 ### 编译时出现"缺少libtinfo.so.5解决办法"
