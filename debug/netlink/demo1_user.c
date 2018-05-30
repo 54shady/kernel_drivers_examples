@@ -21,67 +21,81 @@ struct user_define_data
 
 int main(int argc, char **argv)
 {
-	int skfd;
+	int sock_fd;
 	int ret;
 	const char *message = "This is userspace speaking";
-	struct sockaddr_nl local, dest_addr;
+	struct sockaddr_nl src_addr, dest_addr;
 	struct nlmsghdr *nlh = NULL;
 	struct user_define_data udd;
 
 	/* create a socket with USER_MSG type */
-	skfd = socket(AF_NETLINK, SOCK_RAW, USER_MSG);
-	if (skfd == -1)
+	sock_fd = socket(AF_NETLINK, SOCK_RAW, USER_MSG);
+	if (sock_fd == -1)
 	{
 		printf("create socket error...%s\n", strerror(errno));
 		return -1;
 	}
 
-	memset(&local, 0, sizeof(local));
-	local.nl_family = AF_NETLINK;
-	local.nl_pid = 50;
-	local.nl_groups = 0;
-	if (bind(skfd, (struct sockaddr *)&local, sizeof(local)) != 0)
+	/* source address */
+	memset(&src_addr, 0, sizeof(src_addr));
+	src_addr.nl_family = AF_NETLINK;
+	/*
+	 * In scenarios where different threads of the same process want to
+	 * have different netlink sockets opened under the same netlink protocol
+	 */
+#ifndef DIFFERENT_NETLINK_IN_SAME_NETLINK
+	src_addr.nl_pid = getpid();
+#else
+	src_addr.nl_pid = pthread_self() << 16 | getpid();
+#endif
+	src_addr.nl_groups = 0; /* not in mcast groups */
+	if (bind(sock_fd, (struct sockaddr *)&src_addr, sizeof(src_addr)) != 0)
 	{
 		printf("bind() error\n");
-		close(skfd);
+		close(sock_fd);
 		return -1;
 	}
 
+	/* destination address */
 	memset(&dest_addr, 0, sizeof(dest_addr));
 	dest_addr.nl_family = AF_NETLINK;
-	dest_addr.nl_pid = 0; /* to kernel */
-	dest_addr.nl_groups = 0;
+	dest_addr.nl_pid = 0; /* For Linux Kernel */
+	dest_addr.nl_groups = 0; /* unicast */
 
 	nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(MAX_PLOAD));
+
+	/* Fill the netlink message header */
 	memset(nlh, 0, sizeof(struct nlmsghdr));
 	nlh->nlmsg_len = NLMSG_SPACE(MAX_PLOAD);
 	nlh->nlmsg_flags = 0;
 	nlh->nlmsg_type = 0;
 	nlh->nlmsg_seq = 0;
-	nlh->nlmsg_pid = local.nl_pid; /* self port */
+	nlh->nlmsg_pid = src_addr.nl_pid; /* self pid */
+	printf("calling process pid = %d\n", nlh->nlmsg_pid);
 
-	/* send message to kernel and wait for replay */
+	/* Fill in the netlink message payload */
 	memcpy(NLMSG_DATA(nlh), message, strlen(message));
-	ret = sendto(skfd, nlh, nlh->nlmsg_len, 0, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr_nl));
+
+	ret = sendto(sock_fd, nlh, nlh->nlmsg_len, 0, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr_nl));
 	if (!ret)
 	{
 		perror("sendto error1\n");
-		close(skfd);
+		close(sock_fd);
 		exit(-1);
 	}
 
 	memset(&udd, 0, sizeof(udd));
-	ret = recvfrom(skfd, &udd, sizeof(struct user_define_data), 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+	ret = recvfrom(sock_fd, &udd, sizeof(struct user_define_data), 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
 	if (!ret)
 	{
 		perror("recv form kernel error\n");
-		close(skfd);
+		close(sock_fd);
 		exit(-1);
 	}
 
 	printf("USERSPACE receive :%s\n", udd.data);
-	close(skfd);
-
+	close(sock_fd);
 	free((void *)nlh);
+
 	return 0;
 }
