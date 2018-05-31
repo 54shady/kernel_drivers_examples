@@ -40,6 +40,8 @@
 
 [GDB on android](./android_gdb.md)
 
+[Generic Netlink](./debug/netlink)
+
 ## 使用方法(单独编译模块)或者放到内核目录中编译
 
 - make CC=your_compiler_path KERNELDIR=your_kernel_dir
