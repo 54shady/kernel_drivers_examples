@@ -43,8 +43,14 @@ user2kernel 工作流程([demo2_user.c](demo2_user.c) [demo2_kernel.c](demo2_ker
 
 ### Kernel2User
 
-kernel2user 工作流程
+kernel2user 工作流程([demo3_user.c](demo3_user.c) [demo3_kernel.c](demo3_kernel.c))
 
 	对于从kernel to user的通讯,采用的是广播的形式,
 	只要user program监听了,都能收到.但是同样的,
 	user program在监听前,也必须先查询到family的ID
+
+测试方法
+
+	insmod demo3_kernel.ko
+	./demo3_user
+	echo 1 > /sys/kernel/genl_test/genl_trigger
