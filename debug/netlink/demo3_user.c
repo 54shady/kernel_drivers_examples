@@ -70,6 +70,10 @@ static int genlmsg_open(void)
 	memset(&nladdr, 0, sizeof(nladdr));
 	nladdr.nl_family = AF_NETLINK;
 	nladdr.nl_pid = getpid();
+	/*
+	 * 这个是mask值,如果family ID & nl_groups为0
+	 * 则这个family的广播就接收不到,所以这里设为0xffffffff就可以接收所有的family消息
+	 */
 	nladdr.nl_groups = 0xffffffff;
 
 	ret = bind(sockfd, (struct sockaddr *)&nladdr, sizeof(nladdr));
@@ -87,6 +91,12 @@ err_out:
 	return ret;
 }
 
+/*
+ * 这里这个size用的比较巧妙
+ * 一个参数既作输入又作输出
+ * 1. 传入的时候作为attribute的payload大小
+ * 2. 传出的时候作为nlmsg的长度大小
+ */
 static void *genlmsg_alloc(int *size)
 {
 	unsigned char *buf;
@@ -97,17 +107,20 @@ static void *genlmsg_alloc(int *size)
 	 * attr len = (nla_hdr + pad) + (payload(user data) + pad)
 	 */
 	len = nla_total_size(*size);
+
 	/*
 	 * family msg len,
 	 * but actually we have NOT custom family header
 	 * family msg len = family_hdr + payload(attribute)
 	 */
 	len += 0;
+
 	/*
 	 * generic netlink msg len
 	 * genlmsg len = (genlhdr + pad) + payload(family msg)
 	 */
 	len += GENL_HDRLEN;
+
 	/*
 	 * netlink msg len
 	 * nlmsg len = (nlmsghdr + pad) + (payload(genlmsg) + pad)
@@ -155,6 +168,12 @@ static int genlmsg_send(int sockfd, unsigned short nlmsg_type, unsigned int nlms
 	if (!buf)
 		return -1;
 
+	/*
+	 * 这里也是比较巧妙的地方
+	 * buf是nlmsghdr + pad + payload +pad
+	 * buf前面正好是一个nlmsghdr结构体
+	 * 所以这里可以将nlh指向强转的buf
+	 */
 	nlh = (struct nlmsghdr *)buf;
 	nlh->nlmsg_len = len;
 	nlh->nlmsg_type = nlmsg_type;
@@ -162,11 +181,12 @@ static int genlmsg_send(int sockfd, unsigned short nlmsg_type, unsigned int nlms
 	nlh->nlmsg_seq = 0;
 	nlh->nlmsg_pid = nlmsg_pid;
 
+	/* genlmsg */
 	glh = (struct genlmsghdr *)NLMSG_DATA(nlh);
 	glh->cmd = genl_cmd;
 	glh->version = genl_version;
 
-
+	/* netlink attributes */
 	nla = (struct nlattr *)GENLMSG_DATA(glh);
 	nla->nla_type = nla_type;
 	nla->nla_len = nla_attr_size(nla_len);
@@ -175,6 +195,7 @@ static int genlmsg_send(int sockfd, unsigned short nlmsg_type, unsigned int nlms
 	memset(&nladdr, 0, sizeof(nladdr));
 	nladdr.nl_family = AF_NETLINK;
 
+	/* 将所有数据发送出去 */
 	count = 0;
 	ret = 0;
 	do {
@@ -198,7 +219,7 @@ static int genlmsg_send(int sockfd, unsigned short nlmsg_type, unsigned int nlms
 out:
 	genlmsg_free(buf);
 
-	printf("send return %d", count);
+	printf("send return %d, %s, %d\n", count, __FUNCTION__, __LINE__);
 	return count;
 }
 
@@ -220,6 +241,10 @@ static int genlmsg_recv(int sockfd, unsigned char *buf, unsigned int len)
 
 	nladdr.nl_family = AF_NETLINK;
 	nladdr.nl_pid = getpid();
+	/*
+	 * 这个是mask值,如果family ID & nl_groups为0
+	 * 则这个family的广播就接收不到,所以这里设为0xffffffff就可以接收所有的family消息
+	 */
 	nladdr.nl_groups = 0xffffffff;
 
 	iov.iov_base = buf;
@@ -232,9 +257,10 @@ static int genlmsg_recv(int sockfd, unsigned char *buf, unsigned int len)
 	msg.msg_control = NULL;
 	msg.msg_controllen = 0;
 	msg.msg_flags = 0;
+	printf("Waitting for kernel message...\n");
 	ret = recvmsg(sockfd, &msg, 0);
 	ret = ret > 0 ? ret : -1;
-	printf("recv return %d\n", ret);
+	printf("recv return %d, %s, %d\n", ret, __FUNCTION__, __LINE__);
 	return ret;
 }
 
@@ -363,7 +389,7 @@ static int test_netlink_multicast(void)
 	}
 
 	ret = genlmsg_recv(sockfd, (unsigned char *)nlh, len);
-	printf("recv return %d\n", ret);
+	printf("recv return %d, %s, %d\n", ret, __FUNCTION__, __LINE__);
 	if (ret > 0)
 	{
 		memset(buf, 0, sizeof(buf));
@@ -385,6 +411,7 @@ out:
 int main(int argc, char *argv[])
 {
 	/* test netlink broadcast */
+	printf("%s, %d\n", __FUNCTION__, __LINE__);
 	test_netlink_multicast();
 
 	return 0;
