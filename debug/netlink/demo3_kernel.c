@@ -63,6 +63,8 @@ static struct genl_multicast_group doc_exmpl_genl_mcgrp = {
 	.name = "DOC_EXMPL_GRP",
 };
 
+static struct kobject *genl_kobj = NULL;
+
 /* 需要在其他地方主动调用这个函数发送广播 */
 static int test_netlink_send(void)
 {
@@ -247,7 +249,6 @@ static int doc_exmpl_echo(struct sk_buff *skb, struct genl_info *info)
 static int genetlink_init(void)
 {
 	int rc;
-	struct kobject *genl_kobj;
 
 	/**
 	 * 1. Registering A Family
@@ -293,6 +294,10 @@ err_out1:
 static void genetlink_exit(void)
 {
 	printk("Generic Netlink Example Module unloaded.\n");
+
+	sysfs_remove_group(genl_kobj, &genl_group);
+	sysfs_remove_file(genl_kobj, &genl_attrs);
+	kobject_put(genl_kobj);
 
 	genl_unregister_mc_group(&doc_exmpl_genl_family, &doc_exmpl_genl_mcgrp);
 	genl_unregister_ops(&doc_exmpl_genl_family, &doc_exmpl_genl_ops_echo);
