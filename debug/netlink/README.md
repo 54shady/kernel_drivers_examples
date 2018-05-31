@@ -51,6 +51,15 @@ kernel2user 工作流程([demo3_user.c](demo3_user.c) [demo3_kernel.c](demo3_ker
 
 测试方法
 
+加载内核模块
+
 	insmod demo3_kernel.ko
+
+启动两个应用程序
+
 	./demo3_user
+	./demo3_user
+
+触发内核上报消息通知所有应用程序
+
 	echo 1 > /sys/kernel/genl_test/genl_trigger
