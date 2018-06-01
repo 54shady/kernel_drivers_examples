@@ -18,6 +18,7 @@ endif
 
 obj-m := wei.o
 obj-m += uk_io.o
+obj-m += vfs_rw.o
 
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
 KERNEL_BUID_OUTPUT ?=$(KERNEL_DIR)
