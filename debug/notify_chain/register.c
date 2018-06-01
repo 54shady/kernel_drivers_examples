@@ -7,25 +7,31 @@ extern int register_test_notifier(struct notifier_block *nb);
 
 static int test_event1(struct notifier_block *this, unsigned long event, void *ptr)
 {
+	printk("In %s: evt_no = %ld\n", __FUNCTION__, event);
+
 	if (NULL != ptr)
-		printk("ptr = %s\n", (char *)ptr);
-	printk("In Event 1: Event Number is %ld\n",event);
+		printk("%s get %s\n", __FUNCTION__, (char *)ptr);
+
 	return 0;
 }
 
 static int test_event2(struct notifier_block *this, unsigned long event, void *ptr)
 {
+	printk("In %s: evt_no = %ld\n", __FUNCTION__, event);
+
 	if (NULL != ptr)
-		printk("ptr = %s\n", (char *)ptr);
-	printk("In Event 2: Event Number is %ld\n",event);
+		printk("%s get %s\n", __FUNCTION__, (char *)ptr);
+
 	return 0;
 }
 
 static int test_event3(struct notifier_block *this, unsigned long event, void *ptr)
 {
+	printk("In %s: evt_no = %ld\n", __FUNCTION__, event);
+
 	if (NULL != ptr)
-		printk("ptr = %s\n", (char *)ptr);
-	printk("In Event 3: Event Number is %ld\n",event);
+		printk("%s get %s\n", __FUNCTION__, (char *)ptr);
+
 	return 0;
 }
 
@@ -53,7 +59,7 @@ static int reg_notifier(void)
 	if (err)
 	{
 		printk("register test_notifier1 error\n");
-		return-1;
+		return -1;
 	}
 	printk("register test_notifier1 completed\n");
 
@@ -61,7 +67,7 @@ static int reg_notifier(void)
 	if (err)
 	{
 		printk("register test_notifier2 error\n");
-		return-1;
+		return -1;
 	}
 	printk("register test_notifier2 completed\n");
 
@@ -69,7 +75,7 @@ static int reg_notifier(void)
 	if (err)
 	{
 		printk("register test_notifier3 error\n");
-		return-1;
+		return -1;
 	}
 	printk("register test_notifier3 completed\n");
 
