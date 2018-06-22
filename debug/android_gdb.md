@@ -83,6 +83,7 @@ host TCP端口4321转发到remote TCP端口1234,也可以在未启动gdb前配�
 
 通过串口连接到TARGET(由于使用的是调试串口,所以需要关掉调试串口)
 
+	(gdb) set remotebaud 115200
 	(gdb) target remote /dev/ttyUSB0
 
 加载未压缩的内核

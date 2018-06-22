@@ -8,6 +8,8 @@
 
 ## 各模块入口
 
+[Kernel debug technic](./debug/debug_technic.md)
+
 [HELLO](./debug/hello)
 
 [I2C](./debug/i2c)
@@ -38,7 +40,7 @@
 
 [PowerDomain](./debug/misc)
 
-[GDB on android](./android_gdb.md)
+[GDB on android](./debug/android_gdb.md)
 
 [Generic Netlink](./debug/netlink)
 
