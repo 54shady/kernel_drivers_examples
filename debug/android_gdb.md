@@ -48,6 +48,47 @@ host TCP端口4321转发到remote TCP端口1234,也可以在未启动gdb前配�
 
 	(gdb) file /android_src/out/target/product/rk3288/symbols/system/xbin/io
 
+### 调试过程中细节问题
+
+执行continue后提示如下时说明程序没有跑起来
+
+	(gdb) c
+	The program is not being run.
+
+此时需要在target上将程序跑起来
+
+	gdbserver :1234 app_need_to_be_debug
+
+在host端再次连接target
+
+	(gdb) target remote localhost:4321
+
+打断点时出现如下错误(程序的内存还没映射成功)
+
+	(gdb) b foo
+	Cannot access memory at address 0xe8a
+
+此时需要先让程序跑起来一下
+
+	(gdb) c
+
+之后再次执行打断点操作即可
+
+	(gdb) b foo
+
+另外可以将在gdb里这些操作配置写在一个文件中(比如gdb_config),在gdb里直接source即可
+
+	(gdb) source gdb_config
+
+gdb_config内容如下供参考
+
+	layout split
+	shell adb forward tcp:4321 tcp:1234
+	target remote localhost:4321
+	set solib-absolute-prefix /path/to/android_src/out/target/product/rk3288/symbols
+	set solib-search-path /path/to/android_src/out/target/product/rk3288/symbols/system/lib
+	file /path/to/android_src/out/target/product/rk3288/symbols/system/xbin/gout1
+
 ## 通过串口调试内核
 
 ### 配置内核
