@@ -139,10 +139,12 @@ gdb_config内容如下供参考
 
 解决方法二是针对某个函数关闭优化
 
-	void __attribute__((optimize("O0"))) foo(unsigned char data)
-	{
-		// unmodifiable compiler code
-	}
+```c
+void __attribute__((optimize("O0"))) foo(unsigned char data)
+{
+	// unmodifiable compiler code
+}
+```
 
 解决方法三是针对某个文件(模块XXX)不做优化处理
 
@@ -151,8 +153,46 @@ gdb_config内容如下供参考
 比如需要调试composite.c和f_acm.c这两个模块
 修改(kernel/drivers/usb/gadget/Makefile)
 
-	libcomposite-y += composite.o functions.o configfs.o
-	CFLAGS_composite.o = -O0
+```Makefile
+libcomposite-y += composite.o functions.o configfs.o
+CFLAGS_composite.o = -O0
 
-	usb_f_acm-y := f_acm.o
-	CFLAGS_f_acm.o = -O0
+usb_f_acm-y := f_acm.o
+CFLAGS_f_acm.o = -O0
+```
+
+## 使用GDB的一些便利之处
+
+在看代码过程中经常遇到下面这样的代码
+
+```c
+value = usb_ep_queue(cdev->gadget->ep0, req, GFP_ATOMIC);
+
+static inline int usb_ep_queue(struct usb_ep *ep,
+				   struct usb_request *req, gfp_t gfp_flags)
+{
+	return ep->ops->queue(ep, req, gfp_flags);
+}
+```
+
+需要找到这里调用的queue是哪里的代码,往往需要花上一段时间
+
+这里可以利用gdb来查看(dwc_otg_pcd_ep_ops)
+
+	(gdb) p *cdev->gadget->ep0
+	$8 = {
+	  driver_data = 0xc48c6e80,
+	  name = 0xc0c53644 "ep0",
+	  ops = 0xc1a40d24 <dwc_otg_pcd_ep_ops>,
+	  ep_list = {
+		next = 0xdce41128,
+		prev = 0xdce41128
+	  },
+	  maxpacket = 64,
+	  max_streams = 0,
+	  mult = 0,
+	  maxburst = 0,
+	  address = 0 '\000',
+	  desc = 0x0 <__vectors_start>,
+	  comp_desc = 0x0 <__vectors_start>
+	}
