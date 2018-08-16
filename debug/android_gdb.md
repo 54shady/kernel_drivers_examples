@@ -130,3 +130,29 @@ gdb_config内容如下供参考
 加载未压缩的内核
 
 	file vmlinux
+
+在使用GDB单步调试内核过程中会遇到由于代码经过编译器优化后无法显示变量值问题
+
+	value optimized out
+
+解决方法一般是使用-O0来编译内核
+
+解决方法二是针对某个函数关闭优化
+
+	void __attribute__((optimize("O0"))) foo(unsigned char data)
+	{
+		// unmodifiable compiler code
+	}
+
+解决方法三是针对某个文件(模块XXX)不做优化处理
+
+	CFLAGS_XXX.o = -O0
+
+比如需要调试composite.c和f_acm.c这两个模块
+修改(kernel/drivers/usb/gadget/Makefile)
+
+	libcomposite-y += composite.o functions.o configfs.o
+	CFLAGS_composite.o = -O0
+
+	usb_f_acm-y := f_acm.o
+	CFLAGS_f_acm.o = -O0
