@@ -157,6 +157,8 @@ Slave端(开发板),进入下载模式后枚举成MassStroage设备,循环等待
 写流程(usb_write)
 - Host发送cbw,其中cdb里包含写命令,并发送要写的数据,Slave返回csw
 
+下图中的所有术语是按主机的角度说明的
+
 ![work flow](./sequenceDiagram.png)
 
 Libusb编程核心步骤
