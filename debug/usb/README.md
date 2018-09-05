@@ -72,26 +72,30 @@ USB设备需要将SCSI(自定义的)命令从CBW中提取出来,执行相应的�
 
 Host要求USB设备执行的命令可能为发送数据,则此时需要将特定数据传送出去,完毕后发出CSW,以使Host进行下一步的操作
 
-CBW数据结构如下
-
-	struct fsg_bulk_cb_wrap {
-		__le32	Signature;		/* Contains 'USBC' */
-		u32	Tag;			/* Unique per command id */
-		__le32	DataTransferLength;	/* Size of the data */
-		u8	Flags;			/* Direction in bit 7 */
-		u8	Lun;			/* LUN (normally 0) */
-		u8	Length;			/* Of the CDB, <= MAX_COMMAND_SIZE */
-		u8	CDB[16];		/* Command Data Block */
-	};
+CBW数据结构如下(kernel/include/linux/usb/storage.h)
+```c
+/* command block wrapper */
+struct bulk_cb_wrap {
+	__le32	Signature;		/* Contains 'USBC' */
+	u32	Tag;			/* Unique per command id */
+	__le32	DataTransferLength;	/* Size of the data */
+	u8	Flags;			/* Direction in bit 7 */
+	u8	Lun;			/* LUN (normally 0) */
+	u8	Length;			/* Of the CDB, <= MAX_COMMAND_SIZE */
+	u8	CDB[16];		/* Command Data Block */
+};
+```
 
 CSW数据结构如下
-
-	struct bulk_cs_wrap {
-		__le32	Signature;		/* Should = 'USBS' */
-		u32	Tag;			/* Same as original command */
-		__le32	Residue;		/* Amount not transferred */
-		u8	Status;			/* See below */
-	};
+```c
+/* command status wrapper */
+struct bulk_cs_wrap {
+	__le32	Signature;		/* Should = 'USBS' */
+	u32	Tag;			/* Same as original command */
+	__le32	Residue;		/* Amount not transferred */
+	u8	Status;			/* See below */
+};
+```
 
 各字段含义
 
