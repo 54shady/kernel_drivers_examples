@@ -16,6 +16,8 @@
 
 [SPI](./debug/spi)
 
+[UART](./debug/uart)
+
 [USB](./debug/usb)
 
 [Regulator (ACT8846, RK818)](./debug/regulator)
