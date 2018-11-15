@@ -16,6 +16,7 @@ endif
 
 obj-m := workq_test.o
 obj-m += workq_test2.o
+obj-m += workq_test3.o
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
 KERNEL_BUID_OUTPUT ?=$(KERNEL_DIR)
 CC = $(CROSS_COMPILE)gcc
