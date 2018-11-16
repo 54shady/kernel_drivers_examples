@@ -1,4 +1,4 @@
-# Usage
+# PlatformDriver
 
 把dtsi文件包含到所使用的dts里
 
@@ -24,3 +24,7 @@
 
 	echo 1 3 4 > /sys/devices/my_test_node.23/BBBBB_debug
 	cat /sys/devices/my_test_node.23/BBBBB_debug
+
+## SpinLock and Mutex
+
+[locks in linux kernel](./locks.md)
