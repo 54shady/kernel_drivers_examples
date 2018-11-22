@@ -32,6 +32,9 @@ int data_size = DATA_NR * ALPHABET_LEN;
 /* test data */
 static char alphabet_table[ALPHABET_LEN];
 
+static int xfer_only = 0;
+static int recv_only = 0;
+
 static speed_t baudrate_map(unsigned long b)
 {
 	speed_t retval;
@@ -177,7 +180,12 @@ void *Uartsend(void * threadParameter)
 	tcount = 0;
 
 	for (i = 0; i < ALPHABET_LEN; i++)
+#ifdef XFER_SINE_WAVE
+		/* show a sine wave on oscilloscope */
+		alphabet_table[i] = 'U';
+#else
 		alphabet_table[i] = i + 'A';
+#endif
 
 	tx_buf = malloc(data_size);
 	for (i = 0; i < DATA_NR; i++)
@@ -217,12 +225,20 @@ void *Uartread(void * threadParameter)
 		/* Read in and wrap around the list */
 		iores = read(fd, rx_buf, iocount);
 		rcount += iores;
+		if (recv_only)
+		{
+			rx_buf[iores] = '\0';
+			printf("%s[%d:%d]\n", rx_buf, rcount, iores);
+		}
+		else
+		{
 #ifdef DEBUG_MESSAGE
-		rx_buf[iores] = '\0';
-		printf("%s[%d:%d]\n", rx_buf, rcount, iores);
+			rx_buf[iores] = '\0';
+			printf("%s[%d:%d]\n", rx_buf, rcount, iores);
 #endif
-		fwrite(rx_buf, 1, iores, fp_read);
-		free(rx_buf);
+			fwrite(rx_buf, 1, iores, fp_read);
+			free(rx_buf);
+		}
 	}
 
 	return 0;
@@ -230,12 +246,13 @@ void *Uartread(void * threadParameter)
 
 static void print_usage(const char *name)
 {
-	printf("Usage: %s <tty name> [-S] [-O] [-E] [-HW] [-B baudrate]"
+	printf("Usage: %s <tty name> [-S] [-O] [-E] [-HW] [-B baudrate] [-X | -R]"
 			"\n\t'-S' for 2 stop bit"
 			"\n\t'-O' for PARODD "
 			"\n\t'-E' for PARENB"
 			"\n\t'-HW' for HW flow control enable"
-			"\n\t'-B baudrate' for different baudrate\n", name);
+			"\n\t'-B' baudrate' for different baudrate"
+			"\n\t'-X' xfer only, '-R' recv only(default loop mode)\n", name);
 }
 
 int main(int argc, char *argv[])
@@ -304,6 +321,14 @@ int main(int argc, char *argv[])
 				baudrate = DEFAULT_RATE;
 			continue;
 		}
+		if (!strcmp(argv[i], "-X")) {
+			xfer_only = 1;
+			continue;
+		}
+		if (!strcmp(argv[i], "-R")) {
+			recv_only = 1;
+			continue;
+		}
 	}
 
 	if (baudrate) {
@@ -316,23 +341,44 @@ int main(int argc, char *argv[])
 			(options.c_cflag & PARODD) ? "PARODD" : "PARENB",
 			(options.c_cflag & CRTSCTS) ? "enabled" : "disabled");
 
-	trun = 1;
-	rrun = 1;
+	/* xfer only mode */
+	if (xfer_only)
+	{
+		trun = 1;
+		rrun = 0;
+	}
+	else if (recv_only) /* recv only mode */
+	{
+		rrun = 1;
+		trun = 0;
+	}
+	else /* loop test mode */
+	{
+		trun = 1;
+		rrun = 1;
+	}
+
 	fp_read = fopen("uart_read.txt","wb");
 
-	/* create and start the xfer thread */
-	ret = pthread_create(&p_Uartsend, NULL, Uartsend, NULL);
-	if (ret < 0)
-		goto error;
+	if (trun)
+	{
+		/* create and start the xfer thread */
+		ret = pthread_create(&p_Uartsend, NULL, Uartsend, NULL);
+		if (ret < 0)
+			goto error;
+	}
 
-	/*
-	 * create and start the recv thread
-	 * stop the xfer thread if and error happend
-	 */
-	ret = pthread_create(&p_Uartread, NULL, Uartread, NULL);
-	if (ret < 0) {
-		ret = pthread_join(p_Uartsend, &thread_res);
-		goto error;
+	if (rrun)
+	{
+		/*
+		 * create and start the recv thread
+		 * stop the xfer thread if and error happend
+		 */
+		ret = pthread_create(&p_Uartread, NULL, Uartread, NULL);
+		if (ret < 0 && trun) {
+			ret = pthread_join(p_Uartsend, &thread_res);
+			goto error;
+		}
 	}
 
 	/* stop the test */
@@ -341,6 +387,37 @@ int main(int argc, char *argv[])
 		c = getchar();
 	}
 
+	/* xfer only mode */
+	if (xfer_only)
+	{
+		/* stop xfer thread */
+		trun = 0;
+		ret = pthread_join(p_Uartsend, &thread_res);
+		if (ret < 0)
+			printf("fail to stop Uartsend thread\n");
+
+		test_result = "Done";
+
+		/* normal exit */
+		goto error;
+	}
+
+	/* recv only mode */
+	if (recv_only)
+	{
+		/* stop recv thread */
+		rrun = 0;
+		ret = pthread_join(p_Uartread, &thread_res);
+		if (ret < 0)
+			printf("fail to stop Uartread thread\n");
+
+		test_result = "Done";
+
+		/* normal exit */
+		goto error;
+	}
+
+	/* loop test mode */
 	/* stop xfer thread */
 	trun = 0;
 	ret = pthread_join(p_Uartsend, &thread_res);
