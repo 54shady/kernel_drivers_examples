@@ -4,20 +4,10 @@
 #include <linux/delay.h>
 #include <linux/slab.h>
 
-/* describe in device tree */
-#if 0
-&i2c {
-	myi2c@36 {
-		compatible = "myi2c";
-		status = "okay";
-		reg = <0x36>;
-	};
-}
-#endif
-
 struct myi2c_chip {
+	char name[20];
 	struct i2c_client	*client;
-	struct device		*dev;
+	struct device		dev;
 };
 
 static inline int __myi2c_read(struct i2c_client *client,
@@ -32,6 +22,7 @@ static inline int __myi2c_read(struct i2c_client *client,
 	}
 
 	*val = (uint8_t)ret;
+
 	return 0;
 }
 
@@ -65,8 +56,17 @@ static ssize_t myi2c_debug_show(struct device *dev,
 				 char *buf)
 {
     uint8_t val;
-	myi2c_read(dev,myi2c_regs_addr,&val);
-	return sprintf(buf,"REG[%x]=0x%x\n",myi2c_regs_addr,val);
+	struct i2c_client *client;
+	struct myi2c_chip *chip;
+
+	/* get chip */
+	client = container_of(dev, struct i2c_client, dev);
+	chip = i2c_get_clientdata(client);
+	printk("chip name = %s\n", chip->name);
+
+	myi2c_read(dev, myi2c_regs_addr, &val);
+
+	return sprintf(buf, "REG[%x]=0x%x\n", myi2c_regs_addr, val);
 }
 
 static ssize_t myi2c_debug_store(struct device *dev,
@@ -74,11 +74,20 @@ static ssize_t myi2c_debug_store(struct device *dev,
 {
 	int tmp;
 	uint8_t val;
+	struct i2c_client *client;
+	struct myi2c_chip *chip;
+
+	/* get chip */
+	client = container_of(dev, struct i2c_client, dev);
+	chip = i2c_get_clientdata(client);
+	printk("chip name = %s\n", chip->name);
+
 	tmp = simple_strtoul(buf, NULL, 16);
 	/* val = low 8 bit, addr = high 8 bit */
 	val = tmp & 0x00FF;
 	myi2c_regs_addr= (tmp >> 8) & 0x00FF;
 	myi2c_write(dev, myi2c_regs_addr, val);
+
 	return count;
 }
 
@@ -119,7 +128,7 @@ static int myi2c_probe(struct i2c_client *client,
 	}
 
 	chip->client = client;
-	chip->dev = &client->dev;
+	strcpy(chip->name, "I2C_chip");
 	i2c_set_clientdata(client, chip);
 
 	ret = sysfs_create_group(&client->dev.kobj, &myi2c_attr_group);
@@ -135,6 +144,7 @@ static int myi2c_probe(struct i2c_client *client,
 static int myi2c_remove(struct i2c_client *client)
 {
 	struct myi2c_chip *chip = i2c_get_clientdata(client);
+
 	sysfs_remove_group(&client->dev.kobj, &myi2c_attr_group);
 	kfree(chip);
 
@@ -160,7 +170,9 @@ static struct i2c_driver myi2c_driver = {
 static int myi2c_init(void)
 {
 	int ret;
+
 	ret = i2c_add_driver(&myi2c_driver);
+
 	return ret;
 }
 

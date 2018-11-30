@@ -1,0 +1,7 @@
+&i2c0 {
+	myi2c@36 {
+		compatible = "myi2c";
+		status = "okay";
+		reg = <0x36>;
+	};
+};
