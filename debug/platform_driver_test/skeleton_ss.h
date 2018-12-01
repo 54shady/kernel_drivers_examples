@@ -22,14 +22,14 @@ struct skeleton_chip {
 	struct pin_desc **pd;
 
 	/* kobject */
-	struct kobject *skeleton_kobj;
+	struct kobject kobj;
 };
 
 /* equal to dts pin name which is low case in pcb file */
 const char *dts_name[] = {
 	"pin_a_name",
 	"pin_b_name",
-	"pin_c_nmae",
+	"pin_c_name",
 };
 
 #endif

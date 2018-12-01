@@ -14,38 +14,63 @@
 
 #include "skeleton_ss.h"
 
-/* FIXME : should use container_of to get the chip */
-static struct skeleton_chip *g_chip;
-
-/* cat /sys/kernel/skeleton_pins/egpios_debug */
-static ssize_t egpios_debug_show(struct device *dev, struct device_attribute *attr, char *buf)
+/* cat /sys/skeleton_pins/first_attr */
+/* cat /sys/skeleton_pins/second_attr */
+ssize_t ops_show(struct kobject *kobj,struct attribute *attr,char *buf)
 {
 	int size = 0;
-	struct skeleton_chip *chip = g_chip;
+	struct skeleton_chip *chip;
 
+	chip = container_of(kobj, struct skeleton_chip, kobj);
+	printk("attr->name:%s \n",attr->name);
 	size = sprintf(buf, "%s value is %d\n", chip->pd[chip->pin_name_index]->name, gpio_get_value(chip->pd[chip->pin_name_index]->gpio_pin));
+
 	return size;
 }
 
-/* echo <pin_index> <val> > /sys/kernel/skeleton_pins/egpios_debug */
-static ssize_t egpios_debug_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+/* echo <pin_index> <val> > /sys/skeleton_pins/first_attr */
+/* echo <pin_index> <val> > /sys/skeleton_pins/second_attr */
+ssize_t ops_store(struct kobject *kobj,struct attribute *attr,const char *buf,size_t count)
 {
-	struct skeleton_chip *chip = g_chip;
+	struct skeleton_chip *chip;
 
+	chip = container_of(kobj, struct skeleton_chip, kobj);
 	sscanf(buf, "%d %d", &chip->pin_name_index, &chip->value);
 	gpio_set_value(chip->pd[chip->pin_name_index]->gpio_pin, chip->value);
+
 	return count;
 }
 
-static DEVICE_ATTR(egpios_debug, S_IRUGO | S_IWUSR, egpios_debug_show, egpios_debug_store);
+struct sysfs_ops sysops = {
+	.show = ops_show,
+	.store = ops_store,
+};
 
-static struct attribute *egpios_attrs[] = {
-	&dev_attr_egpios_debug.attr,
+void kobj_release(struct kobject *kobj)
+{
+	printk("%s, %d\n", __FUNCTION__, __LINE__);
+}
+
+struct attribute first_attr = {
+	.name = "first_attr",
+	.mode = S_IRWXUGO,
+};
+
+struct attribute second_attr = {
+	.name = "second_attr",
+	.mode = S_IRUGO,
+};
+
+static struct attribute *def_attrs[] = {
+	&first_attr,
+	&second_attr,
 	NULL,
 };
 
-static const struct attribute_group egpios_attr_group = {
-	.attrs = egpios_attrs,
+struct kobj_type ktype = {
+	.release       = kobj_release,
+	.sysfs_ops     = &sysops,
+	.default_attrs = def_attrs,
 };
 
 static int skeleton_ss_probe(struct platform_device *pdev)
@@ -77,7 +102,6 @@ static int skeleton_ss_probe(struct platform_device *pdev)
 		ret = -ENOMEM;
 	}
 
-	g_chip = chip;
 	strcpy(chip->name, "Skeleton Chip");
 
 	/* defualt pin index */
@@ -123,26 +147,20 @@ static int skeleton_ss_probe(struct platform_device *pdev)
 		}
 	}
 
-	/* /sys/kerne/skeleton_pins */
-	chip->skeleton_kobj = kobject_create_and_add("skeleton_pins", kernel_kobj);
-	if (!chip->skeleton_kobj)
-		return -ENOMEM;
+	memset(&chip->kobj, 0, sizeof(struct kobject));
+	kobject_init_and_add(&chip->kobj, &ktype, NULL, "skeleton_pins");
 
-	/* sysfs */
-	ret = sysfs_create_group(chip->skeleton_kobj, &egpios_attr_group);
-	if (ret)
-	{
-		printk("failed to create sysfs device attributes\n");
-		return -1;
-	}
 	return 0;
 }
 
 static int skeleton_ss_remove(struct platform_device *pdev)
 {
+	struct skeleton_chip *chip;
+
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	kobject_del(g_chip->skeleton_kobj);
-	sysfs_remove_group(g_chip->skeleton_kobj, &egpios_attr_group);
+	chip = dev_get_drvdata(&pdev->dev);
+	kobject_del(&chip->kobj);
+	dev_set_drvdata(&pdev->dev, NULL);
 
 	return 0;
 }
@@ -184,8 +202,8 @@ static struct platform_driver skeleton_ss = {
 	},
 	.probe		= skeleton_ss_probe,
 	.remove 	= skeleton_ss_remove,
-    .suspend    = skeleton_ss_suspend,
-    .resume     = skeleton_ss_resume,
+	.suspend    = skeleton_ss_suspend,
+	.resume     = skeleton_ss_resume,
 };
 
 module_platform_driver(skeleton_ss);
