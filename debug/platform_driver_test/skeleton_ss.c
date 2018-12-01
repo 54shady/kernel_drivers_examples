@@ -16,13 +16,14 @@
 
 /* cat /sys/skeleton_pins/first_attr */
 /* cat /sys/skeleton_pins/second_attr */
-ssize_t ops_show(struct kobject *kobj,struct attribute *attr,char *buf)
+ssize_t ops_show(struct kobject *kobj, struct attribute *attr, char *buf)
 {
 	int size = 0;
 	struct skeleton_chip *chip;
 
 	chip = container_of(kobj, struct skeleton_chip, kobj);
 	printk("attr->name:%s \n",attr->name);
+	printk("%s, 0x%p:%s\n", __FUNCTION__, chip, chip->name);
 	size = sprintf(buf, "%s value is %d\n", chip->pd[chip->pin_name_index]->name, gpio_get_value(chip->pd[chip->pin_name_index]->gpio_pin));
 
 	return size;
@@ -30,7 +31,7 @@ ssize_t ops_show(struct kobject *kobj,struct attribute *attr,char *buf)
 
 /* echo <pin_index> <val> > /sys/skeleton_pins/first_attr */
 /* echo <pin_index> <val> > /sys/skeleton_pins/second_attr */
-ssize_t ops_store(struct kobject *kobj,struct attribute *attr,const char *buf,size_t count)
+ssize_t ops_store(struct kobject *kobj, struct attribute *attr, const char *buf, size_t count)
 {
 	struct skeleton_chip *chip;
 
@@ -103,6 +104,7 @@ static int skeleton_ss_probe(struct platform_device *pdev)
 	}
 
 	strcpy(chip->name, "Skeleton Chip");
+	printk("%s, 0x%p:%s\n", __FUNCTION__, chip, chip->name);
 
 	/* defualt pin index */
 	chip->pin_name_index = 0;
@@ -157,8 +159,8 @@ static int skeleton_ss_remove(struct platform_device *pdev)
 {
 	struct skeleton_chip *chip;
 
-	printk("%s, %d\n", __FUNCTION__, __LINE__);
 	chip = dev_get_drvdata(&pdev->dev);
+	printk("%s, 0x%p:%s\n", __FUNCTION__, chip, chip->name);
 	kobject_del(&chip->kobj);
 	dev_set_drvdata(&pdev->dev, NULL);
 
