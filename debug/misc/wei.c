@@ -13,6 +13,7 @@
 struct self_define_data {
 	struct task_struct *task;
 	wait_queue_head_t wqh;
+	char data[1024];
 };
 
 static struct self_define_data sdd;
@@ -20,15 +21,23 @@ static int g_condition = 0;
 
 static ssize_t BBBBB_debug_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	printk("g_condition = %d\n", g_condition);
+	pr_debug("g_condition = %d\n", g_condition);
+
 	return 0;
 }
 
+/* echo hello > /sys/devices/my_test_node/BBBBB_debug */
 static ssize_t BBBBB_debug_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
-	printk("trigger g_condition ok\n");
+	pr_debug("trigger g_condition ok\n");
+
+	/* copy data from userspace */
+	memset(sdd.data, 0, 1024);
+	memcpy(sdd.data, buf, count);
 	g_condition = 1;
+
 	wake_up(&sdd.wqh);
+
 	return count;
 }
 
@@ -47,6 +56,9 @@ static const struct attribute_group BBBBB_attr_group = {
 static int A_test_kthread(void *arg)
 {
 	int ret;
+	struct self_define_data *psdd;
+
+	psdd = (struct self_define_data *)arg;
 
 	/*
 	 * running the thread while the g_condition equal to 1
@@ -54,15 +66,14 @@ static int A_test_kthread(void *arg)
 	 */
 	while(!kthread_should_stop())
 	{
-		printk("g_condition = %d\n", g_condition);
-		ret = wait_event_interruptible(sdd.wqh, g_condition);
+		pr_debug("g_condition = %d\n", g_condition);
+		ret = wait_event_interruptible(psdd->wqh, g_condition);
 		g_condition = 0;
-		printk("ret = %d\n", ret);
-		if(ret)
+		if (ret)
 			continue;
 
 		/* contition true, do something */
-		printk("Do something...\n");
+		printk("CheckData ==> %s\n", psdd->data);
 	}
 }
 
@@ -71,7 +82,7 @@ static int AAAAA_platform_probe(struct platform_device *pdev)
 	int ret;
 
 	/* create a kthread */
-	sdd.task = kthread_run(A_test_kthread, NULL, "A_test_kthread");
+	sdd.task = kthread_run(A_test_kthread, &sdd, "A_test_kthread");
 	if(IS_ERR(sdd.task)){
 		printk("create A_test_kthread failed");
 		return -1;

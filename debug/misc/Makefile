@@ -5,9 +5,12 @@
 # Usage
 # make CROSS_COMPILE=<cross_compiler_prefix> KERNEL_DIR=<your_kernel_dir> KERNEL_BUID_OUTPUT=<kernel_buid_output>
 #
-# make CROSS_COMPILE=/home/zeroway/3288/51/src/3288_5.1_v2/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi- KERNEL_DIR=/home/zeroway/3288/51/src/3288_5.1_v2/kernel KERNEL_BUID_OUTPUT=/home/zeroway/3288/51/src/3288_5.1_v2/out/target/product/rk3288/obj/KERNEL
 
-# make CROSS_COMPILE=/home/zeroway/rk3288-e810-android6.0/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi- KERNEL_DIR=/home/zeroway/rk3288-e810-android6.0/kernel KERNEL_BUID_OUTPUT=/home/zeroway/rk3288-e810-android6.0/out/target/product/rk3288/obj/KERNEL
+PWD := $(shell pwd)
+BUILD_ENV = $(PWD)/../../buildenv
+cross_compiler_prefix = $(shell awk -F "CROSS_COMPILE=" '/CROSS_COMPILE=/{print $$2}' $(BUILD_ENV))
+kernel_output = $(shell awk -F "KERNEL_BUILD_OUTPUT=" '/KERNEL_BUILD_OUTPUT=/{print $$2}' $(BUILD_ENV))
+kernel_dir = $(shell awk -F "KERNEL_DIR=" '/KERNEL_DIR=/{print $$2}' $(BUILD_ENV))
 
 # Add your debugging flag (or not) to CFLAGS
 ifeq ($(DEBUG),y)
@@ -16,9 +19,9 @@ else
 DEBFLAGS = -O2
 endif
 
-obj-m := wei.o
-obj-m += uk_io.o
+obj-m := uk_io.o
 obj-m += vfs_rw.o
+obj-m += wei.o
 
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
 KERNEL_BUID_OUTPUT ?=$(KERNEL_DIR)
@@ -27,7 +30,7 @@ LD = $(CROSS_COMPILE)ld
 PWD := $(shell pwd)
 
 modules:
-	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) O=$(KERNEL_BUID_OUTPUT) modules
+	$(MAKE) CROSS_COMPILE=$(cross_compiler_prefix) -C $(kernel_dir) O=$(kernel_output) M=$(PWD) modules
 
 clean:
 	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions modules.order Module.symvers
