@@ -89,6 +89,73 @@ gdb_config内容如下供参考
 	set solib-search-path /path/to/android_src/out/target/product/rk3288/symbols/system/lib
 	file /path/to/android_src/out/target/product/rk3288/symbols/system/xbin/gout1
 
+### 实例1(android上动态库bluetooth.default.so调试)
+
+错误日志如下(size > GKI_MAX_BUF_SIZE)
+
+	--------- beginning of crash
+	01-14 04:19:10.896  1404  1471 F libc    : system/bt/hci/src/buffer_allocator.c:26: buffer_alloc: assertion "size <= GKI_MAX_BUF_SIZE" failed
+	01-14 04:19:10.897  1404  1471 F libc    : Fatal signal 6 (SIGABRT), code -6 in tid 1471 (bluedroid wake/)
+	01-14 04:19:10.898   234   234 F DEBUG   : *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+	01-14 04:19:10.899   234   234 F DEBUG   : Revision: '0'
+	01-14 04:19:10.899   234   234 F DEBUG   : ABI: 'arm'
+	01-14 04:19:10.899   234   234 F DEBUG   : pid: 1404, tid: 1471, name: bluedroid wake/  >>> com.android.bluetooth <<<
+	01-14 04:19:10.899   234   234 F DEBUG   : signal 6 (SIGABRT), code -6 (SI_TKILL), fault addr --------
+	01-14 04:19:10.915   234   234 F DEBUG   : Abort message: 'system/bt/hci/src/buffer_allocator.c:26: buffer_alloc: assertion "size <= GKI_MAX_BUF_SIZE" failed'
+	01-14 04:19:10.915   234   234 F DEBUG   :     r0 00000000  r1 000005bf  r2 00000006  r3 a0c16978
+	01-14 04:19:10.915   234   234 F DEBUG   :     r4 a0c16980  r5 a0c16930  r6 00000000  r7 0000010c
+	01-14 04:19:10.915   234   234 F DEBUG   :     r8 0000930f  r9 0000930f  sl a15e8f48  fp a15e8ecc
+	01-14 04:19:10.915   234   234 F DEBUG   :     ip 00000006  sp a0c16390  lr b6ca7ec9  pc b6caa2b8  cpsr 400f0010
+	01-14 04:19:10.926   234   234 F DEBUG   :
+	01-14 04:19:10.926   234   234 F DEBUG   : backtrace:
+	01-14 04:19:10.926   234   234 F DEBUG   :     #00 pc 000442b8  /system/lib/libc.so (tgkill+12)
+	01-14 04:19:10.926   234   234 F DEBUG   :     #01 pc 00041ec5  /system/lib/libc.so (pthread_kill+32)
+	01-14 04:19:10.926   234   234 F DEBUG   :     #02 pc 0001badf  /system/lib/libc.so (raise+10)
+	01-14 04:19:10.927   234   234 F DEBUG   :     #03 pc 00018c91  /system/lib/libc.so (__libc_android_abort+34)
+	01-14 04:19:10.927   234   234 F DEBUG   :     #04 pc 00016784  /system/lib/libc.so (abort+4)
+	01-14 04:19:10.927   234   234 F DEBUG   :     #05 pc 0001a6f3  /system/lib/libc.so (__libc_fatal+16)
+	01-14 04:19:10.927   234   234 F DEBUG   :     #06 pc 00018d19  /system/lib/libc.so (__assert2+20)
+	01-14 04:19:10.927   234   234 F DEBUG   :     #07 pc 000edabd  /system/lib/hw/bluetooth.default.so
+	01-14 04:19:10.927   234   234 F DEBUG   :     #08 pc 000f05ed  /system/lib/hw/bluetooth.default.so
+	01-14 04:19:10.927   234   234 F DEBUG   :     #09 pc 000ef03f  /system/lib/hw/bluetooth.default.so
+	01-14 04:19:10.927   234   234 F DEBUG   :     #10 pc 000ee02f  /system/lib/hw/bluetooth.default.so
+	01-14 04:19:10.927   234   234 F DEBUG   :     #11 pc 000fad73  /system/lib/hw/bluetooth.default.so
+	01-14 04:19:10.927   234   234 F DEBUG   :     #12 pc 000fbccf  /system/lib/hw/bluetooth.default.so
+	01-14 04:19:10.927   234   234 F DEBUG   :     #13 pc 000417c7  /system/lib/libc.so (_ZL15__pthread_startPv+30)
+	01-14 04:19:10.927   234   234 F DEBUG   :     #14 pc 00019313  /system/lib/libc.so (__start_thread+6)
+	01-14 04:19:11.343   234   234 F DEBUG   :
+	01-14 04:19:11.343   234   234 F DEBUG   : Tombstone written to: /data/tombstones/tombstone_01
+
+欲调试的库bluetooth.default.so被进程com.android.bluetooth使用
+
+所以可以将gdbserver附加到该进程即可
+
+在android设备上执行(gdb attach到blue的进程上)
+
+	gdbserver :1234 --attach `ps | grep bluetooth | busybox1.11 awk '{print $2}'`
+
+gdb配置文件内容如下(ble_cfg)
+
+	layout split
+	shell adb forward tcp:4321 tcp:1234
+	target remote localhost:4321
+	set solib-absolute-prefix /home/zeroway/android6.0/out/target/product/rk3288/symbols
+	set solib-search-path /home/zeroway/android6.0/out/target/product/rk3288/symbols/system/lib
+
+在主机上启动gdb(进入后source ble_cfg)
+并在system/bt/hci/src/buffer_allocator.c中函数(buffer_alloc)打断点
+
+	./prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-gdb
+	(gdb) source ble_cfg
+	(gdb) b buffer_alloc
+	(gdb) continue
+
+设置条件断点
+
+	(gdb) b buffer_alloc if size > 4096
+
+在android设备上操作蓝牙(比如刷新操作)之后就能停在buffer_alloc函数
+
 ## 通过串口调试内核
 
 ### 配置内核
