@@ -10,6 +10,8 @@
 
 [FIQ-Debugger](./debug/fiq_debugger)
 
+[GPIO驱动调试](./debug/gpio)
+
 [SPI驱动开发](./debug/spi)
 
 [USB驱动和应用开发](./debug/usb)
