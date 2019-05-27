@@ -574,6 +574,42 @@ Qemu static user
 	apt-get update
 	apt-get install aria2
 
+### ubuntu上触摸屏校准(touch calibrator)
+
+[参考文章:i.MX6UL图形界面，触屏校准](https://blog.csdn.net/sements/article/details/88108040)
+
+安装校准工具包(用来进行触屏校准数据获取)
+
+	sudo apt install xinput-calibrator
+
+查看/usr/share/X11/xorg.conf.d/目录下是否有40-libinput.conf这个文件
+
+没有这个文件,则需要安装xserver-xorg-input-libinput
+
+	sudo apt-get install xserver-xorg-input-libinput
+
+复制该文件到/etc/X11/xorg.conf.d/目录下(/etc/X11可能没有,需要自己创建)
+
+	sudo cp /usr/share/X11/xorg.conf.d/40-libinput.conf /etc/X11/xorg.conf.d/
+
+进入/etc/X11/xorg.conf.d/目录下修改40-libinput.conf文件,找到touchscreen section
+
+在Identifier下添加一行 Option "CalibrationMatrix" "校准矩阵数据"
+
+这里"校准矩阵数据",需要根据实际情况进行校准矩阵的编写,[可以参考这个链接libinput](https://wayland.freedesktop.org/libinput/doc/latest/absolute-axes.html)
+
+下面是我手里板的内容(没有填写校准矩阵数据)
+
+	Section "InputClass"
+			Identifier "libinput touchscreen catchall"
+			Option "CalibrationMatrix"
+			MatchIsTouchscreen "on"
+			MatchDevicePath "/dev/input/event*"
+			Driver "libinput"
+	EndSection
+
+重启开发板后触摸校准即生效
+
 ### Arch根文件系统制作(在PC主机上操作)
 
 [下载ArchLinuxARM-aarch64-latest.tar.gz](http://sg.mirror.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz)
