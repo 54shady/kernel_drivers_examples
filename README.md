@@ -660,6 +660,11 @@ Qemu static user
 
 	pacman -Syu
 
+更新pacman key
+
+	pacman-key --init
+	pacman-key --populate
+
 安装X Window
 
 	pacman -S xorg-server
@@ -671,9 +676,29 @@ Qemu static user
 
 	startx
 
-安装slim和xfce4
+安装slim(Display Manager)
 
 	pacman -S slim
+
+开机启动slim(systemd)
+
+	systemctl enable slim.service
+
+其中DM的配置文件是(/etc/slim.conf)有如下内容
+
+	login_cmd           exec /bin/bash -login ~/.xinitrc %session
+
+所以创建(~/.xinitrc)其内容如下(比如启动i3wm)
+
+	#!/bin/sh
+	exec i3
+
+添加执行权限给.xinitrc
+
+	chmod +x ~/.xinitrc
+
+安装xfce4(Window Manager)
+
 	pacman -S xfce4
 
 测试是否安装成功
