@@ -12,6 +12,8 @@
 
 [GPIO驱动调试](./debug/gpio)
 
+[看门狗驱动调试](./debug/wdog)
+
 [SPI驱动开发](./debug/spi)
 
 [USB驱动和应用开发](./debug/usb)
