@@ -32,6 +32,8 @@
 
 [DVFS User Guide](./debug/misc)
 
+[LCD驱动调试](./lcd.md)
+
 ## 应用开发
 
 [LCD应用编程](./apps)
