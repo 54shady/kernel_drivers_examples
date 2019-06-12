@@ -1,4 +1,6 @@
-假设现在想要查看GPIO1_A0的mux状态
+# GPIO状态调试
+
+## 假设现在想要查看GPIO1_A0的mux状态
 
 GPIO1对应的寄存器名为PMUGRF_GPIO1A_IOMUX(offset 0x10)
 
@@ -12,11 +14,13 @@ GPIO1对应的寄存器名为PMUGRF_GPIO1A_IOMUX(offset 0x10)
 
 	io -4 -r 0xff320010
 
-查看该IO口是高电平还是低电平
+## 查看该IO口是高电平还是低电平
 
 GPIO1对应的寄存器基地址为(FF73_0000 - FF74_0000)
 
 ![GPIO1 BASE ADDR](./gpio1.png)
+
+## 控制IO口输出状态
 
 IO口的值保存在GPIO_SWPORTA_DR(offset 0x0)寄存器中
 

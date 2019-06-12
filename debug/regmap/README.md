@@ -6,6 +6,4 @@ Regmap主要目的是减少慢速I/O驱动上的重复逻辑,提供一种通用�
 
 ![regmap](./regmap.png)
 
-[I2C Regmap example0](../i2c/i2c_regmap.c)
-
-[I2C Regmap example1](./i2c_regmap.c)
+[I2C Regmap example](./i2c_regmap.c)
