@@ -16,6 +16,8 @@
 
 [SPI驱动开发](./debug/spi)
 
+[Camera驱动开发](./debug/camera)
+
 [USB驱动和应用开发](./debug/usb)
 
 [UART驱动开发](./debug/uart)
