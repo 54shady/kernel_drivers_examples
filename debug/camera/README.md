@@ -6,6 +6,18 @@
 
 ![RKISP1 topography ](./rkisp1.png)
 
+## 名词说明
+
+rkisp1表示新版本isp驱动,在devicetree中有如下两个节点
+
+	rkisp1@ff910000
+	rkisp1@ff920000
+
+cif_isp表示就版本isp驱动,在devicetree中有如下两个节点
+
+	cif_isp@ff910000
+	cif_isp@ff920000
+
 ## CIS(cmos image sensor)摄像头驱动
 
 查看驱动版本信息(dmesg | grep rkisp)
@@ -98,6 +110,82 @@
 		};
 	};
 
+使用media-ctl查看拓扑结构
+
+	[root@rk3399:/]# media-ctl -p
+	Media controller API version 0.1.0
+
+	Media device information
+	------------------------
+	driver          rkisp1
+	model           rkisp1
+	serial
+	bus info
+	hw revision     0x0
+	driver version  0.0.0
+
+	Device topology
+	- entity 1: rkisp1-isp-subdev (4 pads, 5 links)
+				type V4L2 subdev subtype Unknown flags 0
+				device node name /dev/v4l-subdev0
+			pad0: Sink
+					[fmt:SBGGR10_1X10/2112x1568 field:none
+					 crop.bounds:(0,0)/2112x1568
+					 crop:(0,0)/2112x1568]
+					<- "rockchip-mipi-dphy-rx":1 [ENABLED]
+			pad1: Sink
+					<- "rkisp1-input-params":0 [ENABLED]
+			pad2: Source
+					[fmt:YUYV8_2X8/2112x1568 field:none
+					 crop.bounds:(0,0)/2112x1568
+					 crop:(0,0)/2112x1568]
+					-> "rkisp1_selfpath":0 [ENABLED]
+					-> "rkisp1_mainpath":0 [ENABLED]
+			pad3: Source
+					-> "rkisp1-statistics":0 [ENABLED]
+
+	- entity 2: rkisp1_mainpath (1 pad, 1 link)
+				type Node subtype V4L flags 0
+				device node name /dev/video0
+			pad0: Sink
+					<- "rkisp1-isp-subdev":2 [ENABLED]
+
+	- entity 3: rkisp1_selfpath (1 pad, 1 link)
+				type Node subtype V4L flags 0
+				device node name /dev/video1
+			pad0: Sink
+					<- "rkisp1-isp-subdev":2 [ENABLED]
+
+	- entity 4: rkisp1-statistics (1 pad, 1 link)
+				type Node subtype V4L flags 0
+				device node name /dev/video2
+			pad0: Sink
+					<- "rkisp1-isp-subdev":3 [ENABLED]
+
+	- entity 5: rkisp1-input-params (1 pad, 1 link)
+				type Node subtype V4L flags 0
+				device node name /dev/video3
+			pad0: Source
+					-> "rkisp1-isp-subdev":1 [ENABLED]
+
+	- entity 6: rockchip-mipi-dphy-rx (2 pads, 2 links)
+				type V4L2 subdev subtype Unknown flags 0
+				device node name /dev/v4l-subdev1
+			pad0: Sink
+					[fmt:SBGGR10_1X10/2112x1568 field:none]
+					<- "ov13850 1-0036":0 [ENABLED]
+			pad1: Source
+					[fmt:SBGGR10_1X10/2112x1568 field:none]
+					-> "rkisp1-isp-subdev":0 [ENABLED]
+
+	- entity 7: ov13850 1-0036 (1 pad, 1 link)
+				type V4L2 subdev subtype Sensor flags 0
+				device node name /dev/v4l-subdev2
+			pad0: Source
+					[fmt:SBGGR10_1X10/2112x1568@10000/300000 field:none]
+					-> "rockchip-mipi-dphy-rx":0 [ENABLED]
+
+
 ## 摄像头应用
 
 ![camera engine framework](./camera_engine.png)
@@ -149,3 +237,31 @@ Dump picture to file(using 7yuv to view the file)
 Dump picture to file(using 7yuv to view the file)
 
 	rkisp_demo --device=/dev/video0 --output=/tmp/streamer.yuv
+
+### 抓取isp输出的yuv数据
+
+使用如下命令获取yuv数据(7yuv中用格式1280x720 YUV420 planar NV21查看)
+
+	media-ctl -d /dev/media0 --set-v4l2 '"ov13850 1-0036":0[fmt:SBGGR10_1X10/2112x1568]'
+	media-ctl -d /dev/media0 --set-v4l2 '"rkisp1-isp-subdev":0[fmt:SBGGR10_1X10/2112x1568]'
+	media-ctl -d /dev/media0 --set-v4l2 '"rkisp1-isp-subdev":0[crop:(0,0)/2112x1568]'
+	media-ctl -d /dev/media0 --set-v4l2 '"rkisp1-isp-subdev":2[fmt:YUYV8_2X8/2112x1568]'
+	media-ctl -d /dev/media0 --set-v4l2 '"rkisp1-isp-subdev":2[crop:(0,0)/2112x1568]'
+	v4l2-ctl -d /dev/video0 \
+		--set-selection=target=crop,top=336,left=432,width=1920,height=1080 \
+		--set-fmt-video=width=1280,height=720,pixelformat=NV21 \
+		--stream-mmap=3 --stream-to=/tmp/mp.out --stream-count=20 --stream-poll
+
+### 抓取Sensor输出的Raw Bayer原始数据
+
+使用如下命令获取raw bayer数据
+
+	media-ctl -d /dev/media0 --set-v4l2 '"ov13850 1-0036":0[fmt:SBGGR10_1X10/2112x1568]'
+	media-ctl -d /dev/media0 --set-v4l2 '"rkisp1-isp-subdev":0[fmt:SBGGR10_1X10/2112x1568]'
+	media-ctl -d /dev/media0 --set-v4l2 '"rkisp1-isp-subdev":0[crop:(0,0)/2112x1568]'
+	media-ctl -d /dev/media0 --set-v4l2 '"rkisp1-isp-subdev":2[fmt:SBGGR10_1X10/2112x1568]'
+	media-ctl -d /dev/media0 --set-v4l2 '"rkisp1-isp-subdev":2[crop:(0,0)/2112x1568]'
+	v4l2-ctl -d /dev/video0 --set-ctrl 'exposure=1216,analogue_gain=10' \
+		--set-selection=target=crop,top=0,left=0,width=2592,height=1944 \
+		--set-fmt-video=width=2112,height=1568,pixelformat=SBGGR10 \
+		--stream-mmap=3 --stream-to=/tmp/mp.raw.out --stream-count=1 --stream-poll
