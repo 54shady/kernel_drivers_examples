@@ -265,3 +265,25 @@ Dump picture to file(using 7yuv to view the file)
 		--set-selection=target=crop,top=0,left=0,width=2592,height=1944 \
 		--set-fmt-video=width=2112,height=1568,pixelformat=SBGGR10 \
 		--stream-mmap=3 --stream-to=/tmp/mp.raw.out --stream-count=1 --stream-poll
+
+### USB摄像头使用(linux系统)
+
+[参考代码](./test_camera-uvc.sh)
+
+使用如下命令使用UVC摄像头(非root用户, /dev/video0)
+
+	export DISPLAY=:0.0
+	gst-launch-1.0 v4l2src device=/dev/video0 ! mppvideodec ! rkximagesink sync=false
+
+指定输出格式和大小
+
+	gst-launch-1.0 v4l2src device=/dev/video0 ! "image/jpeg,width=640,height=480,framerate=30/1" ! mppvideodec ! rkximagesink sync=false
+
+如果是用root用户则按如下执行(这里假设切换到linaro用户)
+
+	export DISPLAY=:0.0
+	su linaro -c "gst-launch-1.0 v4l2src device=/dev/video0 ! mppvideodec ! rkximagesink sync=false"
+
+指定输出格式和大小
+
+	su linaro -c 'gst-launch-1.0 v4l2src device=/dev/video8 ! "image/jpeg,width=640,height=480,framerate=30/1" ! mppvideodec ! rkximagesink sync=false'
