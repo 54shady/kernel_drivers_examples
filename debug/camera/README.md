@@ -221,7 +221,7 @@ IQ文件会全部拷贝到etc/iqfiles目录下
 
 	/etc/init.d/S50set_pipeline start
 
-### Test mipi camera on Buildroot
+### Test mipi camera(on Buildroot system)
 
 Test mipi camera using gstreamer(camera_rkisp.sh)
 
@@ -266,7 +266,7 @@ Dump picture to file(using 7yuv to view the file)
 		--set-fmt-video=width=2112,height=1568,pixelformat=SBGGR10 \
 		--stream-mmap=3 --stream-to=/tmp/mp.raw.out --stream-count=1 --stream-poll
 
-### USB摄像头使用(linux系统)
+### USB摄像头使用(linux distro系统)
 
 [参考代码](./test_camera-uvc.sh)
 
@@ -286,4 +286,4 @@ Dump picture to file(using 7yuv to view the file)
 
 指定输出格式和大小
 
-	su linaro -c 'gst-launch-1.0 v4l2src device=/dev/video8 ! "image/jpeg,width=640,height=480,framerate=30/1" ! mppvideodec ! rkximagesink sync=false'
+	su linaro -c 'gst-launch-1.0 v4l2src device=/dev/video0 ! "image/jpeg,width=640,height=480,framerate=30/1" ! mppvideodec ! rkximagesink sync=false'
