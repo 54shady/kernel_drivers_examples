@@ -4,6 +4,14 @@
 
 [参考文档 Camera_Engine_Rkisp_User_Manual](Camera_Engine_Rkisp_User_Manual)
 
+## 硬件框图
+
+![硬件连接图](./system_connection.png)
+
+- dphy0(D-PHY TX0)
+- dphy1(D-PHY TX1RX1)
+- dphy2(D-PHY RX0)
+
 ![RKISP1 topography ](./rkisp1.png)
 
 ## 名词说明
