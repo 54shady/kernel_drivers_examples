@@ -36,6 +36,8 @@
 
 [LCD驱动调试](./lcd.md)
 
+[IO Domain开发](./io_domain.md)
+
 ## 应用开发
 
 [LCD应用编程](./apps)
