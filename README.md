@@ -36,6 +36,8 @@
 
 [LCD驱动调试](./lcd.md)
 
+[DRM驱动](./drm.md)
+
 [IO Domain开发](./io_domain.md)
 
 ## 应用开发
