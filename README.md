@@ -40,6 +40,8 @@
 
 [IO Domain开发](./io_domain.md)
 
+[InputEvent开发](./input_event.md)
+
 ## 应用开发
 
 [LCD应用编程](./apps)
