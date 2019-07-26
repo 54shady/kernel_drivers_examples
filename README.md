@@ -40,6 +40,8 @@
 
 [IO Domain开发](./io_domain.md)
 
+[SAR-ADC驱动开发](./debug/adc)
+
 [InputEvent开发](./input_event.md)
 
 ## 应用开发
