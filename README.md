@@ -117,7 +117,7 @@ parameter里分区如下
 
 如何确定开发板上调试串口电平是3.0v还是1.8v的
 
-![debug port](./debug_port.png)
+![debug port](./serial_port.png)
 
 硬件原理图连接如下
 
