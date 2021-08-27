@@ -9,6 +9,7 @@ TOOLS_PATH := $(BPF_SAMPLES_PATH)/../../tools
 
 # List of programs to build
 tprogs-y := demo
+tprogs-y += vmexit
 
 # Libbpf dependencies
 LIBBPF = $(TOOLS_PATH)/lib/bpf/libbpf.a
@@ -16,9 +17,13 @@ LIBBPF = $(TOOLS_PATH)/lib/bpf/libbpf.a
 demo-objs := trace_helpers.o
 demo-objs += demo_user.o
 
+vmexit-objs := trace_helpers.o
+vmexit-objs += vmexit_user.o
+
 # Tell kbuild to always build the programs
 always-y := $(tprogs-y)
 always-y += demo_kern.o
+always-y += vmexit_kern.o
 
 ifeq ($(ARCH), arm)
 # Strip all except -D__LINUX_ARM_ARCH__ option needed to handle linux
