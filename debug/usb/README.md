@@ -300,3 +300,30 @@ qemu代码里描述上述鼠标按键的结构时HIDPointerEvent
 		0xc0,		/*   End Collection */
 		0xc0,		/* End Collection */
 	};
+
+## How to retrieve the report descriptors in linux
+
+[Ref: get usb report descriptor](https://www.slashdev.ca/2010/05/08/get-usb-report-descriptor-with-linux/)
+
+先确认设备的路径(比如这里的1-8:1.1)
+
+	cat /proc/bus/input/devices
+
+	Sysfs=/devices/pci0000:00/0000:00:14.0/usb1/1-8/1-8:1.1/0003:24AE:1813.0010/input/input40
+
+使用lsusb查看设备的report descriptors显示如下结果
+
+	lsusb -vd 24ae:1813
+
+         Report Descriptors:
+			** UNAVAILABLE **
+
+可以先unbind设备再查看
+
+	bash -c "echo -n 1-8:1.1 >/sys/bus/usb/drivers/usbhid/unbind"
+
+	lsusb -vd 24ae:1813
+
+或者在debug目录中查看对应的report descriptors(如果有该文件的话)
+
+	cat /sys/kernel/debug/hid/0003\:24AE\:1813.0010/rdesc
