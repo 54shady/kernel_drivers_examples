@@ -180,8 +180,8 @@ qemu代码里描述上述鼠标按键的结构时HIDPointerEvent
 		0x95, 0x03,		/*     Report Count (3) */
 		0x75, 0x01,		/*     Report Size (1) */
 		0x81, 0x02,		/*     Input (Data, Variable, Absolute) */
-		0x95, 0x01,		/*     Report Count (1) */
-		0x75, 0x05,		/*     Report Size (5) */
+		0x95, 0x01,		/*     Report Count (1)  未配置button的位也需要上报 */
+		0x75, 0x05,		/*     Report Size (5)  一次性将剩余的5bit都上报 */
 		0x81, 0x01,		/*     Input (Constant) */
 		0x05, 0x01,		/*     Usage Page (Generic Desktop) */
 		0x09, 0x30,		/*     Usage (X) */
