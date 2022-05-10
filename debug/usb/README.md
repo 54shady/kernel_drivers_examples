@@ -327,3 +327,7 @@ qemu代码里描述上述鼠标按键的结构时HIDPointerEvent
 或者在debug目录中查看对应的report descriptors(如果有该文件的话)
 
 	cat /sys/kernel/debug/hid/0003\:24AE\:1813.0010/rdesc
+
+实时查看input event信息(和使用evtest一样)
+
+	cat /sys/kernel/debug/hid/0003\:24AE\:1813.0010/event
