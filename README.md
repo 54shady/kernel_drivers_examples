@@ -471,32 +471,36 @@ ramdisk镜像制作
 	mkdir temp
 	sudo tar jxvf stage3-arm64-arm64-20170223.tar.bz2 -C temp
 
-#### Qemu for chroot(gentoo user only)
+#### chroot via qemu-user-static in docker
 
-安装alien
+使用qemu-user-static in docker来修改
 
-	emerge alien
-
-解压deb,得到qemu-user-static-2.0.0~rc1+dfsg.tgz
-
-	alien -t qemu-user-static_2.0.0~rc1+dfsg-0ubuntu3_amd64.deb
-
-解压qemu-user-static-2.0.0~rc1+dfsg.tgz得到qemu-aarch64-static
-
-	sudo cp qemu-aarch64-static /usr/bin/qemu-aarch64
-	sudo cp /usr/bin/qemu-aarch64 temp/usb/bin/qemu-aarch64
-
-安装app-emulation/qemu-user为了获得脚本(用的是overlay安装)
-
-	emerge app-emulation/qemu-user
-
-执行脚本(确保aarch64的执行正确, /usr/bin/qemu-arm如果存在会导致失败,删除即可)
-
-	sudo /etc/init.d/qemu-binfmt start
+	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
 到这里就可以执行chroot了
 
 	sudo chroot temp
+
+~~安装alien(为了解压deb包)~~
+
+	emerge alien
+
+~~解压deb,得到qemu-user-static-2.0.0~rc1+dfsg.tgz~~
+
+	alien -t qemu-user-static_2.0.0~rc1+dfsg-0ubuntu3_amd64.deb
+
+~~解压qemu-user-static-2.0.0~rc1+dfsg.tgz得到qemu-aarch64-static~~
+
+	sudo cp qemu-aarch64-static /usr/bin/qemu-aarch64
+	sudo cp /usr/bin/qemu-aarch64 temp/usb/bin/qemu-aarch64
+
+~~安装app-emulation/qemu-user为了获得脚本(用的是overlay安装)~~
+
+	emerge app-emulation/qemu-user
+
+~~执行脚本(确保aarch64的执行正确, /usr/bin/qemu-arm如果存在会导致失败,删除即可)~~
+
+	sudo /etc/init.d/qemu-binfmt start
 
 #### 基本配置
 
