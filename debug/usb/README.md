@@ -331,3 +331,35 @@ qemu代码里描述上述鼠标按键的结构时HIDPointerEvent
 实时查看input event信息(和使用evtest一样)
 
 	cat /sys/kernel/debug/hid/0003\:24AE\:1813.0010/event
+
+## HID set report example(USB 键盘中按下CapsLock,NumLock等LED按键)
+
+HID协议中对set report的定义
+
+![set report request](./srr.png)
+
+下面截图是用USBlyzer抓包的SetReport数据
+
+![set report](./sr.png)
+
+可以看到该请求是发送给接口0的Set Report请求(class类型的请求,参考HID Class-Specific Requests)
+
+Set Report的参数:Report ID 0, Output Report 2
+
+设备枚举时获取到的HID Report Descriptor截图如下
+
+![HID report descriptor](./rd.png)
+
+所以这里的Set Report请求的就是对interface 0中的Output的请求
+
+通过bushound来手动发起这个请求进行测试(发送的数据在最下面设置,这里为0)
+
+![manual set report](./send0.png)
+
+修改请求的数据为3
+
+![manual set report](./send3.png)
+
+bushound和usblyzer数据同步对比
+
+![compare](./comp.png)
