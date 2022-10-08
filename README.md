@@ -9,3 +9,5 @@
 [tiny4412](https://github.com/54shady/kernel_drivers_examples/tree/tiny4412)
 
 [mini2440](https://github.com/54shady/kernel_drivers_examples/tree/mini2440)
+
+[x86](https://github.com/54shady/kernel_drivers_examples/tree/x86)
