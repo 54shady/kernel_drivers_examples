@@ -34,12 +34,12 @@ hid report descriptors在usb描述符中的关系
 
 总共有3个按键
 
-	REPORT_COUNT (3) # 每个按键时单独上报,需要上报3次按键信息
+	REPORT_COUNT (3) # 每个按键值是单独上报的,需要上报3次按键信息
 	REPORT_SIZE (1) # 每次上报的大小为1bit
 
 上报数据描述
 
-	INPUT (Data, Var, Abs)
+	INPUT (Data, Var, Abs) # 2
 
 所以按键的所有描述合起来就是如下
 
@@ -56,7 +56,13 @@ hid report descriptors在usb描述符中的关系
 
 	REPORT_COUNT (1) # 只需要上报一次
 	REPORT_SIZE (5) # 一次性上报5bit数据
-	INPUT (Cnst,Var,Abs)
+	INPUT (Cnst,Var,Abs) # 3
+
+或者也可以
+
+	REPORT_COUNT (5) # 上报5次
+	REPORT_SIZE (1) # 每次上报1bit数据
+	INPUT (Cnst,Var,Abs) # 3
 
 x轴的数据上报(y轴同理)
 
@@ -79,7 +85,7 @@ x轴的数据上报(y轴同理)
 	REPORT_COUNT (2) # 需要上报2次
 	INPUT (Data,Var,Rel)
 
-按键合xy轴合起来如下
+按键和xy轴合起来如下
 
 	USAGE_PAGE (Button)
 	USAGE_MINIMUM (Button 1)
@@ -335,6 +341,10 @@ spice捕获坐标后传递给qemu的input子系统来作为鼠标数据提供给
 SpiceInput(spice-input.c)->InputCore(input.c)->USB HID Device(hid.c)
 
 SpiceInput中通过button_mask来传入鼠标按键掩码值
+
+- 传入对应按键的掩码表示该按键按下(Press)
+- 传入0表示该按键抬起(Release)
+
 下面代将button4配置为side, button5配置为extra
 ```c
 static void spice_update_buttons(QemuSpicePointer *pointer,
@@ -446,6 +456,47 @@ static const USBDescIface desc_iface_tablet = {
 		sizeof(qemu_tablet_hid_report_descriptor) / sizeof(uint8_t), 0,         /*  u16 len */
 	},
 ...
+
+/* 比较合理的做法是根据设备能支持的按键数来配置, 如下是标准五键鼠标 */
+static const uint8_t qemu_tablet_hid_report_descriptor[] = {
+    0x05, 0x01,		/* Usage Page (Generic Desktop) */
+    0x09, 0x02,		/* Usage (Mouse) */
+    0xa1, 0x01,		/* Collection (Application) */
+    0x09, 0x01,		/*   Usage (Pointer) */
+    0xa1, 0x00,		/*   Collection (Physical) */
+    0x05, 0x09,		/*     Usage Page (Button) */
+    0x19, 0x01,		/*     Usage Minimum (1) */
+    0x29, 0x05,		/*     Usage Maximum (5) */
+    0x15, 0x00,		/*     Logical Minimum (0) */
+    0x25, 0x01,		/*     Logical Maximum (1) */
+    0x95, 0x05,		/*     Report Count (5) */
+    0x75, 0x01,		/*     Report Size (1) */
+    0X81, 0x02,		/*     Input (Data, Variable, Absolute) */
+    0x95, 0x01,		/*     Report Count (1) */
+    0x75, 0x03,		/*     Report Size (3) */
+    0x81, 0x03,		/*     Input (Constant) */
+    0x05, 0x01,		/*     Usage Page (Generic Desktop) */
+    0x09, 0x30,		/*     Usage (X) */
+    0x09, 0x31,		/*     Usage (Y) */
+    0x15, 0x00,		/*     Logical Minimum (0) */
+    0x26, 0xff, 0x7f,	/*     Logical Maximum (0x7fff) */
+    0x35, 0x00,		/*     Physical Minimum (0) */
+    0x46, 0xff, 0x7f,	/*     Physical Maximum (0x7fff) */
+    0x75, 0x10,		/*     Report Size (16) */
+    0x95, 0x02,		/*     Report Count (2) */
+    0x81, 0x02,		/*     Input (Data, Variable, Absolute) */
+    0x05, 0x01,		/*     Usage Page (Generic Desktop) */
+    0x09, 0x38,		/*     Usage (Wheel) */
+    0x15, 0x81,		/*     Logical Minimum (-0x7f) */
+    0x25, 0x7f,		/*     Logical Maximum (0x7f) */
+    0x35, 0x00,		/*     Physical Minimum (same as logical) */
+    0x45, 0x00,		/*     Physical Maximum (same as logical) */
+    0x75, 0x08,		/*     Report Size (8) */
+    0x95, 0x01,		/*     Report Count (1) */
+    0x81, 0x06,		/*     Input (Data, Variable, Relative) */
+    0xc0,		/*   End Collection */
+    0xc0,		/* End Collection */
+};
 ```
 
 ### 调试输入数据
