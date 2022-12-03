@@ -5,7 +5,7 @@
 # Usage
 # make CROSS_COMPILE=<cross_compiler_prefix> KERNEL_DIR=<your_kernel_dir> KERNEL_BUID_OUTPUT=<kernel_buid_output>
 #
-# make CROSS_COMPILE=/home/zeroway/rk3399/tool/gcc-linaro-4.9.4-2017.01-i686_aarch64-linux-gnu/bin/aarch64-linux-gnu- KERNEL_DIR=/home/zeroway/rk3399/src/firefly/kernel KERNEL_BUID_OUTPUT=/home/zeroway/rk3399/src/firefly/out/target/product/rk3399_firefly_box/obj/KERNEL
+# make CROSS_COMPILE=/home/zeroway/rk3399/src/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android- KERNEL_DIR=/home/zeroway/rk3399/src/kernel KERNEL_BUID_OUTPUT=/home/zeroway/rk3399/src/out/target/product/rk3399_firefly_box/obj/KERNEL
 
 # Add your debugging flag (or not) to CFLAGS
 ifeq ($(DEBUG),y)
@@ -14,27 +14,16 @@ else
 DEBFLAGS = -O2
 endif
 
-<<<<<<<< HEAD:x86/hlist/Makefile
-obj-m := demo.o
-
-KERNEL_DIR ?= /lib/modules/`uname -r`/build
-========
-obj-m := vfs_rw.o
+obj-m := mytimer_test.o
 
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
->>>>>>>> rk3399-nxt:rk3399/debug/misc/Makefile
 KERNEL_BUID_OUTPUT ?=$(KERNEL_DIR)
 CC = $(CROSS_COMPILE)gcc
 LD = $(CROSS_COMPILE)ld
 PWD := $(shell pwd)
-ARCH := x86_64
 
 modules:
-<<<<<<<< HEAD:x86/hlist/Makefile
-	$(MAKE) -C $(KERNEL_DIR) ARCH=$(ARCH) M=$(PWD) O=$(KERNEL_DIR) modules
-========
 	$(MAKE) -C $(KERNEL_DIR) ARCH=arm64 M=$(PWD) O=$(KERNEL_BUID_OUTPUT) modules
->>>>>>>> rk3399-nxt:rk3399/debug/misc/Makefile
 
 clean:
 	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions modules.order Module.symvers

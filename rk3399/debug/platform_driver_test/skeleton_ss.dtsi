@@ -1,0 +1,12 @@
+/ {
+	skeleton_gpios {
+        compatible = "skeleton, compatible";
+
+        pin_a_name = <&gpio1 B2 GPIO_ACTIVE_HIGH>;
+        pin_b_name = <&gpio1 A7 GPIO_ACTIVE_HIGH>;
+        pin_c_name = <&gpio1 B4 GPIO_ACTIVE_HIGH>;
+        pin_d_name = <&gpio1 B1 GPIO_ACTIVE_HIGH>;
+        pin_e_name = <&gpio1 B0 GPIO_ACTIVE_HIGH>;
+        pin_f_name = <&gpio4 D5 GPIO_ACTIVE_HIGH>;
+	};
+};

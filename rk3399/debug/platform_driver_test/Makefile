@@ -14,27 +14,21 @@ else
 DEBFLAGS = -O2
 endif
 
-<<<<<<<< HEAD:x86/hlist/Makefile
-obj-m := demo.o
-
-KERNEL_DIR ?= /lib/modules/`uname -r`/build
-========
-obj-m := vfs_rw.o
+obj-m := skeleton_ss.o
+obj-m += kset_skeleton.o
+obj-m += seq_test.o
+obj-m += seq_test2.o
+obj-m += seq_test3.o
+obj-m += pid2task.o
 
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
->>>>>>>> rk3399-nxt:rk3399/debug/misc/Makefile
 KERNEL_BUID_OUTPUT ?=$(KERNEL_DIR)
 CC = $(CROSS_COMPILE)gcc
 LD = $(CROSS_COMPILE)ld
 PWD := $(shell pwd)
-ARCH := x86_64
 
 modules:
-<<<<<<<< HEAD:x86/hlist/Makefile
-	$(MAKE) -C $(KERNEL_DIR) ARCH=$(ARCH) M=$(PWD) O=$(KERNEL_DIR) modules
-========
 	$(MAKE) -C $(KERNEL_DIR) ARCH=arm64 M=$(PWD) O=$(KERNEL_BUID_OUTPUT) modules
->>>>>>>> rk3399-nxt:rk3399/debug/misc/Makefile
 
 clean:
 	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions modules.order Module.symvers

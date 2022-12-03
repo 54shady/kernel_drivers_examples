@@ -1,0 +1,16 @@
+@startuml
+
+participant "Host(rkflashtool)" as host
+participant "Slave(rockusb)" as slave
+
+host -> slave : send_cbw
+note right : usb_read
+slave -> host : recv_data
+slave -> host : recv_csw
+
+host -> slave : send_cbw
+note right : usb_write
+host -> slave : send_data
+slave -> host : recv_csw
+
+@enduml
