@@ -1,0 +1,23 @@
+LOCAL_PATH:= $(call my-dir)
+
+# build lcd_test
+include $(CLEAR_VARS)
+
+LOCAL_SYSTEM_SHARED_LIBRARIES := libc
+LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
+LOCAL_MODULE_TAGS := debug
+LOCAL_SRC_FILES := lcd_test.c
+LOCAL_MODULE := lcd_test
+
+include $(BUILD_EXECUTABLE)
+
+# build event parser
+include $(CLEAR_VARS)
+
+LOCAL_SYSTEM_SHARED_LIBRARIES := libc
+LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
+LOCAL_MODULE_TAGS := debug
+LOCAL_SRC_FILES := event_parser.c
+LOCAL_MODULE := event_parser
+
+include $(BUILD_EXECUTABLE)

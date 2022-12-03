@@ -1,0 +1,7 @@
+@startuml
+
+chain_core <- register : 向系统注册通知接受者
+notifier -> chain_core : 触发通知信号
+chain_core -> register : 通知注册者
+
+@enduml

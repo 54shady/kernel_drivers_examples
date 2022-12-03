@@ -1,0 +1,3 @@
+CROSS_COMPILE=/path_to_you_cross_compile/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-
+KERNEL_DIR=/you_kerne_source_code/kernel
+KERNEL_BUILD_OUTPUT=/kernel_build_outfiles/out/target/product/rk3288/obj/KERNEL
