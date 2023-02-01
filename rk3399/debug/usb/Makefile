@@ -14,11 +14,7 @@ else
 DEBFLAGS = -O2
 endif
 
-<<<<<<<< HEAD:rk3399/debug/usb/Makefile
 obj-m := usbmouse_as_key.o
-========
-obj-m := myi2c.o
->>>>>>>> rk3288-nxt:rk3288/debug/i2c/Makefile
 
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
 KERNEL_BUID_OUTPUT ?=$(KERNEL_DIR)

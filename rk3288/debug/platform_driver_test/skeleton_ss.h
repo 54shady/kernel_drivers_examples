@@ -30,12 +30,6 @@ const char *dts_name[] = {
 	"pin_a_name",
 	"pin_b_name",
 	"pin_c_name",
-<<<<<<<< HEAD:rk3399/debug/platform_driver_test/skeleton_ss.h
-	"pin_d_name",
-	"pin_e_name",
-	"pin_f_name",
-========
->>>>>>>> rk3288-nxt:rk3288/debug/platform_driver_test/skeleton_ss.h
 };
 
 #endif

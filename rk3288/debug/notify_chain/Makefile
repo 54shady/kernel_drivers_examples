@@ -14,14 +14,8 @@ else
 DEBFLAGS = -O2
 endif
 
-<<<<<<<< HEAD:rk3399/debug/char/Makefile
-obj-m := char_skeleton_drv.o
-obj-m += spinlock.o
-
-========
 obj-m := chain_core.o notifier.o register.o
 obj-m += demo1_core.o demo1_notifier.o demo1_register.o
->>>>>>>> rk3288-nxt:rk3288/debug/notify_chain/Makefile
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
 KERNEL_BUID_OUTPUT ?=$(KERNEL_DIR)
 CC = $(CROSS_COMPILE)gcc

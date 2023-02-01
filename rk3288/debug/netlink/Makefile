@@ -5,16 +5,11 @@
 # Usage
 # make CROSS_COMPILE=<cross_compiler_prefix> KERNEL_DIR=<your_kernel_dir> KERNEL_BUID_OUTPUT=<kernel_buid_output>
 #
-<<<<<<<< HEAD:x86/hlist/Makefile
-# make CROSS_COMPILE=/home/zeroway/rk3399/tool/gcc-linaro-4.9.4-2017.01-i686_aarch64-linux-gnu/bin/aarch64-linux-gnu- KERNEL_DIR=/home/zeroway/rk3399/src/firefly/kernel KERNEL_BUID_OUTPUT=/home/zeroway/rk3399/src/firefly/out/target/product/rk3399_firefly_box/obj/KERNEL
-========
-
 PWD := $(shell pwd)
 BUILD_ENV = $(PWD)/../../buildenv
 cross_compiler_prefix = $(shell awk -F "CROSS_COMPILE=" '/CROSS_COMPILE=/{print $$2}' $(BUILD_ENV))
 kernel_output = $(shell awk -F "KERNEL_BUILD_OUTPUT=" '/KERNEL_BUILD_OUTPUT=/{print $$2}' $(BUILD_ENV))
 kernel_dir = $(shell awk -F "KERNEL_DIR=" '/KERNEL_DIR=/{print $$2}' $(BUILD_ENV))
->>>>>>>> rk3288-nxt:rk3288/debug/netlink/Makefile
 
 # Add your debugging flag (or not) to CFLAGS
 ifeq ($(DEBUG),y)
@@ -23,21 +18,11 @@ else
 DEBFLAGS = -O2
 endif
 
-<<<<<<<< HEAD:x86/hlist/Makefile
-<<<<<<<< HEAD:x86/hlist/Makefile
-obj-m := demo.o
-
-KERNEL_DIR ?= /lib/modules/`uname -r`/build
-========
-obj-m := vfs_rw.o
-========
 obj-m := demo1_kernel.o
 obj-m += demo2_kernel.o
 obj-m += demo3_kernel.o
->>>>>>>> rk3288-nxt:rk3288/debug/netlink/Makefile
 
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
->>>>>>>> rk3399-nxt:rk3399/debug/misc/Makefile
 KERNEL_BUID_OUTPUT ?=$(KERNEL_DIR)
 CC = $(CROSS_COMPILE)gcc
 LD = $(CROSS_COMPILE)ld
@@ -45,15 +30,7 @@ PWD := $(shell pwd)
 ARCH := x86_64
 
 modules:
-<<<<<<<< HEAD:x86/hlist/Makefile
-<<<<<<<< HEAD:x86/hlist/Makefile
-	$(MAKE) -C $(KERNEL_DIR) ARCH=$(ARCH) M=$(PWD) O=$(KERNEL_DIR) modules
-========
-	$(MAKE) -C $(KERNEL_DIR) ARCH=arm64 M=$(PWD) O=$(KERNEL_BUID_OUTPUT) modules
->>>>>>>> rk3399-nxt:rk3399/debug/misc/Makefile
-========
 	$(MAKE) CROSS_COMPILE=$(cross_compiler_prefix) -C $(kernel_dir) O=$(kernel_output) M=$(PWD) modules
->>>>>>>> rk3288-nxt:rk3288/debug/netlink/Makefile
 
 clean:
 	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions modules.order Module.symvers
