@@ -3,6 +3,7 @@
 ## Using Ubuntu 22.04 as compilation setup
 
 [Ubuntu get source code](https://wiki.ubuntu.com/Kernel/SourceCode)
+
 [Ubuntu Build Your Own Kernel](https://wiki.ubuntu.com/Kernel/BuildYourOwnKernel)
 
 安装必要的软件依赖
