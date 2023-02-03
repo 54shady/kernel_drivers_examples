@@ -1,13 +1,6 @@
 # BPF samples
 
-## 安装头文件(make headers_install)
-
-编译好内核并安装头文件
-
-	cd /usr/src/linux
-	make defconfig && make && make headers_install
-
-## Using Ubuntu 22.04(jammy) as example
+## Using Ubuntu 22.04 or docker as example
 
 [Ubuntu get source code](https://wiki.ubuntu.com/Kernel/SourceCode)
 [Ubuntu Build Your Own Kernel](https://wiki.ubuntu.com/Kernel/BuildYourOwnKernel)
@@ -15,9 +8,18 @@
 安装必要的软件依赖
 
 	apt install -y dpkg-dev
+
 	apt-get build-dep linux linux-image-$(uname -r)
+
+在Docker中可以通过指定具体的版本来安装内核代码
+
+	apt-get build-dep linux linux-image-5.15.0-57-generic
+
+安装编译依赖
+
 	apt-get install libncurses-dev gawk flex bison openssl libssl-dev dkms \
-		libelf-dev libudev-dev libpci-dev libiberty-dev autoconf llvm libcap2
+		libelf-dev libudev-dev libpci-dev libiberty-dev autoconf llvm libcap2-dev \
+		rsync bc pahole git clang binutils-dev dpkg-dev
 
 ubuntu解决安装包冲突问题
 
@@ -31,8 +33,9 @@ ubuntu解决安装包冲突问题
 
 	cd /path/to/download/ubuntu/source
 	ln -s $PWD /usr/src/linux
+	cd /usr/src/linux
 
-修改配置
+修改内核配置
 
 	chmod +x scripts/*
 	make clean
@@ -105,6 +108,7 @@ get elm
 
 在当前目录编译时指定kernel代码路径
 
+    make KERNEL_DIR=/usr/src/linux clean
     make KERNEL_DIR=/usr/src/linux
 
 用file查看下编译输出文件(demo_user.o和demo_kern.o)
