@@ -1,6 +1,6 @@
 # BPF samples
 
-## Using Ubuntu 22.04 or docker as example
+## Using Ubuntu 22.04 as compilation setup
 
 [Ubuntu get source code](https://wiki.ubuntu.com/Kernel/SourceCode)
 [Ubuntu Build Your Own Kernel](https://wiki.ubuntu.com/Kernel/BuildYourOwnKernel)
@@ -8,10 +8,9 @@
 安装必要的软件依赖
 
 	apt install -y dpkg-dev
-
 	apt-get build-dep linux linux-image-$(uname -r)
 
-在Docker中可以通过指定具体的版本来安装内核代码
+在Docker中可以通过指定具体的版本来安装内核代码(比如5.15.0-57-generic)或者预先下载好代码
 
 	apt-get build-dep linux linux-image-5.15.0-57-generic
 
@@ -26,7 +25,11 @@ ubuntu解决安装包冲突问题
 	apt-get install aptitude
 	aptitude install <package-name>
 
-安装代码(等价于下面的git命令)到/usr/src/linux目录下
+使用[docker](Dockerfile)来构建编译环境
+
+	docker build . -t bpf
+
+下载代码(等价于下面的git命令)到/usr/src/linux目录下
 
 	apt-get -y source linux-image-unsigned-$(uname -r)
 		==> git clone git://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/jammy
@@ -34,6 +37,10 @@ ubuntu解决安装包冲突问题
 	cd /path/to/download/ubuntu/source
 	ln -s $PWD /usr/src/linux
 	cd /usr/src/linux
+
+直接将预先下载好的代码映射到docker中
+
+	docker -v /path/to/linux:/usr/src/linux bpf /bin/bash
 
 修改内核配置
 
@@ -68,7 +75,9 @@ ubuntu解决安装包冲突问题
 
 	cd /usr/src/linux/samples/bpf && make
 
-先要挂载对应的文件系统
+### 运行内核自带的用列
+
+在运行环境中挂载对应的文件系统
 
 	mount -t bpf bpf /sys/fs/bpf
 
@@ -97,7 +106,11 @@ get elm
 	bpf: get fd:3 (Success)
 	bpf: fd:3 l->(1):24 ret:(0,Success)
 
-## 使用本demo
+## 使用本demo(using docker to compile)
+
+将当前代码挂载到容器中
+
+	docker -v $PWD:/code -v /path/to/linux:/usr/src/linux bpf /bin/bash
 
 在当前目录操作使用对应文件
 
