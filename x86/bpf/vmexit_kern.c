@@ -6,6 +6,11 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 
+/*
+ * 自定义一个hash类型的bpfmap
+ * 用进程pid作为key
+ * 每个进程的vmexit次数作为value
+ */
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__type(key, int);
@@ -23,6 +28,7 @@ int mybpfprog(struct pt_regs *ctx)
 
 	pid = bpf_get_current_pid_tgid();
 
+	/* 用pid这个作为key在bpfmap里查找对应的value */
 	value = bpf_map_lookup_elem(&my_map, &pid);
 	if (value)
 	{
@@ -30,6 +36,8 @@ int mybpfprog(struct pt_regs *ctx)
 		exit_count = ++(*value);
 		bpf_trace_printk(fmt, sizeof(fmt), pid, exit_count, *value);
 	}
+
+	/* 将pid作为key, exit_count作为value进行更新bpfmap */
 	bpf_map_update_elem(&my_map, &pid, &exit_count, BPF_ANY);
 
 	return 0;
