@@ -15,20 +15,14 @@
 
 	apt-get build-dep linux linux-image-5.15.0-57-generic
 
-安装编译依赖
-
-	apt-get install libncurses-dev gawk flex bison openssl libssl-dev dkms \
-		libelf-dev libudev-dev libpci-dev libiberty-dev autoconf llvm libcap2-dev \
-		rsync bc pahole git clang binutils-dev dpkg-dev
-
 ubuntu解决安装包冲突问题
 
 	apt-get install aptitude
 	aptitude install <package-name>
 
-使用[docker](Dockerfile)来构建编译环境
+使用[Dockerfile](https://github.com/54shady/dfc/blob/master/bpf/Dockerfile)作为编译环境
 
-	docker build . -t bpf
+	docker build . -t bpf2204 --build-arg x86/ubuntu:2204 --build-arg LAYOUTTOOL=pahole
 
 下载代码(等价于下面的git命令)到/usr/src/linux目录下
 
@@ -41,7 +35,7 @@ ubuntu解决安装包冲突问题
 
 直接将预先下载好的代码映射到docker中
 
-	docker -v /path/to/linux:/usr/src/linux bpf /bin/bash
+	docker -v /path/to/linux:/usr/src/linux bpf2204 /bin/bash
 
 修改内核配置
 
