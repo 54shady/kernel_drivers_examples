@@ -7,7 +7,7 @@
 
 #include <openssl/sha.h>
 
-#define DMA_TEST_DEMO
+//#define DMA_TEST_DEMO
 #define NO2STR(n) case n: return #n
 
 #define PCI_CRYPTO_DEV(obj)        OBJECT_CHECK(PCICryptoState, obj, "crypto")
@@ -48,7 +48,8 @@ enum {
 	CryptoDevice_ReadyState,
 	CryptoDevice_ResetState,
 	CryptoDevice_AesCbcState,
-	CryptoDevice_Sha2State
+	CryptoDevice_Sha2State,
+	CryptoDevice_DmaTestState
 };
 
 enum {
@@ -89,6 +90,9 @@ typedef struct DmaRequest
  *
  * Decrypt
  * devmem 0xfebf1002 b 3
+ *
+ * Dma test command
+ * devmem 0xfebf1002 b 5
  *
  * Enable interrupt flag to 2
  * devmem 0xfebf1003 b 2
@@ -133,7 +137,8 @@ typedef enum tagCryptoDeviceCommand {
 	CryptoDevice_ResetCommand,
 	CryptoDevice_AesCbcEncryptoCommand,
 	CryptoDevice_AesCbcDecryptoCommand,
-	CryptoDevice_Sha2Command
+	CryptoDevice_Sha2Command,
+	CryptoDevice_DmaTestCommand
 } CryptoDeviceCommand;
 
 typedef enum tagCryptoDeviceMSI
@@ -455,13 +460,13 @@ static void clear_interrupt(PCICryptoState *dev)
 	}
 }
 
-#ifdef DMA_TEST_DEMO
+//#ifdef DMA_TEST_DEMO
 struct aaaa {
 	int a;
 	char name[10];
 };
 struct aaaa in;
-#endif
+//#endif
 
 static void pci_crypto_memio_write(void *opaque,
 		hwaddr addr,
@@ -503,6 +508,7 @@ static void pci_crypto_memio_write(void *opaque,
 			case CryptoDevice_AesCbcEncryptoCommand:
 			case CryptoDevice_AesCbcDecryptoCommand:
 			case CryptoDevice_Sha2Command:
+			case CryptoDevice_DmaTestCommand:
 				qemu_cond_signal(&dev->thread_cond);
 				break;
 			default:
@@ -639,6 +645,22 @@ static int DoAesCbc(PCICryptoState *dev, DmaRequest *dma, bool encrypt)
 	return 0;
 }
 
+static int DoDmaTest(PCICryptoState *dev, DmaRequest *dma)
+{
+	/* read data from driver */
+	cpu_physical_memory_read(dma->in.page_addr, &in, sizeof(struct aaaa));
+	printf("a = %d, name = %s\n", in.a, in.name);
+
+	/* we do some modify the data and pass to driver */
+	in.a = 119;
+	strcpy(in.name, "DmaOut");
+	/* 将dma in的数据修改后写入到dma out物理地址 */
+	cpu_physical_memory_write(dma->out.page_addr, &in, sizeof(struct aaaa));
+	/* 产生中断通知驱动接收数据, 在驱动中断处理函数中接收数据 */
+
+	return 0;
+}
+
 static int DoSha256(PCICryptoState *dev, DmaRequest *dma)
 {
 	unsigned char digest[SHA256_DIGEST_LENGTH] = {};
@@ -746,6 +768,18 @@ static void *worker_thread(void *pdev)
 					dev->io->State = CryptoDevice_Sha2State;
 					qemu_mutex_unlock(&dev->io_mutex);
 					error = DoSha256(dev, &dma);
+					qemu_mutex_lock(&dev->io_mutex);
+					break;
+
+				/*
+				 * enable interrupt first and run dma
+				 * devmem 0xfebf1003 b 2
+				 * devmem 0xfebf1002 b 5
+				 */
+				case CryptoDevice_DmaTestCommand:
+					dev->io->State = CryptoDevice_DmaTestState;
+					qemu_mutex_unlock(&dev->io_mutex);
+					error = DoDmaTest(dev, &dma);
 					qemu_mutex_lock(&dev->io_mutex);
 					break;
 			}

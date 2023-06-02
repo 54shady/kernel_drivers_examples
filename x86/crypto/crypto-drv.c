@@ -9,6 +9,13 @@
 #include <linux/pci.h>
 
 #define DMA_TEST_DEMO
+#ifdef DMA_TEST_DEMO
+	struct aaaa {
+		int a;
+		char name[10];
+	};
+#endif
+
 /* refcode: linux/drivers/net/ethernet/intel/e1000/e1000_main.c */
 #define BAR_0 0
 char e1000_driver_name[] = "mycrypto";
@@ -196,7 +203,12 @@ static irqreturn_t crypto_irq_handler(int irq, void *data)
 		printk("ErrorCode: %s\n", errno2errstr(readb(hw_addr + ErrorCode)));
 	}
 	if (ret == CryptoDevice_MsiReady)
+	{
 		printk("ReadyINT handled\n");
+		/* 从dma buffer中取出数据 */
+		struct aaaa *pa = cpu_out_addr;
+		printk("Read Dma data back: %d %s\n", pa->a, pa->name);
+	}
 	if (ret == CryptoDevice_MsiReset)
 		printk("ResetINT handled\n");
 
@@ -322,10 +334,6 @@ static int e1000_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 #endif
 
 #ifdef DMA_TEST_DEMO
-	struct aaaa {
-		int a;
-		char name[10];
-	};
 	/* setup data */
 	struct aaaa a = {
 		.a = 911,
