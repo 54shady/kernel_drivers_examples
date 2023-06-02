@@ -8,6 +8,7 @@
 #include <linux/bitops.h>
 #include <linux/pci.h>
 
+#define DMA_TEST_DEMO
 /* refcode: linux/drivers/net/ethernet/intel/e1000/e1000_main.c */
 #define BAR_0 0
 char e1000_driver_name[] = "mycrypto";
@@ -276,6 +277,25 @@ static int e1000_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
         return -1;
     }
 
+#ifdef TEST_VIRT_TO_PHY
+	struct aaaa {
+		int a;
+		char name[10];
+	};
+
+	struct aaaa *virt4a;
+	unsigned long phy4a;
+
+	virt4a = kmalloc(sizeof(struct aaaa), GFP_ATOMIC);
+	if (!virt4a)
+		return -1;
+	virt4a->a = 911;
+	strcpy(virt4a->name, "virt4a");
+	phy4a = virt_to_phys(virt4a);
+	printk("phy4a = 0x%lx, virt4a = 0x%lx\n", phy4a, virt4a);
+	writel(phy4a, hw_addr + DmaInAddress);
+#endif
+
 	err = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32));
 	if (err)
 	{
@@ -290,6 +310,32 @@ static int e1000_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		printk("Failed allocation memory for DMA\n");
 		return -ENOMEM;
 	}
+
+#ifdef TEST_VIRT_TO_PHY
+	//memcpy(cpu_in_addr, virt4a, 4096);
+
+	struct aaaa a = {
+		.a = 912,
+		.name = "test-dma"
+	};
+	memcpy(cpu_in_addr, &a, sizeof(struct aaaa));
+#endif
+
+#ifdef DMA_TEST_DEMO
+	struct aaaa {
+		int a;
+		char name[10];
+	};
+	/* setup data */
+	struct aaaa a = {
+		.a = 911,
+		.name = "DmaIn"
+	};
+
+	/* 将需要传输的数据放入dma buffer */
+	memcpy(cpu_in_addr, &a, sizeof(struct aaaa));
+#endif
+
 	printk("DmaInAddress = 0x%llx, cpu_in = 0x%x\n", dma_in_addr, cpu_in_addr);
 	writel(dma_in_addr, hw_addr + DmaInAddress);
 	writel(4096, hw_addr + DmaInSizeInBytes);
@@ -305,6 +351,12 @@ static int e1000_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	writel(dma_out_addr, hw_addr + DmaOutAddress);
 	writel(4096, hw_addr + DmaOutSizeInBytes);
 	writel(1, hw_addr + DmaOutPagesCount);
+
+#ifdef DMA_TEST_DEMO
+	/* 从dma buffer中取出数据 */
+	struct aaaa *pa = cpu_out_addr;
+	printk("Dma data: %d %s\n", pa->a, pa->name);
+#endif
 
 	return 0;
 }

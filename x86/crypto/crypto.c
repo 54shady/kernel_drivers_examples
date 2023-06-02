@@ -7,6 +7,7 @@
 
 #include <openssl/sha.h>
 
+#define DMA_TEST_DEMO
 #define NO2STR(n) case n: return #n
 
 #define PCI_CRYPTO_DEV(obj)        OBJECT_CHECK(PCICryptoState, obj, "crypto")
@@ -29,7 +30,8 @@
 
 
 /* DMA Buf IN Address = 64bit physical address << 12 */
-#define CRYPTO_DEVICE_TO_PHYS(x) (x >> 12) //FIXME
+#define CRYPTO_DEVICE_TO_PHYS(x) (x) //FIXME
+//#define CRYPTO_DEVICE_TO_PHYS(x) (x >> 12) //FIXME
 //#define CRYPTO_DEVICE_TO_PHYS(x) (x & 0xfffffffff000) //FIXME
 
 #define TYPE_PCI_CRYPTO_DEV "pci-crypto"
@@ -453,6 +455,14 @@ static void clear_interrupt(PCICryptoState *dev)
 	}
 }
 
+#ifdef DMA_TEST_DEMO
+struct aaaa {
+	int a;
+	char name[10];
+};
+struct aaaa in;
+#endif
+
 static void pci_crypto_memio_write(void *opaque,
 		hwaddr addr,
 		uint64_t val,
@@ -506,6 +516,13 @@ static void pci_crypto_memio_write(void *opaque,
 		break;
 
 	CASE(DmaInAddress)
+
+#ifdef DMA_TEST_DEMO
+		/* 从驱动传入的物理地址val读取出数据到in */
+		cpu_physical_memory_read(val, &in, sizeof(struct aaaa));
+		printf("a = %d, name = %s\n", in.a, in.name);
+#endif
+
 		dev->io->DmaInAddress = (uint32_t)val;
 		break;
 
@@ -518,6 +535,19 @@ static void pci_crypto_memio_write(void *opaque,
 		break;
 
 	CASE(DmaOutAddress)
+
+#ifdef DMA_TEST_DEMO
+		//struct aaaa out = {
+		//	.a = 111,
+		//	.name = "dmaout"
+		//};
+
+		in.a = 119;
+		strcpy(in.name, "DmaOut");
+		/* 将dma in的数据修改后写入到物理地址val */
+		cpu_physical_memory_write(val, &in, sizeof(struct aaaa));
+#endif
+
 		dev->io->DmaOutAddress = (uint32_t)val;
 		break;
 

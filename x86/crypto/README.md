@@ -2,7 +2,7 @@
 
 参考书:How to Develop Embedded Software Using The QEMU Machine Emulator.pdf
 
-## 设备和驱动对应的代码
+## 设备和驱动对应的代码(环境参考huc)
 
 crypto.c : virtual device in qemu
 crypto-drv.c : driver for crypto
@@ -20,16 +20,21 @@ Compile qemu and run
 	./configure --target-list=x86_64-softmmu \
 		--extra-ldflags="`pkg-config --libs openssl`"
 
-	qemu/build/x86_64-softmmu/qemu-system-x86_64 \
-		-drive file=/path/to/system.qcow2 \
+	${HOME}/src/crypto-qemu/build/x86_64-softmmu/qemu-system-x86_64 \
+		-drive file=/data/huc.qcow2 \
 		-smp 2 -m 1024 -enable-kvm \
 		-device pci-crypto,aes_cbc_256="abc" \
-		-netdev tap,id=nd0,ifname=tap0,script=./nat_up.py,downscript=./nat_down.py \
-		-device e1000,netdev=nd0,mac=52:54:00:12:34:27
+		-device e1000,netdev=ssh \
+		-display none \
+		-serial mon:stdio \
+		-vnc 0.0.0.0:0 \
+		-netdev user,id=ssh,hostfwd=tcp::2222-:22
 
-### 直接在当前目录编译对应的设备驱动模块(crypto-drv.c, Makefile)
+### 编译对应的设备驱动
 
-	make
+	docker run --rm -it --privileged \
+		-v ${PWD}:/code \
+		-v ${HOME}/src/linux:/usr/src/linux bpf2004 make
 
 ## 调试
 

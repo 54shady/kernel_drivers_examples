@@ -6,7 +6,7 @@ DEBFLAGS = -O2
 endif
 
 obj-m := crypto-drv.o
-KERNELDIR ?= /lib/modules/$(shell uname -r)/build
+KERNELDIR ?= /usr/src/linux
 CC ?= gcc
 PWD := $(shell pwd)
 
