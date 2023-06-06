@@ -6,6 +6,7 @@ DEBFLAGS = -O2
 endif
 
 obj-m := crypto-drv.o
+obj-m := hello-pci-drv.o
 KERNELDIR ?= /usr/src/linux
 CC ?= gcc
 PWD := $(shell pwd)
