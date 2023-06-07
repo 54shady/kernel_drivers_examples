@@ -29,8 +29,8 @@ typedef struct PCIHelloDevState {
 #define TYPE_PCI_HELLO_DEV "pci-hellodev"
 #define PCI_HELLO_DEV(obj)     OBJECT_CHECK(PCIHelloDevState, (obj), TYPE_PCI_HELLO_DEV)
 /* sizes must be power of 2 in PCI */
-#define HELLO_IO_SIZE 1<<4
-#define HELLO_MMIO_SIZE 1<<6
+#define HELLO_IO_SIZE 1<<4 /* 16 byte */
+#define HELLO_MMIO_SIZE 1<<6 /* 64 byte */
 
 static void hello_iowrite(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
@@ -38,7 +38,7 @@ static void hello_iowrite(void *opaque, hwaddr addr, uint64_t value, unsigned si
     PCIHelloDevState *d = (PCIHelloDevState *) opaque;
     PCIDevice *pci_dev = (PCIDevice *) opaque;
 
-    printf("Write Ordered, addr=%x, value=%lu, size=%d\n", (unsigned) addr, value, size);
+    printf("PIO Write : addr=%x, value=%lu, size=%d\n", (unsigned) addr, value, size);
 
     switch (addr) {
         case 0:
@@ -62,59 +62,73 @@ static void hello_iowrite(void *opaque, hwaddr addr, uint64_t value, unsigned si
             break;
         default:
             printf("Io not used\n");
+			break;
     }
 }
 
 static uint64_t hello_ioread(void *opaque, hwaddr addr, unsigned size)
 {
+	int ret = 0;
+
     PCIHelloDevState *d = (PCIHelloDevState *) opaque;
-    printf("Read Ordered, addr =%x, size=%d\n", (unsigned) addr, size);
+    printf("PIO Read : addr =%x, size=%d\n", (unsigned) addr, size);
 
     switch (addr) {
         case 0:
             /* irq status */
-            return d->threw_irq;
+            ret = d->threw_irq;
             break;
         default:
             printf("Io not used\n");
-            return 0x0;
+            ret = 0x0;
+			break;
     }
+
+	return ret;
 }
 
 static uint64_t hello_mmioread(void *opaque, hwaddr addr, unsigned size)
 {
+	int ret = 0;
+
     PCIHelloDevState *d = (PCIHelloDevState *) opaque;
-    printf("MMIO Read Ordered, addr =%x, size=%d\n",(unsigned)  addr, size);
+
+    printf("MMIO Read: addr =%x, size=%d\n",(unsigned)  addr, size);
 
     switch (addr) {
         case 0:
             /* also irq status */
-            printf("irq_status\n");
-            return d->threw_irq;
+            printf("read irq_status\n");
+            ret = d->threw_irq;
             break;
         case 4:
             /* Id of the device */
-            printf("id\n");
-            return d->id;
+            printf("read id\n");
+            ret = d->id;
             break;
         default:
             printf("MMIO not used\n");
-            return 0x0;
+			break;
     }
+
+	return ret;
 }
 
 static void hello_mmiowrite(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
     PCIHelloDevState *d = (PCIHelloDevState *) opaque;
-    printf("MMIO write Ordered, addr=%x, value=%lu, size=%d\n",(unsigned)  addr, value, size);
+
+    printf("MMIO write: addr=%x, value=%lx, size=%d\n",(unsigned)  addr, value, size);
 
     switch (addr) {
         case 4:
             /* change the id */
+			printf("write id\n");
             d->id = value;
             break;
         default:
             printf("MMIO not writable or not used\n");
+			break;
     }
 }
 
@@ -154,14 +168,13 @@ static void hello_io_setup(PCIHelloDevState *d)
 }
 
 /* When device is loaded */
-static void pci_hellodev_init(PCIDevice *pci_dev, Error **errp)
+static void pci_hellodev_realize(PCIDevice *pci_dev, Error **errp)
 {
     uint8_t *pci_conf;
 
     /* init the internal state of the device */
     PCIHelloDevState *d = PCI_HELLO_DEV(pci_dev);
 
-    printf("d=%lu\n", (unsigned long) &d);
     d->dma_size = 0x1ffff * sizeof(char);
     d->dma_buf = malloc(d->dma_size);
     d->id = 0x1337;
@@ -183,8 +196,8 @@ static void pci_hellodev_init(PCIDevice *pci_dev, Error **errp)
     pci_conf = pci_dev->config;
 
     /*
-	 * also in ldd, a pci device has 4 pin for interrupt
-     * here we use pin B.
+	 * also in ldd, a pci device has 4 pin for interrupt here we use pin B.
+	 * lspci -vv
      */
     pci_conf[PCI_INTERRUPT_PIN] = 0x02;
 
@@ -219,7 +232,7 @@ static void pci_hellodev_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
-    k->realize = pci_hellodev_init;
+    k->realize = pci_hellodev_realize;
     k->exit = pci_hellodev_uninit;
     /* this identify our device */
     k->vendor_id = 0x1337;

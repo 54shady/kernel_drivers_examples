@@ -4,13 +4,11 @@
 #include <linux/interrupt.h>
 #include <asm/io.h>
 
-#define PCI_TIC_VENDOR 0x1337
-#define PCI_TIC_DEVICE 0x0001
-#define PCI_TIC_SUBVENDOR 0x1af4
-#define PCI_TIC_SUBDEVICE 0x1100
+#define HELLO_PCI_VENDOR 0x1337
+#define HELLO_PCI_DEVICE 0x0001
 
-#define MAX_TIC_MAPS 1
-#define MAX_TIC_PORT_REGIONS 1
+#define HELLO_PCI_MAX_MAPS 1
+#define HELLO_PCI_MAX_PORT_REGIONS 1
 static struct pci_driver hello_pci;
 struct hello_pci_mem {
     const char *name;
@@ -25,8 +23,8 @@ struct hello_pci_io {
 };
 
 struct hello_pci_info {
-    struct hello_pci_mem mem[MAX_TIC_MAPS];
-    struct hello_pci_io port[MAX_TIC_PORT_REGIONS];
+    struct hello_pci_mem mem[HELLO_PCI_MAX_MAPS];
+    struct hello_pci_io port[HELLO_PCI_MAX_PORT_REGIONS];
     u8 irq;
 };
 
@@ -91,16 +89,18 @@ static int hello_pci_probe(struct pci_dev *dev, const struct pci_device_id *id)
 	 * get a mmio reg value and change it
 	 * access mmio via ioread/iowrite
 	 */
-    pr_alert("device id=%x\n", ioread32(info->mem[0].start + 4));
+    pr_alert("mmio read device id=%x\n", ioread32(info->mem[0].start + 4));
+	pr_alert("mmio write device id\n");
     iowrite32(0x4567, info->mem[0].start + 4);
-    pr_alert("modified device id=%x\n", ioread32(info->mem[0].start + 4));
+    pr_alert("mmio read modified device id=%x\n", ioread32(info->mem[0].start + 4));
 
     /*
 	 * access pio via in/out
 	 *
 	 * assert an irq
 	 */
-    outb(1, info->port[0].start);
+	pr_alert("PIO write, assert an interrupt\n");
+    outl(1, info->port[0].start);
     /* try dma without iommu */
     outl(1, info->port[0].start + 4);
 
@@ -137,11 +137,12 @@ static void hello_pci_remove(struct pci_dev *dev)
     kfree(info);
 }
 
-/* vendor and device (+ subdevice and subvendor)
+/*
+ * vendor and device (+ subdevice and subvendor)
  * identifies a device we support
  */
 static struct pci_device_id hello_pci_ids[] = {
-    { PCI_DEVICE(PCI_TIC_VENDOR, PCI_TIC_DEVICE) },
+    { PCI_DEVICE(HELLO_PCI_VENDOR, HELLO_PCI_DEVICE) },
     { 0, },
 };
 
