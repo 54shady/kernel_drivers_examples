@@ -28,6 +28,7 @@ Compile qemu and run
 		-display none \
 		-serial mon:stdio \
 		-vnc 0.0.0.0:0 \
+		-device pci-hellodev \
 		-netdev user,id=ssh,hostfwd=tcp::2222-:22
 
 ### 编译对应的设备驱动
