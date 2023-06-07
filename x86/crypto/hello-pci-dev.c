@@ -58,7 +58,16 @@ static void hello_iowrite(void *opaque, hwaddr addr, uint64_t value, unsigned si
             /* throw a random DMA */
             for ( i = 0; i < d->dma_size; ++i)
                 d->dma_buf[i] = rand();
-            cpu_physical_memory_write(value, (void *) d->dma_buf, d->dma_size);
+
+			/*
+			 * code below will cause memory corruption
+			 *
+			 * add below kernel paramter in grub to avoid the memory corruption check
+			 * check Documentation/admin-guide/kernel-parameters.rst
+			 * or unconfig CONFIG_X86_BOOTPARAM_MEMORY_CORRUPTION_CHECK
+			 * memory_corruption_check=0
+			 */
+            //cpu_physical_memory_write(value, (void *) d->dma_buf, d->dma_size);
             break;
         default:
             printf("Io not used\n");
