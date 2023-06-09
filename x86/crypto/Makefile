@@ -7,6 +7,7 @@ endif
 
 obj-m := crypto-drv.o
 obj-m := hello-pci-drv.o
+obj-m := virtio_mini.o
 KERNELDIR ?= /usr/src/linux
 CC ?= gcc
 PWD := $(shell pwd)

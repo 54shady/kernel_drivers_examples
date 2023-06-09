@@ -1,0 +1,352 @@
+From 656e5d608b6e0926c3faf0e0fc17b1fee36eac70 Mon Sep 17 00:00:00 2001
+From: zeroway <M_O_Bz@163.com>
+Date: Fri, 9 Jun 2023 16:29:49 +0800
+Subject: [PATCH] Add virtio mini device
+
+---
+ hw/virtio/meson.build                        |   2 +
+ hw/virtio/virtio-mini-pci.c                  |  62 ++++++++
+ hw/virtio/virtio-mini.c                      | 142 +++++++++++++++++++
+ hw/virtio/virtio.c                           |   1 +
+ include/hw/pci/pci.h                         |   2 +
+ include/hw/virtio/virtio-mini.h              |  18 +++
+ include/standard-headers/linux/virtio_ids.h  |   5 +-
+ include/standard-headers/linux/virtio_mini.h |   7 +
+ softmmu/qdev-monitor.c                       |   3 +
+ 9 files changed, 241 insertions(+), 1 deletion(-)
+ create mode 100644 hw/virtio/virtio-mini-pci.c
+ create mode 100644 hw/virtio/virtio-mini.c
+ create mode 100644 include/hw/virtio/virtio-mini.h
+ create mode 100644 include/standard-headers/linux/virtio_mini.h
+
+diff --git a/hw/virtio/meson.build b/hw/virtio/meson.build
+index 7e8877fd64..29e0442cfb 100644
+--- a/hw/virtio/meson.build
++++ b/hw/virtio/meson.build
+@@ -1,6 +1,8 @@
+ softmmu_virtio_ss = ss.source_set()
+ softmmu_virtio_ss.add(files('virtio-bus.c'))
+ softmmu_virtio_ss.add(when: 'CONFIG_VIRTIO_PCI', if_true: files('virtio-pci.c'))
++softmmu_virtio_ss.add(when: 'CONFIG_VIRTIO_PCI', if_true: files('virtio-mini.c'))
++softmmu_virtio_ss.add(when: 'CONFIG_VIRTIO_PCI', if_true: files('virtio-mini-pci.c'))
+ softmmu_virtio_ss.add(when: 'CONFIG_VIRTIO_MMIO', if_true: files('virtio-mmio.c'))
+ 
+ virtio_ss = ss.source_set()
+diff --git a/hw/virtio/virtio-mini-pci.c b/hw/virtio/virtio-mini-pci.c
+new file mode 100644
+index 0000000000..6e82eb038f
+--- /dev/null
++++ b/hw/virtio/virtio-mini-pci.c
+@@ -0,0 +1,62 @@
++#include "qemu/osdep.h"
++#include "hw/hw.h"
++#include "hw/qdev-properties.h"
++#include "hw/virtio/virtio-pci.h"
++#include "hw/virtio/virtio-mini.h"
++#include "qom/object.h"
++
++typedef struct VirtIOMiniPCI VirtIOMiniPCI;
++
++#define TYPE_VIRTIO_MINI_PCI "virtio-mini-pci-base"
++#define VIRTIO_MINI_PCI(obj) \
++        OBJECT_CHECK(VirtIOMiniPCI, (obj), TYPE_VIRTIO_MINI_PCI)
++
++struct VirtIOMiniPCI {
++    VirtIOPCIProxy parent_obj;
++    VirtIOMini vdev;
++};
++
++static void virtio_mini_pci_realize(VirtIOPCIProxy *vpci_dev, Error **errp) {
++    VirtIOMiniPCI *vmini = VIRTIO_MINI_PCI(vpci_dev);
++    DeviceState *vdev = DEVICE(&vmini->vdev);
++    Error *err = NULL;
++
++    qdev_set_parent_bus(vdev, BUS(&vpci_dev->bus), &err);
++    object_property_set_bool(OBJECT(vdev), "realized", true, &err);
++}
++
++static void virtio_mini_pci_class_init(ObjectClass *klass, void *data) {
++    DeviceClass *dc = DEVICE_CLASS(klass);
++    VirtioPCIClass *k = VIRTIO_PCI_CLASS(klass);
++    PCIDeviceClass *pcidev_k = PCI_DEVICE_CLASS(klass);
++
++    k->realize = virtio_mini_pci_realize;
++    set_bit(DEVICE_CATEGORY_MISC, dc->categories);
++
++    pcidev_k->vendor_id = PCI_VENDOR_ID_REDHAT_QUMRANET;
++    pcidev_k->device_id = PCI_DEVICE_ID_VIRTIO_MINI;
++    pcidev_k->revision = VIRTIO_PCI_ABI_VERSION;
++    pcidev_k->class_id = PCI_CLASS_OTHERS;
++}
++
++static void virtio_mini_initfn(Object *obj) {
++    VirtIOMiniPCI *dev = VIRTIO_MINI_PCI(obj);
++    virtio_instance_init_common(obj, &dev->vdev, sizeof(dev->vdev),
++                                TYPE_VIRTIO_MINI);
++}
++
++static const VirtioPCIDeviceTypeInfo virtio_mini_pci_info = {
++    .base_name = TYPE_VIRTIO_MINI_PCI,
++    .generic_name = "virtio-mini-pci",
++    .transitional_name = "virtio-mini-pci-transitional",
++    .non_transitional_name = "virtio-mini-pci-non-transitional",
++    .instance_size = sizeof(VirtIOMiniPCI),
++    .instance_init = virtio_mini_initfn,
++    .class_init = virtio_mini_pci_class_init
++};
++
++static void virtio_mini_pci_register(void)
++{
++	virtio_pci_types_register(&virtio_mini_pci_info);
++}
++type_init(virtio_mini_pci_register);
+diff --git a/hw/virtio/virtio-mini.c b/hw/virtio/virtio-mini.c
+new file mode 100644
+index 0000000000..a98c7a264c
+--- /dev/null
++++ b/hw/virtio/virtio-mini.c
+@@ -0,0 +1,142 @@
++#include "qemu/osdep.h"
++#include "hw/hw.h"
++#include "hw/virtio/virtio.h"
++#include "hw/virtio/virtio-mini.h"
++#include "qemu/iov.h"
++#include "qemu/error-report.h"
++#include "standard-headers/linux/virtio_ids.h"
++#include "qemu/error-report.h"
++#include "sysemu/runstate.h"
++
++static uint64_t virtio_mini_get_features(VirtIODevice *vdev, uint64_t f, Error **errp)
++{
++    return f;
++}
++
++static void virtio_mini_set_status(VirtIODevice *vdev, uint8_t status)
++{
++    if (!vdev->vm_running) {
++        return;
++    }
++    vdev->status = status;
++}
++
++/* callback for receiving virtqueue (outbuf on guest) */
++static void virtio_mini_handle_outbuf(VirtIODevice *vdev, VirtQueue *vq)
++{
++    /* acllocation of VirtQueueElement happens in virtqueue_pop call */
++    VirtIOMini *vmini = VIRTIO_MINI(vdev);
++    VirtQueueElement *vqe;
++
++    while (!virtio_queue_ready(vq)) {
++        return;
++    }
++    if (!runstate_check(RUN_STATE_RUNNING)) {
++        return;
++    }
++
++    vqe = virtqueue_pop(vq, sizeof(VirtQueueElement));
++    iov_to_buf(vqe->out_sg, vqe->out_num, 0, vmini->rcv_bufs, vqe->out_sg->iov_len);
++    virtqueue_push(vq, vqe, 0);
++    virtio_notify(vdev, vq);
++    g_free(vqe);
++
++    return;
++}
++
++/* callback for transmitting virtqueue (inbuf on guest) */
++static void virtio_mini_handle_inbuf(VirtIODevice *vdev, VirtQueue *vq)
++{
++    VirtIOMini *vmini = VIRTIO_MINI(vdev);
++    VirtQueueElement *vqe;
++
++    while (!virtio_queue_ready(vq)) {
++        return;
++    }
++    if (!runstate_check(RUN_STATE_RUNNING)) {
++        return;
++    }
++    vqe = virtqueue_pop(vq, sizeof(VirtQueueElement));
++
++    iov_from_buf(vqe->in_sg, vqe->in_num, 0, vmini->rcv_bufs, vqe->in_sg->iov_len);
++    virtqueue_push(vq, vqe, vqe->in_sg->iov_len);
++    virtio_notify(vdev, vq);
++    g_free(vqe);
++
++    return;
++}
++
++static void virtio_mini_device_realize(DeviceState *dev, Error **errp)
++{
++    VirtIODevice *vdev = VIRTIO_DEVICE(dev);
++    VirtIOMini *vmin = VIRTIO_MINI(dev);
++    virtio_init(vdev, VIRTIO_ID_MINI, 0);
++
++    vmin->vq_rx = virtio_add_queue(vdev, 64, virtio_mini_handle_outbuf);
++    vmin->vq_tx = virtio_add_queue(vdev, 64, virtio_mini_handle_inbuf);
++}
++
++static void virtio_mini_device_unrealize(DeviceState *dev)
++{
++    VirtIODevice *vdev = VIRTIO_DEVICE(dev);
++    virtio_cleanup(vdev);
++}
++
++static const VMStateDescription vmstate_virtio_mini = {
++    .name = "virtio-mini",
++    .minimum_version_id = 1,
++    .version_id = 1,
++    .fields = (VMStateField[]) {
++        VMSTATE_VIRTIO_DEVICE,
++        VMSTATE_END_OF_LIST()
++    },
++};
++
++static int vmstate_virtio_mini_device_pre_save(void * opaque)
++{
++    return 0;
++}
++
++static int vmstate_virtio_mini_device_post_load(void * opaque, int version_id)
++{
++    return 0;
++}
++
++static const VMStateDescription vmstate_virtio_mini_device = {
++    .name = "virtio-mini-device",
++    .version_id = 1,
++    .minimum_version_id = 1,
++    .pre_save = vmstate_virtio_mini_device_pre_save,
++    .post_load = vmstate_virtio_mini_device_post_load,
++    .fields = (VMStateField[]) {
++        VMSTATE_BUFFER(rcv_bufs, VirtIOMini),
++        VMSTATE_END_OF_LIST()
++    },
++};
++
++static void virtio_mini_class_init(ObjectClass *klass, void *data)
++{
++    DeviceClass *dc = DEVICE_CLASS(klass);
++    dc->vmsd = &vmstate_virtio_mini;
++    VirtioDeviceClass *vdc = VIRTIO_DEVICE_CLASS(klass);
++
++    set_bit(DEVICE_CATEGORY_MISC, dc->categories);
++    vdc->realize = virtio_mini_device_realize;
++    vdc->unrealize = virtio_mini_device_unrealize;
++    vdc->get_features = virtio_mini_get_features;
++    vdc->set_status = virtio_mini_set_status;
++    vdc->vmsd = &vmstate_virtio_mini_device;
++}
++
++static const TypeInfo virtio_mini_info = {
++    .name = TYPE_VIRTIO_MINI,
++    .parent = TYPE_VIRTIO_DEVICE,
++    .instance_size = sizeof(VirtIOMini),
++    .class_init = virtio_mini_class_init,
++};
++
++static void virtio_register_types(void) {
++    type_register_static(&virtio_mini_info);
++}
++
++type_init(virtio_register_types);
+diff --git a/hw/virtio/virtio.c b/hw/virtio/virtio.c
+index 5d607aeaa0..cb959f050b 100644
+--- a/hw/virtio/virtio.c
++++ b/hw/virtio/virtio.c
+@@ -137,6 +137,7 @@ const char *virtio_device_names[] = {
+     [VIRTIO_ID_BLOCK] = "virtio-blk",
+     [VIRTIO_ID_CONSOLE] = "virtio-serial",
+     [VIRTIO_ID_RNG] = "virtio-rng",
++    [VIRTIO_ID_MINI] = "virtio-mini",
+     [VIRTIO_ID_BALLOON] = "virtio-balloon",
+     [VIRTIO_ID_IOMEM] = "virtio-iomem",
+     [VIRTIO_ID_RPMSG] = "virtio-rpmsg",
+diff --git a/include/hw/pci/pci.h b/include/hw/pci/pci.h
+index b54b6ef88f..db8c320885 100644
+--- a/include/hw/pci/pci.h
++++ b/include/hw/pci/pci.h
+@@ -84,6 +84,8 @@ extern bool pci_available;
+ #define PCI_DEVICE_ID_VIRTIO_RNG         0x1005
+ #define PCI_DEVICE_ID_VIRTIO_9P          0x1009
+ #define PCI_DEVICE_ID_VIRTIO_VSOCK       0x1012
++/* PCI device ID = VIRTIO_ID_MINI + 0x1040 */
++#define PCI_DEVICE_ID_VIRTIO_MINI        0x1055
+ #define PCI_DEVICE_ID_VIRTIO_PMEM        0x1013
+ #define PCI_DEVICE_ID_VIRTIO_IOMMU       0x1014
+ #define PCI_DEVICE_ID_VIRTIO_MEM         0x1015
+diff --git a/include/hw/virtio/virtio-mini.h b/include/hw/virtio/virtio-mini.h
+new file mode 100644
+index 0000000000..7f48ca342c
+--- /dev/null
++++ b/include/hw/virtio/virtio-mini.h
+@@ -0,0 +1,18 @@
++#ifndef QEMU_VIRTIO_MINI_H_
++#define QEMU_VIRTIO_MINI_H_
++
++#include "hw/virtio/virtio-pci.h"
++#include "standard-headers/linux/virtio_mini.h"
++
++#define TYPE_VIRTIO_MINI "virtio-mini-device"
++#define VIRTIO_MINI(obj) \
++        OBJECT_CHECK(VirtIOMini, (obj), TYPE_VIRTIO_MINI)
++
++typedef struct VirtIOMini {
++    VirtIODevice parent_obj;
++    VirtQueue *vq_tx;
++    VirtQueue *vq_rx;
++    uint8_t rcv_bufs[1024];
++} VirtIOMini;
++
++#endif
+diff --git a/include/standard-headers/linux/virtio_ids.h b/include/standard-headers/linux/virtio_ids.h
+index 80d76b75bc..6b2560deea 100644
+--- a/include/standard-headers/linux/virtio_ids.h
++++ b/include/standard-headers/linux/virtio_ids.h
+@@ -47,7 +47,9 @@
+ #define VIRTIO_ID_INPUT			18 /* virtio input */
+ #define VIRTIO_ID_VSOCK			19 /* virtio vsock transport */
+ #define VIRTIO_ID_CRYPTO		20 /* virtio crypto */
+-#define VIRTIO_ID_SIGNAL_DIST		21 /* virtio signal distribution device */
++/* PCI device ID need plus 0x1040 */
++#define VIRTIO_ID_MINI         21 /* virtio mini */
++#define VIRTIO_ID_SIGNAL_DIST		42 /* virtio signal distribution device */
+ #define VIRTIO_ID_PSTORE		22 /* virtio pstore device */
+ #define VIRTIO_ID_IOMMU			23 /* virtio IOMMU */
+ #define VIRTIO_ID_MEM			24 /* virtio mem */
+@@ -69,6 +71,7 @@
+ #define VIRTIO_ID_BT			40 /* virtio bluetooth */
+ #define VIRTIO_ID_GPIO			41 /* virtio gpio */
+ 
++
+ /*
+  * Virtio Transitional IDs
+  */
+diff --git a/include/standard-headers/linux/virtio_mini.h b/include/standard-headers/linux/virtio_mini.h
+new file mode 100644
+index 0000000000..daf0adf0de
+--- /dev/null
++++ b/include/standard-headers/linux/virtio_mini.h
+@@ -0,0 +1,7 @@
++#ifndef _LINUX_VIRTIO_MINI_H
++#define _LINUX_VIRTIO_MINI_H
++
++#include "standard-headers/linux/virtio_ids.h"
++#include "standard-headers/linux/virtio_config.h"
++
++#endif
+diff --git a/softmmu/qdev-monitor.c b/softmmu/qdev-monitor.c
+index 4b0ef65780..24d2d245b4 100644
+--- a/softmmu/qdev-monitor.c
++++ b/softmmu/qdev-monitor.c
+@@ -99,6 +99,9 @@ static const QDevAlias qdev_alias_table[] = {
+     { "virtio-net-device", "virtio-net", QEMU_ARCH_VIRTIO_MMIO },
+     { "virtio-net-ccw", "virtio-net", QEMU_ARCH_VIRTIO_CCW },
+     { "virtio-net-pci", "virtio-net", QEMU_ARCH_VIRTIO_PCI },
++	/* -device virtio-mini,disable-legacy=on */
++	{ "virtio-mini-device", "virtio-mini", QEMU_ARCH_VIRTIO_MMIO },
++	{ "virtio-mini-pci", "virtio-mini", QEMU_ARCH_VIRTIO_PCI },
+     { "virtio-rng-device", "virtio-rng", QEMU_ARCH_VIRTIO_MMIO },
+     { "virtio-rng-ccw", "virtio-rng", QEMU_ARCH_VIRTIO_CCW },
+     { "virtio-rng-pci", "virtio-rng", QEMU_ARCH_VIRTIO_PCI },
+-- 
+2.35.1
+

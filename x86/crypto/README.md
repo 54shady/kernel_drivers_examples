@@ -13,7 +13,20 @@ crypto-drv.c : driver for crypto
 
 qemu code(将crypto.c放入hw/misc/下进行编译)
 
-	git checkout 59e1b8a22e
+	git checkout 59e1b8a22e -b qdrv
+
+patch virtio-mini code
+
+	ln -s ${PWD}/0001-Add-virtio-mini-device.patch ${HOME}/src/crypto-qemu/
+	cd ${HOME}/src/crypto-qemu
+	git apply 0001-Add-virtio-mini-device.patch
+
+patch crypto and hello-pci
+
+	ln -s ${PWD}/hello-pci-dev.c ${HOME}/src/crypto-qemu/hw/misc
+	ln -s ${PWD}/crypto.c ${HOME}/src/crypto-qemu/hw/misc
+	echo "softmmu_ss.add(files('hello-pci-dev.c'))" >> ${HOME}/src/crypto-qemu/hw/misc/meson.build
+	echo "softmmu_ss.add(files('crypto.c'))" >> ${HOME}/src/crypto-qemu/hw/misc/meson.build
 
 Compile qemu and run
 
@@ -29,6 +42,7 @@ Compile qemu and run
 		-serial mon:stdio \
 		-vnc 0.0.0.0:0 \
 		-device pci-hellodev \
+		-device virtio-mini,disable-legacy=on \
 		-netdev user,id=ssh,hostfwd=tcp::2222-:22
 
 ### 编译对应的设备驱动
