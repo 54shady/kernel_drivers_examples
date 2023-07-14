@@ -1,19 +1,19 @@
-From 656e5d608b6e0926c3faf0e0fc17b1fee36eac70 Mon Sep 17 00:00:00 2001
+From 011c832118d82f4ef3d6f0166e20acc17a9bd58f Mon Sep 17 00:00:00 2001
 From: zeroway <M_O_Bz@163.com>
-Date: Fri, 9 Jun 2023 16:29:49 +0800
+Date: Fri, 14 Jul 2023 19:36:54 +0800
 Subject: [PATCH] Add virtio mini device
 
 ---
  hw/virtio/meson.build                        |   2 +
  hw/virtio/virtio-mini-pci.c                  |  62 ++++++++
- hw/virtio/virtio-mini.c                      | 142 +++++++++++++++++++
+ hw/virtio/virtio-mini.c                      | 154 +++++++++++++++++++
  hw/virtio/virtio.c                           |   1 +
  include/hw/pci/pci.h                         |   2 +
  include/hw/virtio/virtio-mini.h              |  18 +++
  include/standard-headers/linux/virtio_ids.h  |   5 +-
  include/standard-headers/linux/virtio_mini.h |   7 +
  softmmu/qdev-monitor.c                       |   3 +
- 9 files changed, 241 insertions(+), 1 deletion(-)
+ 9 files changed, 253 insertions(+), 1 deletion(-)
  create mode 100644 hw/virtio/virtio-mini-pci.c
  create mode 100644 hw/virtio/virtio-mini.c
  create mode 100644 include/hw/virtio/virtio-mini.h
@@ -102,10 +102,10 @@ index 0000000000..6e82eb038f
 +type_init(virtio_mini_pci_register);
 diff --git a/hw/virtio/virtio-mini.c b/hw/virtio/virtio-mini.c
 new file mode 100644
-index 0000000000..a98c7a264c
+index 0000000000..d12b096ff1
 --- /dev/null
 +++ b/hw/virtio/virtio-mini.c
-@@ -0,0 +1,142 @@
+@@ -0,0 +1,154 @@
 +#include "qemu/osdep.h"
 +#include "hw/hw.h"
 +#include "hw/virtio/virtio.h"
@@ -129,7 +129,12 @@ index 0000000000..a98c7a264c
 +    vdev->status = status;
 +}
 +
-+/* callback for receiving virtqueue (outbuf on guest) */
++/*
++ * callback for receiving virtqueue (outbuf on guest)
++ * Guest sendout will trigger this callback
++ *
++ * echo hello > /proc/virtio-mini-0
++ */
 +static void virtio_mini_handle_outbuf(VirtIODevice *vdev, VirtQueue *vq)
 +{
 +    /* acllocation of VirtQueueElement happens in virtqueue_pop call */
@@ -145,6 +150,7 @@ index 0000000000..a98c7a264c
 +
 +    vqe = virtqueue_pop(vq, sizeof(VirtQueueElement));
 +    iov_to_buf(vqe->out_sg, vqe->out_num, 0, vmini->rcv_bufs, vqe->out_sg->iov_len);
++	printf("GuestWrite: %s\n", vmini->rcv_bufs);
 +    virtqueue_push(vq, vqe, 0);
 +    virtio_notify(vdev, vq);
 +    g_free(vqe);
@@ -152,7 +158,12 @@ index 0000000000..a98c7a264c
 +    return;
 +}
 +
-+/* callback for transmitting virtqueue (inbuf on guest) */
++/*
++ * callback for transmitting virtqueue (inbuf on guest)
++ * Guest receive data will trigger this callback
++ *
++ * cat /proc/virtio-mini-0
++ */
 +static void virtio_mini_handle_inbuf(VirtIODevice *vdev, VirtQueue *vq)
 +{
 +    VirtIOMini *vmini = VIRTIO_MINI(vdev);
@@ -167,6 +178,7 @@ index 0000000000..a98c7a264c
 +    vqe = virtqueue_pop(vq, sizeof(VirtQueueElement));
 +
 +    iov_from_buf(vqe->in_sg, vqe->in_num, 0, vmini->rcv_bufs, vqe->in_sg->iov_len);
++	printf("GuestReceive: %s\n", vmini->rcv_bufs);
 +    virtqueue_push(vq, vqe, vqe->in_sg->iov_len);
 +    virtio_notify(vdev, vq);
 +    g_free(vqe);
