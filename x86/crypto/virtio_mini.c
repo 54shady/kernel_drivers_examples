@@ -20,6 +20,7 @@ static ssize_t virtio_mini_read(struct file *fil, char *buf, size_t count, loff_
 	char *rcv_buf;
     struct scatterlist sg;
 	unsigned long res;
+    struct virtqueue *vq = vmini->queues[VIRTIO_MINI_VQ_RX].vq;
 
     if (vmini->buffers < 1)
 	{
@@ -34,8 +35,8 @@ static ssize_t virtio_mini_read(struct file *fil, char *buf, size_t count, loff_
     }
 
     sg_init_one(&sg, rcv_buf, vmini->buf_lens[vmini->buffers - 1]);
-    virtqueue_add_inbuf(vmini->vq_rx, &sg, 1, rcv_buf, GFP_KERNEL);
-    virtqueue_kick(vmini->vq_rx);
+    virtqueue_add_inbuf(vq, &sg, 1, rcv_buf, GFP_KERNEL);
+    virtqueue_kick(vq);
 
     wait_for_completion(&vmini->data_ready);
     res = copy_to_user(buf, vmini->read_data, vmini->buf_lens[vmini->buffers]);
@@ -57,6 +58,7 @@ static ssize_t virtio_mini_write(struct file* fil, const char *buf, size_t count
 	void *to_send;
 	unsigned long res;
     struct scatterlist sg;
+    struct virtqueue *vq = vmini->queues[VIRTIO_MINI_VQ_TX].vq;
 
     if (vmini->buffers >= VIRTIO_MINI_BUFFERS)
 	{
@@ -79,14 +81,14 @@ static ssize_t virtio_mini_write(struct file* fil, const char *buf, size_t count
 
     sg_init_one(&sg, to_send, count);
     vmini->buf_lens[vmini->buffers++] = count;
-    virtqueue_add_outbuf(vmini->vq_tx, &sg, 1, to_send, GFP_KERNEL);
-    virtqueue_kick(vmini->vq_tx);
+    virtqueue_add_outbuf(vq, &sg, 1, to_send, GFP_KERNEL);
+	virtqueue_kick(vq);
 
     return count;
 }
 
 /* host has acknowledged the message; consume buffer */
-void virtio_mini_outbuf_cb(struct virtqueue *vq)
+void virtio_mini_tx_notify_cb(struct virtqueue *vq)
 {
     int len;
     void *buf = virtqueue_get_buf(vq, &len);
@@ -100,7 +102,7 @@ void virtio_mini_outbuf_cb(struct virtqueue *vq)
     return;
 }
 
-void virtio_mini_inbuf_cb(struct virtqueue *vq)
+void virtio_mini_rx_notify_cb(struct virtqueue *vq)
 {
     int len;
     struct virtio_mini_device *vmini = vq->vdev->priv;
@@ -112,22 +114,30 @@ void virtio_mini_inbuf_cb(struct virtqueue *vq)
     printk(KERN_INFO "Received %i bytes", len);
 }
 
-/* assign one virtqueue for transmitting and one for receiving data */
-int virtio_mini_assign_virtqueue(struct virtio_mini_device *vmini)
+int vmini_find_vqs(struct virtio_mini_device *vmini)
 {
-    const char *names[] = { "virtio-mini-tx", "virtio-mini-rx" };
-    vq_callback_t *callbacks[] = { virtio_mini_outbuf_cb, virtio_mini_inbuf_cb };
-    struct virtqueue *vqs[2];
+	int i;
 	int err;
+    struct virtqueue *vqs[VIRTIO_MINI_VQ_MAX];
 
-    err = virtio_find_vqs(vmini->vdev, 2, vqs, callbacks, names, NULL);
+    static const char *names[VIRTIO_MINI_VQ_MAX] = {
+		[VIRTIO_MINI_VQ_TX] = "virtio-mini-tx",
+		[VIRTIO_MINI_VQ_RX] = "virtio-mini-rx"
+	};
+
+    static vq_callback_t *callbacks[VIRTIO_MINI_VQ_MAX] = {
+		[VIRTIO_MINI_VQ_TX] = virtio_mini_tx_notify_cb,
+		[VIRTIO_MINI_VQ_RX] = virtio_mini_rx_notify_cb
+	};
+
+    err = virtio_find_vqs(vmini->vdev, VIRTIO_MINI_VQ_MAX, vqs, callbacks, names, NULL);
     if (err)
 	{
         return err;
     }
 
-    vmini->vq_tx = vqs[0];
-    vmini->vq_rx = vqs[1];
+	for (i = 0; i < VIRTIO_MINI_VQ_MAX; i++)
+		vmini->queues[i].vq = vqs[i];
 
     return 0;
 }
@@ -152,7 +162,7 @@ int probe_virtio_mini(struct virtio_device *vdev)
 	 */
     vdev->priv = vmini;
     vmini->vdev = vdev;
-    err = virtio_mini_assign_virtqueue(vmini);
+    err = vmini_find_vqs(vmini);
     if (err) {
         printk(KERN_INFO "Error adding virtqueue\n");
         goto err;

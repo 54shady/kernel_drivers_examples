@@ -45,8 +45,10 @@ Compile qemu and run
 		-device virtio-mini,disable-legacy=on \
 		-netdev user,id=ssh,hostfwd=tcp::2222-:22
 
-### 编译对应的设备驱动
+### 编译对应的设备驱动(guest using ubuntu 20.04 kernel 5.4)
 
+    cd ${HOME}/src/linux
+	git checkout v5.4 -b v5p4
 	docker run --rm -it --privileged \
 		-v ${PWD}:/code \
 		-v ${HOME}/src/linux:/usr/src/linux bpf2004 make
