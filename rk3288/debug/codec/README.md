@@ -598,6 +598,11 @@ TRRS plug has one tip (T), two rings (RR), and a sleeve (S) 四段耳机,四个�
 
 ![trrs1](./pngs/trrs1.jpg)
 
+#### [channel map](https://www.kernel.org/doc/html/latest/sound/designs/channel-mapping-api.html)
+
+- a stereo PCM stream has a channel map of { front_left, front_right }
+- a 4.0 surround PCM stream has a channel map of { front left, front right, rear left, rear right }
+
 ### 设置android使用InputEvent检测
 
 修改frameworks/base/core/res/res/values/config.xml
