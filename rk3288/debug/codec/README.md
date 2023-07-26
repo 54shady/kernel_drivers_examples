@@ -485,7 +485,6 @@ SOC_DAPM_SINGLE_TLV对应SOC_SINGLE_TLV等
 
 	tinymix <ctrl id> <value>
 
-
 ## 耳机检测
 
 [参考文章Android4.×耳机插拔检测](http://blog.csdn.net/fengying765/article/details/38301483)
@@ -494,11 +493,73 @@ SOC_DAPM_SINGLE_TLV对应SOC_SINGLE_TLV等
 
 ### 名词解释
 
+mono 单声道
+
+stereo 立体声
+
+surround 环绕立体声
+
+![spatial](./pngs/Spatial-Audio-Diagram.png)
+
+(audio) jack (音频)插槽,插孔,母头
+
+(audio) plug (音频)插头,子弹头,公头
+
+![adapter0](./pngs/audio_adapter0.jpg)
+It features two 3.5mm TRS jacks and one 3.5mm TRRS plug.
+
+![adapter1](./pngs/audio_adapter1.jpg)
+It features one TRRS jack and two separate TRS plugs for audio and microphone
+
 headphone 耳机
 
-micphone 麦克风
+microphone 麦克风
 
-headset (耳麦)带有麦克风的耳机 headphone + micphone
+headset (耳麦)带有麦克风的耳机 headphone + microphone
+
+关于[audio track和channel](https://tutorials.hybrik.com/audio_mapping)
+
+	A media file can have multiple tracks of audio,
+	and each track can have 1 or more channels.
+	For example, a file might have 2 tracks of audio – one for English and one for Spanish.
+	Both of these tracks could be stereo (2 channels),
+	or they might both be surround (6 channels), or one of them might be stereo and
+	the other surround. There are an enormous number of variations in how audio gets
+	mastered, archived, and distributed throughout the video world, and every
+	workflow can adopt a different standard. Another example might be two surround
+	sound mixes. One company may store that as 12 discrete tracks (1 channel each),
+	while another may store it as 2 tracks (6 channels each).
+
+[各种耳机接头TS,TRS,TRRS 参考1](https://www.headphonesty.com/2020/09/use-headphone-jack-microphone)
+
+[各种耳机接头TS,TRS,TRRS 参考2](https://audiouniversityonline.com/ts-vs-trs-vs-trrs-audio-connectors/)
+
+The ‘T’ stands for ‘tip,’ the ‘S’ for ‘sleeve,’ and the ‘R’ for ‘ring
+
+sleeve:地信号
+
+#### TS
+
+TS plug has one tip (T), one sleeve (S) 只有两个连接点的接头,处理单通道音频,比如接吉他等设备
+
+![ts](./pngs/ts.jpg)
+
+TRS plug consists of one tip (T), a ring (R), and a sleeve (S),三段耳机,有三个接触点
+	The tip transmits the left audio output, while the ring transmits the right audio output.
+
+#### TRS
+
+![trs](./pngs/trs.jpg)
+
+![trs1](./pngs/trs1.jpg)
+
+#### TRRS
+
+TRRS plug has one tip (T), two rings (RR), and a sleeve (S) 四段耳机,四个接触点
+
+![trrs](./pngs/trrs.jpg)
+
+![trrs1](./pngs/trrs1.jpg)
 
 ### 设置android使用InputEvent检测
 
