@@ -491,6 +491,43 @@ SOC_DAPM_SINGLE_TLV对应SOC_SINGLE_TLV等
 
 [参考文章Android 耳机插拔处理流程](http://blog.csdn.net/xxm282828/article/details/45542039)
 
+[参考文章Linux中耳机检测](https://www.baeldung.com/linux/detect-headphone-connection-disconnection)
+
+可以通过以下命令来查看插入前后状态(或使用pavucontrol)
+
+	amixer contents -c0
+
+将一个headset(使用trs plug)插入到microphone插槽前后状态,发现只有FrontMicJack接入
+
+	numid=188,iface=CARD,name='Front Mic Jack'
+	  ; type=BOOLEAN,access=r-------,values=1
+	  : values=off
+
+	numid=188,iface=CARD,name='Front Mic Jack'
+	  ; type=BOOLEAN,access=r-------,values=1
+	  : values=on
+
+将一个headset(使用trs plug)插入到headphone插槽前后状态,发现Headphone和RearMicJack等
+
+	numid=190,iface=CARD,name='Headphone Jack'
+	  ; type=BOOLEAN,access=r-------,values=1
+	  : values=off
+	numid=189,iface=CARD,name='Rear Mic Jack'
+	  ; type=BOOLEAN,access=r-------,values=1
+	  : values=off
+
+	numid=190,iface=CARD,name='Headphone Jack'
+	  ; type=BOOLEAN,access=r-------,values=1
+	  : values=on
+	numid=189,iface=CARD,name='Rear Mic Jack'
+	  ; type=BOOLEAN,access=r-------,values=1
+	  : values=on
+
+	还有一些其他状态也改变了
+	numid=173,iface=MIXER,name='Headphone Playback Switch'
+	  ; type=BOOLEAN,access=rw------,values=2
+	  : values=on,on
+
 ### 名词解释
 
 mono 单声道
