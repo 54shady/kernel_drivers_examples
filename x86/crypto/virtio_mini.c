@@ -66,12 +66,14 @@ static ssize_t virtio_mini_write(struct file* fil, const char *buf, size_t count
         return ENOSPC;
     }
 
+	/* 分配空间用于保存用户要发送的数据 */
     to_send = kmalloc(count, GFP_KERNEL);
     if (!to_send)
 	{
         return 1;
     }
 
+	/* 将用户的数据保存到to_send */
     res = copy_from_user(to_send, buf, count);
     if (res != 0) {
         printk(KERN_INFO "Could not write %lu bytes!", res);
@@ -79,6 +81,17 @@ static ssize_t virtio_mini_write(struct file* fil, const char *buf, size_t count
         count = count - res;
     }
 
+	/*
+	 * virtqueue中数据是存VirtQueueElement中的in_sg或out_sg散列中的
+	 * 驱动中用对应的api来打包,这里virtqueue_add_outbuf
+	 * 所以填充的out_sg
+	 *
+	 * 在设备中通过virtqueue_pop来获取到对应的VirtQueueElement后取出散列中的数据
+	 * 1. 取出element
+	 * vqe = virtqueue_pop(vq, sizeof(VirtQueueElement));
+	 * 2. 取出element里的数据
+	 * iov_to_buf(vqe->out_sg, vqe->out_num, 0, rcv_bufs, vqe->out_sg->iov_len);
+	 */
     sg_init_one(&sg, to_send, count);
     vmini->buf_lens[vmini->buffers++] = count;
     virtqueue_add_outbuf(vq, &sg, 1, to_send, GFP_KERNEL);
