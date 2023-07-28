@@ -528,19 +528,97 @@ SOC_DAPM_SINGLE_TLV对应SOC_SINGLE_TLV等
 	  ; type=BOOLEAN,access=rw------,values=2
 	  : values=on,on
 
-### 名词解释
+### 设置android使用InputEvent检测
 
-mono 单声道
+修改frameworks/base/core/res/res/values/config.xml
 
-stereo 立体声
+	修改为true
+	<bool name="config_useDevInputEventForAudioJack">true</bool>
 
-surround 环绕立体声
+### 驱动中添加相关代码如下
+
+	snd_soc_jack_new(codec, "Headset Jack", SND_JACK_HEADSET, &chip->jack);
+
+	snd_soc_jack_report(&chip->jack, SND_JACK_HEADPHONE, SND_JACK_HEADSET);
+
+### 调试
+
+	adb shell getevent 能够获得插拔耳机的事件
+
+## Attached
+
+### spin lock
+
+[参考文章](http://blog.csdn.net/droidphone/article/details/7395983)
+
+- 如果只是在普通线程之间同时访问共享对象
+
+	使用spin_lock()/spin_unlock()
+
+- 如果是在中断和普通线程之间同时访问共享对象,并且确信退出临界区后要打开中断
+
+	使用spin_lock_irq()/spin_unlock_irq()
+
+- 如果是在中断和普通线程之间同时访问共享对象,并且退出临界区后要保持中断的状态
+
+	使用spin_lock_irqsave()/spin_unlock_irqrestore()
+
+### PCM是什么
+
+[参考文章](http://blog.csdn.net/droidphone/article/details/6308006)
+
+PCM是英文Pulse-code modulation的缩写,中文译名是脉冲编码调制
+
+PCM就是要把声音从模拟转换成数字信号的一种技术
+
+playback:如何把用户空间的应用程序发过来的PCM数据,转化为人耳可以辨别的模拟音频
+
+capture:把mic拾取到得模拟信号,经过采样,量化,转换为PCM信号送回给用户空间的应用程序
+
+## Terminology
+
+### line-in and mic-in(参考qemu hda-codec.c里)
+
+[参考文章line-in-vs-mic-in](https://producerhive.com/ask-the-hive/line-in-vs-mic-in)
+
+	Line-in and mic-in are audio inputs but they are indicative of the voltage level
+	of the audio signal. Line-in can handle strong (think loud) currents whereas a
+	mic-in can handle very low level of currents.
+
+	mic-in is for microphones – you connect a wired or wireless mic to a mic-in.
+	A line level (linein)input is not designed for microphones.
+
+[qemu中hda-codec中duplex/micro解释](https://lists.nongnu.org/archive/html/qemu-devel/2012-04/msg03838.html)
+
+	It's identical to the hda-duplex codec, except that it advertises the
+	input as microphone instead of line-in and the output as speaker instead
+	of line-out.  Some guest apps (microsoft netmeeting being one) are picky
+	when it comes to selecting the recording source and don't accept
+	line-in, so give them what they expect.
+
+参考codec ACL66硬件设计
+
+![line-mic-in0](./pngs/line-mic0.png)
+
+![line-mic-in1](./pngs/line-mic1.png)
+
+THE FOUR TYPE OF AUDIO SIGNALS(四种音频信号)
+
+- Microphone (Mic) level signals(mic-in), low voltage then Line Level
+- Instrument level signals (aux-in)
+- Line level signals(line-in), high voltage then mic-level
+- Speaker level signals or post-amp signals(speak-in)
+
+### 其它名词解释
+
+- mono 单声道
+- stereo 立体声
+- surround 环绕立体声
 
 ![spatial](./pngs/Spatial-Audio-Diagram.png)
 
-(audio) jack (音频)插槽,插孔,母头
-
-(audio) plug (音频)插头,子弹头,公头
+- (audio) jack (音频)插槽,插孔,母头
+- (audio) plug (音频)插头,子弹头,公头
 
 ![adapter0](./pngs/audio_adapter0.jpg)
 It features two 3.5mm TRS jacks and one 3.5mm TRRS plug.
@@ -548,11 +626,9 @@ It features two 3.5mm TRS jacks and one 3.5mm TRRS plug.
 ![adapter1](./pngs/audio_adapter1.jpg)
 It features one TRRS jack and two separate TRS plugs for audio and microphone
 
-headphone 耳机
-
-microphone 麦克风
-
-headset (耳麦)带有麦克风的耳机 headphone + microphone
+- headphone 耳机
+- microphone 麦克风
+- headset (耳麦)带有麦克风的耳机 headphone + microphone
 
 关于[audio track和channel](https://tutorials.hybrik.com/audio_mapping)
 
@@ -602,50 +678,3 @@ TRRS plug has one tip (T), two rings (RR), and a sleeve (S) 四段耳机,四个�
 
 - a stereo PCM stream has a channel map of { front_left, front_right }
 - a 4.0 surround PCM stream has a channel map of { front left, front right, rear left, rear right }
-
-### 设置android使用InputEvent检测
-
-修改frameworks/base/core/res/res/values/config.xml
-
-	修改为true
-	<bool name="config_useDevInputEventForAudioJack">true</bool>
-
-### 驱动中添加相关代码如下
-
-	snd_soc_jack_new(codec, "Headset Jack", SND_JACK_HEADSET, &chip->jack);
-
-	snd_soc_jack_report(&chip->jack, SND_JACK_HEADPHONE, SND_JACK_HEADSET);
-
-### 调试
-
-	adb shell getevent 能够获得插拔耳机的事件
-
-## Attached
-
-### spin lock
-
-[参考文章](http://blog.csdn.net/droidphone/article/details/7395983)
-
-- 如果只是在普通线程之间同时访问共享对象
-
-	使用spin_lock()/spin_unlock()
-
-- 如果是在中断和普通线程之间同时访问共享对象,并且确信退出临界区后要打开中断
-
-	使用spin_lock_irq()/spin_unlock_irq()
-
-- 如果是在中断和普通线程之间同时访问共享对象,并且退出临界区后要保持中断的状态
-
-	使用spin_lock_irqsave()/spin_unlock_irqrestore()
-
-### PCM是什么
-
-[参考文章](http://blog.csdn.net/droidphone/article/details/6308006)
-
-PCM是英文Pulse-code modulation的缩写,中文译名是脉冲编码调制
-
-PCM就是要把声音从模拟转换成数字信号的一种技术
-
-playback:如何把用户空间的应用程序发过来的PCM数据,转化为人耳可以辨别的模拟音频
-
-capture:把mic拾取到得模拟信号,经过采样,量化,转换为PCM信号送回给用户空间的应用程序
