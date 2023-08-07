@@ -6,41 +6,29 @@
 
 crypto.c : virtual device in qemu
 crypto-drv.c : driver for crypto
+Run qemu in ubuntu 22.04 host
 
 ## 代码准备
 
 ### 将设备添加到qemu中
 
-qemu code(将crypto.c放入hw/misc/下进行编译)
+Compile and run qemu
 
-	git checkout 59e1b8a22e -b qdrv
+	git clone -b huc git@gitee.com:zeroway/qemu.git
+	git submodule init
+	git submodule sync
+	git submodule update
 
-patch virtio-mini code
+	drun -v /data/qemu:/code qemudev
 
-	ln -s ${PWD}/0001-Add-virtio-mini-device.patch ${HOME}/src/crypto-qemu/
-	cd ${HOME}/src/crypto-qemu
-	git apply 0001-Add-virtio-mini-device.patch
-
-patch crypto and hello-pci
-
-	ln -s ${PWD}/hello-pci-dev.c ${HOME}/src/crypto-qemu/hw/misc
-	ln -s ${PWD}/crypto.c ${HOME}/src/crypto-qemu/hw/misc
-	echo "softmmu_ss.add(files('hello-pci-dev.c'))" >> ${HOME}/src/crypto-qemu/hw/misc/meson.build
-	echo "softmmu_ss.add(files('crypto.c'))" >> ${HOME}/src/crypto-qemu/hw/misc/meson.build
-
-Compile qemu and run
-
-	./configure --target-list=x86_64-softmmu \
-		--extra-ldflags="`pkg-config --libs openssl`"
-
-	${HOME}/src/crypto-qemu/build/x86_64-softmmu/qemu-system-x86_64 \
-		-drive file=/data/huc.qcow2 \
+	/usr/local/bin/qemu-system-x86_64 \
+		-drive file=/root/huc.qcow2 \
 		-smp 2 -m 1024 -enable-kvm \
-		-device pci-crypto,aes_cbc_256="abc" \
 		-device e1000,netdev=ssh \
 		-display none \
 		-serial mon:stdio \
 		-vnc 0.0.0.0:0 \
+		-device pci-crypto,aes_cbc_256="abc" \
 		-device pci-hellodev \
 		-device virtio-mini,disable-legacy=on \
 		-netdev user,id=ssh,hostfwd=tcp::2222-:22
