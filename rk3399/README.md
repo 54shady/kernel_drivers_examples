@@ -492,7 +492,7 @@ ramdisk镜像制作
 ~~解压qemu-user-static-2.0.0~rc1+dfsg.tgz得到qemu-aarch64-static~~
 
 	sudo cp qemu-aarch64-static /usr/bin/qemu-aarch64
-	sudo cp /usr/bin/qemu-aarch64 temp/usb/bin/qemu-aarch64
+	sudo cp /usr/bin/qemu-aarch64 temp/usr/bin/qemu-aarch64
 
 ~~安装app-emulation/qemu-user为了获得脚本(用的是overlay安装)~~
 
@@ -514,17 +514,21 @@ ramdisk镜像制作
 
 挂载必要目录
 
-	mount -t proc proc temp/proc
-	mount --rbind /sys temp/sys
-	mount --make-rslave temp/sys
-	mount --rbind /dev temp/dev
-	mount --make-rslave temp/dev
+	sudo mount -t proc proc temp/proc
+	sudo mount --rbind /sys temp/sys
+	sudo mount --make-rslave temp/sys
+	sudo mount --rbind /dev temp/dev
+	sudo mount --make-rslave temp/dev
 
 	chroot temp
 
 ### Ubuntu根文件系统制作(在PC主机上操作)
 
-#### 准备ubuntu base
+#### 准备ubuntu base(http://cdimage.ubuntu.com/ubuntu-base/releases/16.04.1/release/)
+
+使用16.04或者22.04都可以使用qemu-user-static
+
+    wget http://cdimage.ubuntu.com/ubuntu-base/releases/22.04.4/release/ubuntu-base-22.04-base-arm64.tar.gz
 
 解压ubuntu core到本地目录temp
 
@@ -535,11 +539,13 @@ ramdisk镜像制作
 
 拷贝DNS信息
 
-	cp -L /etc/resolv.conf temp/etc/resolv.conf
+	sudo cp -L /etc/resolv.conf temp/etc/resolv.conf
 
-Qemu static user
+~~Qemu static user~~ using qemu-user-static
 
 	sudo cp /usr/bin/qemu-aarch64 temp/usr/bin/
+
+ubuntu 18.04使用qemu-user-static会报错误
 
 到这里就可以执行chroot了
 
@@ -547,7 +553,7 @@ Qemu static user
 
 设置主机名(不设置sudo会有问题)
 
-	echo"rk3399" > /etc/hostname
+	echo "rk3399" > /etc/hostname
 
 设置主机入口IP(hosts中要包含hostname)
 
@@ -563,11 +569,20 @@ Qemu static user
 更新及安装必要软件
 
 	apt update
-	apt-get install console-setup iputils-ping sudo vim net-tools
-	ssh software-properties-common
+	apt-get install -y console-setup iputils-ping sudo vim net-tools ssh software-properties-common
+    apt install -y wpasupplicant
 
 其中console-setup encoding选的是utf-8(该软件不安装串口无法输入)
-这里并不需要/etc/init/目录下有类似ttyFIQ0.conf的文件
+
+修改支持开发板默认串口
+
+	cp /lib/systemd/system/serial-getty\@.service /lib/systemd/system/serial-getty@ttyFIQ0.service
+
+把里面的"%i.device"改为"%i"
+
+设置开机启动服务
+
+	systemctl enable serial-getty@ttyFIQ0.service
 
 添加用户
 
@@ -768,9 +783,25 @@ Qemu static user
 	e2fsck -p -f linuxroot.img
 	resize2fs  -M linuxroot.img
 
+## 进入rockusb下载模式并烧写镜像
+
+- 开机时按下recovery或volume+按键
+- 从命令行中进入rockusb模式
+
+    reboot loader
+
+- 在uboot下进入到rockusb模式
+
+    rockusb 0 mmc 0
+
 烧写制作好的文件系统镜像
 
 	rkflashtool w linuxroot < linuxroot.img
+
+或使用upgrade_tool烧写
+
+    sudo ~/tools/upgrade_tool di -rootfs ~/ubt/linuxroot.img
+    sudo ~/tools/upgrade_tool rd
 
 开机进入系统在系统正确加载后执行扩展文件系统命令(这里的mmcblk1p5对应的linuxroot分区)
 
