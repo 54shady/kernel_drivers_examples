@@ -770,6 +770,31 @@ Qemu static user
 
 	dhcpcd wlan0
 
+### 使用第三方文件系统(rk3588 example)
+
+download image from site below
+
+    https://joshua-riek.github.io/ubuntu-rockchip-download/boards/turing-rk1.html
+
+check the image(include boot, and rootfs partition)
+
+    fdisk -l ubuntu-22.04.3-preinstalled-desktop-arm64-turing-rk1.img
+
+    Disk ubuntu-22.04.3-preinstalled-desktop-arm64-turing-rk1.img: 6.83 GiB, 7338983424 bytes, 14333952 sectors
+    Units: sectors of 1 * 512 = 512 bytes
+    Sector size (logical/physical): 512 bytes / 512 bytes
+    I/O size (minimum/optimal): 512 bytes / 512 bytes
+    Disklabel type: gpt
+    Disk identifier: 48ACBAAF-55B8-4320-A4BC-A69BA09A947A
+
+    Device                                                                              Start      End  Sectors  Size Type
+    ubuntu-22.04.3-preinstalled-desktop-arm64-turing-rk1.img1   32768  1081343  1048576  512M Linux extended boot
+    ubuntu-22.04.3-preinstalled-desktop-arm64-turing-rk1.img2 1081344 14331903 13250560  6.3G Linux filesystem
+
+only mount the rootfs partition in image(assume the block size is 512) to directory
+
+    sudo mount -o offset=$((512*1081344)) ubuntu-22.04.3-preinstalled-desktop-arm64-turing-rk1.img temp/
+
 ## 将根文件系统制作成镜像
 
 这里制作一个8G的ext4格式的镜像文件
