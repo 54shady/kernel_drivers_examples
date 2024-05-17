@@ -26,7 +26,7 @@ modules:
 	$(MAKE) LLVM=1 LLVM_IAS=1 ARCH=arm64 -C $(KERNELDIR) M=$(PWD) modules
 
 clean:
-	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions modules.order Module.symvers
+	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions modules.order Module.symvers *.mod
 
 depend .depend dep:
 	$(CC) $(CFLAGS) -M *.c > .depend
