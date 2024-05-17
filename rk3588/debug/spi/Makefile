@@ -16,6 +16,8 @@ DEBFLAGS = -O2
 endif
 
 obj-m := schedule_work_on_cpu.o
+obj-m += delay_work_demo.o
+obj-m += work_demo.o
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 CROSS_COMPILE ?= gcc
 PWD := $(shell pwd)
