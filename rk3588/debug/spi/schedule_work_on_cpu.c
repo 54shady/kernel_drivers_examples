@@ -46,7 +46,7 @@ static void work_function(struct work_struct *work)
 
 	/* time consuming work */
 	waste_time(1);
-	//msleep(1000);
+	/* msleep(1000); */
 
 #ifdef KTIME_DEMO
     end_time = ktime_get();
@@ -66,6 +66,7 @@ static int workq_test_init(void)
 
 	sds.my_workqueue = alloc_workqueue("myworkq_name",
 		WQ_HIGHPRI | WQ_MEM_RECLAIM | WQ_SYSFS, 0);
+	/* sds.my_workqueue = create_singlethread_workqueue("myworkq_name"); */
 	if (!sds.my_workqueue) {
 		printk("create single thread workqueue error\n");
 	}
@@ -78,7 +79,9 @@ static int workq_test_init(void)
 static void workq_test_exit(void)
 {
 	printk("%s, %d\n", __FUNCTION__, __LINE__);
-	flush_workqueue(sds.my_workqueue);
+
+	/* must cancel work before destroy, or will cause crash */
+	cancel_work_sync(&sds.mywork);
 	destroy_workqueue(sds.my_workqueue);
 }
 
