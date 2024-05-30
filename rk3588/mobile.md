@@ -1,5 +1,7 @@
 # RM520N-GL
 
+## 基本信息
+
 该模块是一个包含了多个usb接口的usb复合设备,如下
 
 - usb串口驱动(option和ACM)
@@ -40,7 +42,9 @@
 	E:  Ad=8e(I) Atr=02(Bulk) MxPS= 512 Ivl=0ms
 	E:  Ad=0f(O) Atr=02(Bulk) MxPS= 512 Ivl=0ms
 
-## USB 网口驱动(GobiNet)
+## USB 网口驱动
+
+### GobiNet
 
 GobiNet驱动
 
@@ -62,9 +66,7 @@ QMI节点设备(用于QMI消息交互)
 		uevent
 		unbind
 
-## USB 网口驱动(QMI_WWAN) RM520-GL默认使用这个
-
-QMI_WWAN驱动
+### QMI_WWAN(RM520-GL默认使用这个)
 
 网络设备(用于数据传输)
 
@@ -118,9 +120,7 @@ usb转串口的设备节点和驱动
 	ttyUSB2	AT
 	ttyUSB3	Modem
 
-## 测试
-
-测试AT功能
+## 测试AT功能
 
 一个窗口查看输出
 
@@ -135,10 +135,66 @@ usb转串口的设备节点和驱动
 
 	echo -e "at+cgmi\r\n" > /dev/ttyUSB2
 
+	echo -e "at+gmi\r\n" > /dev/ttyUSB2
+
 查看模块型号
 
 	echo -e "at+cgmm\r\n" > /dev/ttyUSB2
 
+	echo -e "at+gmm\r\n" > /dev/ttyUSB2
+
+Display MT Identification Information
+
+	echo -e "ati\r\n" > /dev/ttyUSB2
+
+查询和设置使用的卡槽(双卡单待)
+
+	echo -e "at+quimslot?\r\n" > /dev/ttyUSB2
+	echo -e "at+quimslot=1\r\n" > /dev/ttyUSB2
+	echo -e "at+quimslot=2\r\n" > /dev/ttyUSB2
+
 重启模块
 
 	echo -e "at+cfun=1,1\r\n" > /dev/ttyUSB2
+
+## 网卡拨号方式和网卡驱动模式
+
+usb网卡和以太网卡拨号方式和驱动类型
+
+					usb                 Ethernet
+					 |                      |
+		  +------+-------+-------+          |
+		  |      |       |       |          |
+		  V      V       V       V          |
+		RNDIS	NCM		ECM		MBIM        |
+		  |      |       |       |          |
+		  V      V       V       V          V
+		  +------+-------+-------+----------+
+			  |      |        |
+			  V      V        V
+			  网     路       网
+			  卡     由       桥
+			  模     模       模
+			  式     式       式
+
+查询当前拨号方式和驱动类型
+
+	echo -e 'at+qcfg="usbnet"\r\n' > /dev/ttyUSB2
+
+设置网口拨号方式及驱动类型为
+
+ECM:
+
+	echo -e 'at+qcfg="usbnet",1\r\n' > /dev/ttyUSB2
+
+MBIM:
+
+	echo -e 'at+qcfg="usbnet",2\r\n' > /dev/ttyUSB2
+
+RNDIS:
+
+	echo -e 'at+qcfg="usbnet",3\r\n' > /dev/ttyUSB2
+
+NCM:(实际配置会ERROR)
+
+	echo -e 'at+qcfg="usbnet",5\r\n' > /dev/ttyUSB2
