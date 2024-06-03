@@ -39,8 +39,8 @@ mount -o rmode=0770,fmode=0660,uid=1024,gid=1024 -t functionfs mydemo /dev/usb-f
 
 # plug usb cable (option)
 
-# connect usb
-#echo fc000000.usb > /config/usb_gadget/g1/UDC
+# connect usb (fc000000.usb is udc)
+#echo `ls /sys/class/udc/` > /config/usb_gadget/g1/UDC
 #echo device > /sys/kernel/debug/usb/fc000000.usb/mode
 
 # 串口中会看到如下日志

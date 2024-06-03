@@ -54,7 +54,9 @@
 
 	./aio_multibuff /dev/usb-ffs/mydemo
 
-	echo fc000000.usb > /config/usb_gadget/g1/UDC
+	# on rk3588 the device fc000000.usb is udc
+	# echo fc000000.usb > /config/usb_gadget/g1/UDC
+	echo `ls /sys/class/udc/` > /config/usb_gadget/g1/UDC
 	echo device > /sys/kernel/debug/usb/fc000000.usb/mode
 
 其中fc000000对应的是dwc3(arch/arm64/boot/dts/rockchip/rk3588s.dtsi)
@@ -90,6 +92,8 @@
 
 ## ADB
 
+[linux usb adb](https://www.cnblogs.com/pwl999/p/15675582.html)
+
 从设备端分析adb功能
 
 系统默认的配置
@@ -110,3 +114,8 @@
 在主机上枚举的设备(lsusb -v -d 2207:0018)
 
 	Bus 003 Device 091: ID 2207:0018 Fuzhou Rockchip Electronics Company TB-RK3588C0-A
+
+adb还依赖devpts和network
+
+	#mount -t devpts none /dev/pts
+	devpts on /dev/pts type devpts (rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=000)
