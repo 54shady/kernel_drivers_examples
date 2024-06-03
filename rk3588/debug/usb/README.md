@@ -1,13 +1,15 @@
-# USB FFS test demo
+# USB FunctionFS
 
-## 编译Host App
+## USB FFS test demo
+
+### 编译Host App
 
 编译host app在主机上运行
 
 	cd ffs-aio-example/host_app/
 	make
 
-## 编译Device App
+### 编译Device App
 
 使用edge SDK自带的交叉编译工具链
 
@@ -42,7 +44,7 @@
 	cd ffs-aio-example/device_app/
 	make
 
-## 测试
+### 测试
 
 进入到设备端运行usb.sh进行配置
 
@@ -50,7 +52,7 @@
 
 在设备端运行device app
 
-	./aio_multibuff /dev/usb-ffs/test
+	./aio_multibuff /dev/usb-ffs/mydemo
 
 	echo fc000000.usb > /config/usb_gadget/g1/UDC
 	echo device > /sys/kernel/debug/usb/fc000000.usb/mode
@@ -85,3 +87,26 @@
 在主机上运行host app
 
 	sudo ffs-aio-example/host_app/multibuff_test
+
+## ADB
+
+从设备端分析adb功能
+
+系统默认的配置
+
+	/sys/kernel/config/usb_gadget/rockchip
+
+在设备端挂在的对应的目录是(根据toybrick_adbd的pid查看打开的文件)
+
+	# mount -o uid=2000,gid=2000 -t functionfs adb /dev/usb-ffs/adb
+	adb on /dev/usb-ffs/adb type functionfs (rw,relatime)
+	ls -l /dev/usb-ffs/adb/
+
+因为/sys/kernel/config/usb_gadget/rockchip/functions/ffs.xxoo和/dev/usb-ffs/xxoo 对应
+
+	/sys/kernel/config/usb_gadget/rockchip/functions/ffs.adb (对应/dev/usb-ffs/adb)
+	#ls -l /sys/kernel/config/usb_gadget/rockchip/configs/b.1/ffs.adb
+
+在主机上枚举的设备(lsusb -v -d 2207:0018)
+
+	Bus 003 Device 091: ID 2207:0018 Fuzhou Rockchip Electronics Company TB-RK3588C0-A
