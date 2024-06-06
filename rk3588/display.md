@@ -8,6 +8,9 @@
 	cat /sys/class/drm/card0-HDMI-A-1/status
 	disconnected
 
+	cat /sys/class/drm/card0-HDMI-A-1/enabled
+	disabled
+
 	cat /sys/kernel/debug/dri/0/summary
 	Video Port0: DISABLED
 	Video Port1: DISABLED
@@ -29,6 +32,49 @@
 			dst: pos[0, 0] rect[1080 x 1920]
 			buf[0]: addr: 0x0000000000000000 pitch: 4320 offset: 0
 	Video Port3: DISABLED
+
+
+安装相应的软件查看connector信息(需要停止xorg或wayland)
+
+	apt install -y libdrm-tests
+
+	pkill Xwayland
+	modetest -M rockchip -c
+
+	Connectors:
+	id      encoder status          name            size (mm)       modes   encoders
+	185     0       disconnected    HDMI-A-1        0x0             0       184
+	...
+
+可以看到和当前connector(185)关联的encoder是184
+
+查看当前的encoder
+
+	modetest -M rockchip -e
+
+	Encoders:
+	id      crtc    type    possible crtcs  possible clones
+	182     0       Virtual 0x0000000f      0x00000001
+	184     0       TMDS    0x00000001      0x00000002
+	194     102     DSI     0x00000004      0x00000004
+
+可以看到有3个encoder
+
+	182(Virtual) 和 184(TMDS) 连接的crtc是 0
+	194(DSI) 连接的 crtc 是 194
+
+查看plane情况
+
+	modetest -M rockchip -p | grep id -A2
+
+	id      fb      pos     size
+	68      0       (0,0)   (1920x1080)
+	--
+	id      crtc    fb      CRTC x,y        x,y     gamma size      possible crtcs
+	54      0       0       0,0             0,0     0               0x0000000f
+
+- crtc的id是 54
+- fb的id是 68
 
 接上hdmi后(vp0, hdmi)
 
@@ -59,6 +105,32 @@
 	Video Port1: DISABLED
 	Video Port2: DISABLED
 	Video Port3: DISABLED
+
+设置分辨率(显示屏上显示彩条纹)
+
+	modetest -M rockchip -s 185@68:1920x1080-60
+
+- 185是上面查询到的hdmi connector的id
+- 68是上面查询到的fb的id
+
+再查看connector的情况(和未接显示器比已经看到连接了encoder 184)
+	modetest -M rockchip -c
+
+	Connectors:
+	id      encoder status          name            size (mm)       modes   encoders
+	185     184     connected       HDMI-A-1        530x300         29      184
+
+查看当前的encoder
+
+	modetest -M rockchip -e
+
+	Encoders:
+	id      crtc    type    possible crtcs  possible clones
+	182     0       Virtual 0x0000000f      0x00000001
+	184     68      TMDS    0x00000001      0x00000002
+	194     102     DSI     0x00000004      0x00000004
+
+和上面对比,这里184已经和68连接上了
 
 ## DRM Card
 
