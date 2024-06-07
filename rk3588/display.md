@@ -1,5 +1,10 @@
 # Display info
 
+系统启动日志有如下两条,分别对应card0和card1
+
+	[drm] Initialized rockchip 3.0.0 20140818 for display-subsystem on minor 0
+	[drm] Initialized rknpu 0.7.2 20220428 for fdab0000.npu on minor 1
+
 接上hdmi前(vp2, connector mipi dis)
 
 	cat /sys/class/drm/card0-DSI-1/status
@@ -63,18 +68,20 @@
 	182(Virtual) 和 184(TMDS) 连接的crtc是 0
 	194(DSI) 连接的 crtc 是 194
 
-查看plane情况
+查看plane情况(可以看到有4个crtc分别对应vp0~vp3)
 
 	modetest -M rockchip -p | grep id -A2
 
+	CRTCs:
 	id      fb      pos     size
 	68      0       (0,0)   (1920x1080)
+	85      0       (0,0)   (0x0)
+	102     199     (0,0)   (1080x1920)
+	119     0       (0,0)   (0x0)
 	--
+	Planes: //比较多,不全部列出
 	id      crtc    fb      CRTC x,y        x,y     gamma size      possible crtcs
 	54      0       0       0,0             0,0     0               0x0000000f
-
-- crtc的id是 54
-- fb的id是 68
 
 接上hdmi后(vp0, hdmi)
 
@@ -106,14 +113,28 @@
 	Video Port2: DISABLED
 	Video Port3: DISABLED
 
+再次查看crtc信息
+
+	modetest -M rockchip -p | grep id -A2
+
+	modetest -M rockchip -p | grep id -A2
+	id      fb      pos     size
+	68      199     (0,0)   (1920x1080)
+	  #0 1920x1080 60.00 1920 2008 2052 2200 1080 1084 1089 1125 148500 flags: phsync, pvsync; type: preferred, driver
+	--
+	id      crtc    fb      CRTC x,y        x,y     gamma size      possible crtcs
+	54      68      199     0,0             0,0     0               0x0000000f
+	  formats: XR24 AR24 XB24 AB24 RG24 BG24 RG16 BG16 NV12 NV21 NV16 NV61 NV24 NV42 NV15 NV20 NV30 YVYU VYUY YUYV UYVY
+
 设置分辨率(显示屏上显示彩条纹)
 
 	modetest -M rockchip -s 185@68:1920x1080-60
 
 - 185是上面查询到的hdmi connector的id
-- 68是上面查询到的fb的id
+- 68是上面查询到的crtc的id
 
 再查看connector的情况(和未接显示器比已经看到连接了encoder 184)
+
 	modetest -M rockchip -c
 
 	Connectors:
@@ -197,3 +218,36 @@ NPU对应的render信息
 	supplier:platform:fdab9000.iommu -> ../../virtual/devlink/platform:fdab9000.iommu--platform:fdab0000.npu
 	supplier:platform:firmware:scmi -> ../../virtual/devlink/platform:firmware:scmi--platform:fdab0000.npu
 	supplier:regulator:regulator.34 -> ../../virtual/devlink/regulator:regulator.34--platform:fdab0000.npu
+
+
+drm encoder 的种类(drivers/gpu/drm/drm_encoder.c)
+
+	static const struct drm_prop_enum_list drm_encoder_enum_list[] = {
+		{ DRM_MODE_ENCODER_NONE, "None" },
+		{ DRM_MODE_ENCODER_DAC, "DAC" },
+		{ DRM_MODE_ENCODER_TMDS, "TMDS" },
+		{ DRM_MODE_ENCODER_LVDS, "LVDS" },
+		{ DRM_MODE_ENCODER_TVDAC, "TV" },
+		{ DRM_MODE_ENCODER_VIRTUAL, "Virtual" },
+		{ DRM_MODE_ENCODER_DSI, "DSI" },
+		{ DRM_MODE_ENCODER_DPMST, "DP MST" },
+		{ DRM_MODE_ENCODER_DPI, "DPI" },
+	};
+
+在rockchip virtual vop base on vkms (drivers/gpu/drm/rockchip/rockchip_drm_vvop.c) 驱动中注册了这个虚拟的encoder
+
+	ret = drm_encoder_init(drm_dev, encoder, &vvop_encoder_funcs,
+			       DRM_MODE_ENCODER_VIRTUAL, NULL);
+
+通过配置选项CONFIG_DRM_ROCKCHIP_VVOP来控制编译,但是代码中没有编译
+
+代码drivers/gpu/drm/drm_writeback.c 编译了
+
+	ret = drm_encoder_init(dev, &wb_connector->encoder,
+			       &drm_writeback_encoder_funcs,
+			       DRM_MODE_ENCODER_VIRTUAL, NULL);
+
+可以从系统中看到对应的writeback信息
+
+	/sys/devices/platform/display-subsystem/drm/card0/card0-Writeback-1
+	/sys/class/drm/card0-Writeback-1 -> ../../devices/platform/display-subsystem/drm/card0/card0-Writeback-1
