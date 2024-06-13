@@ -7,17 +7,24 @@
 #include <linux/spi/spi.h>
 #include <linux/miscdevice.h>
 #include <linux/kernel.h>
+#include <linux/ktime.h>
 
 #define MAX_SPI_DEV_NUM 10
 #define BUFF_LEN_MAX 1024
 
+#undef MEASURE_CUSUME_TIME
+#undef DEDICATED_RUN
+
+#ifdef DEDICATED_RUN
+#define RUN_ON_CPU 3
+#endif
+
+#define DELAY_MSEC 20
+
 struct self_define_struct {
+	int id;
     struct device *dev;
     struct spi_device *spi;
-    char *rx_buf;
-    int rx_len;
-    char *tx_buf;
-    int tx_len;
 
 	struct delayed_work dwork;
 	struct workqueue_struct *wq;
@@ -100,25 +107,43 @@ void dwork_fn(struct work_struct *work)
 	char rxbuf[BUFF_LEN_MAX];
 	struct self_define_struct *psds = NULL;
 
-    pr_info("Executing workqueue function!\n");
+	int cpu = smp_processor_id();
+    pr_debug(KERN_INFO "Work handler function executed on CPU %d\n", cpu);
 
-	if (spi_read_slt(0, rxbuf, BUFF_LEN_MAX) < 0) {
+	psds = container_of(work, struct self_define_struct, dwork.work);
+
+#ifdef MEASURE_CUSUME_TIME
+    ktime_t start_time, end_time;
+    s64 time_delta;
+
+    start_time = ktime_get();
+#endif
+	if (spi_read_slt(psds->id, rxbuf, BUFF_LEN_MAX) < 0) {
 		pr_info("spi read error\n");
 	} else {
-		print_hex_dump(KERN_ERR, "SPI RX: ",
-				   DUMP_PREFIX_OFFSET,
-				   16,
-				   1,
-				   rxbuf,
-				   BUFF_LEN_MAX,
-				   1);
+#ifdef MEASURE_CUSUME_TIME
+		end_time = ktime_get();
+		time_delta = ktime_to_ns(ktime_sub(end_time, start_time));
+		pr_info(KERN_INFO "Time taken by function: %lld ns\n", time_delta);
+#endif
+
+		//print_hex_dump(KERN_ERR, "SPI RX: ",
+		//		   DUMP_PREFIX_OFFSET,
+		//		   16,
+		//		   1,
+		//		   rxbuf,
+		//		   BUFF_LEN_MAX,
+		//		   1);
 	}
 
 	//kfree(rxbuf);
 
     /* Reschedule itself in the workqueue */
-	psds = container_of(work, struct self_define_struct, dwork.work);
-    queue_delayed_work(psds->wq, &psds->dwork, msecs_to_jiffies(20));
+#ifdef DEDICATED_RUN
+    schedule_delayed_work_on(RUN_ON_CPU, &psds->dwork, msecs_to_jiffies(DELAY_MSEC));
+#else
+    queue_delayed_work(psds->wq, &psds->dwork, msecs_to_jiffies(DELAY_MSEC));
+#endif
 }
 
 static int rockchip_spi_test_probe(struct spi_device* spi)
@@ -160,6 +185,7 @@ static int rockchip_spi_test_probe(struct spi_device* spi)
         id = 0;
     }
 
+	psds->id = id;
     g_sds[id] = psds;
 
     printk("name=%s,bus_num=%d,cs=%d,mode=%d,speed=%d\n",
@@ -176,7 +202,11 @@ static int rockchip_spi_test_probe(struct spi_device* spi)
     INIT_DELAYED_WORK(&psds->dwork, dwork_fn);
 
     /* Queue up the work */
-    queue_delayed_work(psds->wq, &psds->dwork, msecs_to_jiffies(20));
+#ifdef DEDICATED_RUN
+    schedule_delayed_work_on(RUN_ON_CPU, &psds->dwork, msecs_to_jiffies(DELAY_MSEC));
+#else
+    queue_delayed_work(psds->wq, &psds->dwork, msecs_to_jiffies(DELAY_MSEC));
+#endif
 
     return ret;
 }
