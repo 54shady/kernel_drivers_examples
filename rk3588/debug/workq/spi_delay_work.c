@@ -8,15 +8,18 @@
 #include <linux/miscdevice.h>
 #include <linux/kernel.h>
 #include <linux/ktime.h>
+#include <linux/irq.h>
+#include <linux/version.h>
+#include <uapi/linux/sched/types.h>
 
 #define MAX_SPI_DEV_NUM 10
 #define BUFF_LEN_MAX 1024
 
-#undef MEASURE_CUSUME_TIME
-#undef DEDICATED_RUN
+#define MEASURE_CUSUME_TIME
+#define DEDICATED_RUN
 
 #ifdef DEDICATED_RUN
-#define RUN_ON_CPU 3
+#define RUN_ON_CPU 6
 #endif
 
 #define DELAY_MSEC 20
@@ -110,6 +113,10 @@ void dwork_fn(struct work_struct *work)
 	int cpu = smp_processor_id();
     pr_debug(KERN_INFO "Work handler function executed on CPU %d\n", cpu);
 
+	/* no recommended to set workqueue to FIFO or RR */
+	//struct sched_param param = { .sched_priority = MAX_RT_PRIO - 1 };
+	//sched_setscheduler(current, SCHED_RR, &param);
+
 	psds = container_of(work, struct self_define_struct, dwork.work);
 
 #ifdef MEASURE_CUSUME_TIME
@@ -144,6 +151,62 @@ void dwork_fn(struct work_struct *work)
 #else
     queue_delayed_work(psds->wq, &psds->dwork, msecs_to_jiffies(DELAY_MSEC));
 #endif
+}
+
+static irqreturn_t gpio_irq_handler(int irq, void* dev_id)
+{
+    return IRQ_HANDLED;
+}
+
+static int gpio_init(struct device* dev)
+{
+    int gpio;
+    enum of_gpio_flags flag;
+    int ret = -ENODEV;
+    unsigned int irq_number = 0;
+    gpio = of_get_named_gpio_flags(dev->of_node, "gpio_mcu", 0, &flag);
+    if (!gpio_is_valid(gpio)) {
+        printk("gpio: %d is invalid\n", gpio);
+        return -ENODEV;
+    }
+    irq_number = gpio_to_irq(gpio);
+    if (0 != irq_number) {
+		/* /sys/kernel/debug/gpio */
+        if (devm_gpio_request(dev, gpio, "spi-test-gpio")) {
+            dev_err(dev, "irq-gpio: %d request failed!\n", gpio);
+            return IRQ_NONE;
+        }
+
+        //ret = devm_request_irq(dev, irq_number, gpio_irq_handler, flag, "spi-test-irq", NULL);
+		/*
+		 * thread irq set default SCHED_FIFO policy by kernel
+		 * if CONFIG_PREEMPT_RT is enable
+		 *
+		 * FF : SCHED_FIFO
+		 * RR : SCHED_RR
+		 * TS : SCHED_OTHER
+		 * ps -eLfc | grep spi-tes
+		 * root      519723       2  519723    1 FF   90 16:58 ?        00:00:01 [irq/122-spi-tes]
+		 */
+        ret = devm_request_threaded_irq(dev, irq_number, NULL, gpio_irq_handler,
+				IRQF_TRIGGER_LOW | IRQF_ONESHOT,
+				"spi-test-thread-irq", NULL);
+        if (ret != 0) {
+            dev_err(dev, "Failed to request IRQ: %d\n", ret);
+        }
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0))
+		/* /proc/irq/<irq_number>/affinity_hint */
+		irq_set_affinity_hint(irq_number, cpumask_of(RUN_ON_CPU));
+#else
+		irq_set_affinity(irq_number, cpumask_of(RUN_ON_CPU));
+#endif
+
+	}
+
+    pr_info("irq_number %d flag:%d \n", irq_number, flag);
+
+    return ret;
 }
 
 static int rockchip_spi_test_probe(struct spi_device* spi)
@@ -207,6 +270,8 @@ static int rockchip_spi_test_probe(struct spi_device* spi)
 #else
     queue_delayed_work(psds->wq, &psds->dwork, msecs_to_jiffies(DELAY_MSEC));
 #endif
+
+    gpio_init(&spi->dev);
 
     return ret;
 }
