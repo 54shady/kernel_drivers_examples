@@ -1,5 +1,7 @@
 # Display info
 
+## 系统中的信息
+
 系统启动日志有如下两条,分别对应card0和card1
 
 	[drm] Initialized rockchip 3.0.0 20140818 for display-subsystem on minor 0
@@ -153,6 +155,12 @@
 
 和上面对比,这里184已经和68连接上了
 
+### EDID
+
+	apt install edid-decode
+	cat /sys/class/drm/card0-HDMI-A-1/edid > /root/hdmi-edid.bin
+	edid-decode /root/hdmi-edid.bin
+
 ## DRM Card
 
 SOC上的DSS(card0, card1)
@@ -251,3 +259,100 @@ drm encoder 的种类(drivers/gpu/drm/drm_encoder.c)
 
 	/sys/devices/platform/display-subsystem/drm/card0/card0-Writeback-1
 	/sys/class/drm/card0-Writeback-1 -> ../../devices/platform/display-subsystem/drm/card0/card0-Writeback-1
+
+## 代码中的信息
+
+在arch/arm64/boot/dts/rockchip/rk3588s.dtsi中vop配置如下(省去部分)
+
+	vop: vop@fdd90000 {
+		compatible = "rockchip,rk3588-vop";
+		...
+		vop_out: ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			vp0: port@0 {
+				//配置video port 0的连接信息
+				//这里既可以连接到dp0, (edp0, hdmi0)上,其中edp0和hdmi0二选一
+				vp0_out_dp0: endpoint@0 {
+					reg = <0>;
+					remote-endpoint = <&dp0_in_vp0>;
+				};
+
+				vp0_out_edp0: endpoint@1 {
+					reg = <1>;
+					remote-endpoint = <&edp0_in_vp0>;
+				};
+
+				vp0_out_hdmi0: endpoint@2 {
+					reg = <2>;
+					remote-endpoint = <&hdmi0_in_vp0>;
+				};
+			};
+
+			vp1: port@1 {
+				//配置video port 1的连接信息
+				//这里既可以连接到dp0, (edp0, hdmi0)上,其中edp0和hdmi0二选一
+				vp1_out_dp0: endpoint@0 {
+					reg = <0>;
+					remote-endpoint = <&dp0_in_vp1>;
+				};
+
+				vp1_out_edp0: endpoint@1 {
+					reg = <1>;
+					remote-endpoint = <&edp0_in_vp1>;
+				};
+
+				vp1_out_hdmi0: endpoint@2 {
+					reg = <2>;
+					remote-endpoint = <&hdmi0_in_vp1>;
+				};
+			};
+
+			vp2: port@2 {
+				//配置video port 2的连接信息
+				//这里既可以连接到dp0, (edp0, hdmi0), dsi0, dsi1上,其中edp0和hdmi0二选一
+				vp2_out_dp0: endpoint@0 {
+					reg = <0>;
+					remote-endpoint = <&dp0_in_vp2>;
+				};
+
+				vp2_out_edp0: endpoint@1 {
+					reg = <1>;
+					remote-endpoint = <&edp0_in_vp2>;
+				};
+
+				vp2_out_hdmi0: endpoint@2 {
+					reg = <2>;
+					remote-endpoint = <&hdmi0_in_vp2>;
+				};
+
+				vp2_out_dsi0: endpoint@3 {
+					reg = <3>;
+					remote-endpoint = <&dsi0_in_vp2>;
+				};
+
+				vp2_out_dsi1: endpoint@4 {
+					reg = <4>;
+					remote-endpoint = <&dsi1_in_vp2>;
+				};
+			};
+
+			vp3: port@3 {
+				//配置video port 3的连接信息
+				//这里既可以连接到dsi0, dsi1, rgb上
+				vp3_out_dsi0: endpoint@0 {
+					reg = <0>;
+					remote-endpoint = <&dsi0_in_vp3>;
+				};
+
+				vp3_out_dsi1: endpoint@1 {
+					reg = <1>;
+					remote-endpoint = <&dsi1_in_vp3>;
+				};
+
+				vp3_out_rgb: endpoint@2 {
+					reg = <2>;
+					remote-endpoint = <&rgb_in_vp3>;
+
+上面的代码信息对应如下![vop图](./vop.png)
