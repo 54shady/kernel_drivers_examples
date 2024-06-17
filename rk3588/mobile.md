@@ -127,6 +127,8 @@ usb转串口的设备节点和驱动
 	cat /dev/ttyUSB2
 	+CME ERROR: 10 // 表示没有插sim卡
 
+	+CPIN: READY //已插卡
+
 一个窗口执行AT命令
 
 	echo -e "at+cpin?\r\n" > /dev/ttyUSB2
@@ -181,7 +183,11 @@ usb网卡和以太网卡拨号方式和驱动类型
 
 	echo -e 'at+qcfg="usbnet"\r\n' > /dev/ttyUSB2
 
-设置网口拨号方式及驱动类型为
+设置(usbnet)网口拨号方式及驱动类型为
+
+QMI_WWAN:
+
+	echo -e 'at+qcfg="usbnet",0\r\n' > /dev/ttyUSB2
 
 ECM:
 
@@ -198,3 +204,33 @@ RNDIS:
 NCM:(实际配置会ERROR)
 
 	echo -e 'at+qcfg="usbnet",5\r\n' > /dev/ttyUSB2
+
+## 插sim卡测试
+
+查询sim卡可用的运营商
+
+	echo -e "at+cops=?\r\n" > /dev/ttyUSB2
+
+查询sim卡当前运营商
+
+	echo -e "at+cops?\r\n" > /dev/ttyUSB2
+
+使用拨号软件quectel-CM拨号,wwan0_1会获得ip(10.32.10.223)并得到如下默认路由
+
+	0.0.0.0         10.32.10.224    0.0.0.0         UG    0      0        0 wwan0_1
+
+如果没有的话手动添加(这里网关设置为wwan0_1 ip + 1)
+
+	route add default gw 10.32.10.224 wwan0_1
+
+删除默认路由
+
+	route del default
+
+查询信号强度
+
+	echo -e "AT+CSQ\r\n" > /dev/ttyUSB2
+
+列出信号强度的范围
+
+	echo -e "AT+CSQ=?\r\n" > /dev/ttyUSB2
