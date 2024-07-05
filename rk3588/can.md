@@ -78,6 +78,38 @@ can节点状态切换的状态机如下图
 - Error Passive: In this state, the CAN node is still able to transmit data, but it now raises 'Passive Error Flags' when detecting errors
 - Bus Off: CAN node disconnects
 
+## debug rk3588 can
+
+### 调试系统中can对应关系
+
+rk3588中有3路can,因为目前调试的系统中can0没有使能,所以对应关系变化如下
+
+系统看到信息can1对应代码的can2, can0对应代码的can1
+
+/sys/class/net/can1/device -> ../../../fea70000.can
+
+	can2: can@fea70000 {
+
+/sys/class/net/can0/device -> ../../../fea60000.can
+
+	can1: can@fea60000 {
+
+### 回环测试模式
+
+loop test for can1(不需要外部短接)
+
+	io -4 0xfea70000 0x8415
+
+	candump can1
+	cangen can1
+
+work mode for can1(外部将can0和can1短接)
+
+	io -4 0xfea70000 0x8401
+	//可能需要重新配置can1, down, up
+	candump can1
+	cangen can1
+
 ## FAQ
 
 issue:
