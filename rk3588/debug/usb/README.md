@@ -1,5 +1,13 @@
 # USB FunctionFS
 
+## Basic
+
+[USB 基础](https://www.cnblogs.com/zyly/p/17920369.html)
+
+	bus-port[.port]:configuration.interface
+
+[friendly arm debian adbd.sh](~/github/friendlyarm/linuxsdk-rockchip-debian/overlay/etc/init.d/adbd.sh)
+
 ## USB FFS test demo
 
 ### 编译Host App
@@ -56,6 +64,7 @@
 
 	# on rk3588 the device fc000000.usb is udc
 	# echo fc000000.usb > /config/usb_gadget/g1/UDC
+	# 通过命令 ls /sys/class/udc/  查看系统有几个udc
 	echo `ls /sys/class/udc/` > /config/usb_gadget/g1/UDC
 	echo device > /sys/kernel/debug/usb/fc000000.usb/mode
 
@@ -63,6 +72,7 @@
 
 	usbdrd_dwc3_0: usb@fc000000 {
 		compatible = "snps,dwc3";
+		dr_mode = "otg"; // "host", "peripheral"
 
 此时能在主机lsusb上看到如下设备
 
