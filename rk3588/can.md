@@ -110,6 +110,13 @@ work mode for can1(外部将can0和can1短接)
 	candump can1
 	cangen can1
 
+### 使能调试日志
+
+enable can debug info(netdev_dbg)
+
+	echo 'file rockchip_canfd.c +p' > /sys/kernel/debug/dynamic_debug/control
+	echo 15 15 15 15 > /proc/sys/kernel/printk
+
 ## FAQ
 
 issue:
