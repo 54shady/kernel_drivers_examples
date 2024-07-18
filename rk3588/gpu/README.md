@@ -1,5 +1,11 @@
 # OpenCL on RK3588
 
+## basic
+
+computer vision (CNN) and generative AI (LLM)
+
+[Install OpenCL on RK3588](https://www.roselladb.com/install-opencl-orangepi5-debian-ubuntu.htm)
+
 [setting up opencl on rk3588](https://clehaxze.tw/gemlog/2023/06-17-setting-up-opencl-on-rk3588-using-libmali.gmi)
 
 下载userspace-driver和gpu firmware到对应的目录,或者从[gitee-skrk下载](https://gitee.com/zeroway/skrk)
@@ -89,3 +95,37 @@
 使用[clpeak测试选platform要选1, 或者删掉/etc/OpenCL/vendors/mesa.icd ](https://github.com/krrishnarraj/clpeak)
 
 	./clpeak -p 1
+
+## program
+
+[RK3588 - OpenCL环境搭建](https://blog.csdn.net/Graceful_scenery/article/details/135783830)
+
+download opencl(v2 and v3) header files
+
+	wget https://www.roselladb.com/download/CLv2.zip
+	wget https://www.roselladb.com/download/CLv3.zip
+
+unzip the v2 to rk3588
+
+	unzip CLv2.zip
+	adb push CL /usr/include
+
+compile [test program on rk3588](./test.c)
+
+	gcc test.c -otest -lmali
+	ldd test
+		libmali.so.1 => /lib/aarch64-linux-gnu/libmali.so.1 (0x0000007fac1e3000)
+	./test
+
+未更新mali库和固件前默认情况如下,编译程序模式使用这个路径的库
+
+	ls -l /usr/lib/aarch64-linux-gnu/libmali.so
+		-> libmali.so.1.0.0 -> libmali-valhall-g610-g6p0-wayland.so
+	ls -l /usr/lib/aarch64-linux-gnu/libOpenGL.so
+		-> libOpenGL.so.0.0.0
+
+更新库后需要修改一下连接
+
+	rm /usr/lib/aarch64-linux-gnu/libmali.so.1.0.0
+	ln -s /usr/lib/libmali-valhall-g610-g6p0-x11-wayland-gbm.so /usr/lib/aarch64-linux-gnu/libmali.so.1.0.0
+	ldconfig -v
