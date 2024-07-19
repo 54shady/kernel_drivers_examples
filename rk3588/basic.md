@@ -1,5 +1,17 @@
 # RK3588 Basic info
 
+## Basic
+
+device tree on bard
+
+	ls /sys/firmware/devicetree/base/
+	ls /proc/device-tree/
+
+convert on board device tree
+
+	dtc -I fs -O dts /proc/device-tree/ -o a.dts
+	dtc -I fs -O dts /sys/firmware/devicetree/base -o b.dts
+
 ## CPU info
 
 ### 基本信息
@@ -51,6 +63,8 @@
 查看cpu电源情况[pvtm](https://www.cnx-software.com/2022/07/17/what-is-pvtm-or-why-your-rockchip-rk3588-cpu-may-not-reach-2-4-ghz/)
 
 	dmesg | grep -E 'pvtm|dmc' | grep -E 'pvtm=|sel='
+
+	grep -E 'pvtm|dmc' | grep -E 'pvtm=|sel=' /var/log/kern.log
 
 会有看到以下几种情况的信息
 
