@@ -1,5 +1,7 @@
 # PinCtrl
 
+## pin mux
+
 引脚复用的配置寄存器在GRF/PMUGRF,rk3588叫做IOC
 
 [RK pinctrl](Rockchip_Developer_Guide_Linux_Pinctrl_CN.pdf)
@@ -56,3 +58,18 @@ i2c5同理(搜索 gpio3c7_sel gpio3d0_sel)
 				/* i2c5_sda_m0 */
 				<3 RK_PD0 9 &pcfg_pull_none_smt>;
 		};
+
+## pin number
+
+calculate the pin number for example(计算公式GpioBank * 32 + offset)
+
+	imx415-power-gpios = <&gpio1 RK_PB0 GPIO_ACTIVE_HIGH>;
+
+	#define RK_PB0		8
+	gpio1b0 = 1 * 32 + 8 = 40
+	gpio-40  (                    |imx415-power        ) out hi
+
+	imx415-reset-gpios = <&gpio4 RK_PC6 GPIO_ACTIVE_LOW>; //pwren
+	#define RK_PC6		22
+	gpio4c6 = 4 * 32 + 22 = 128 + 22 = 150
+	gpio-150 (                    |imx415-reset        ) out hi ACTIVE LOW
