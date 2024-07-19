@@ -1,5 +1,33 @@
 #RK3588 mipi camera
 
+[isp30 development](Rockchip_Development_Guide_ISP30_CN_v1.2.3.pdf)
+
+[video input guide](Rockchip_Driver_Guide_VI_CN_v1.1.1.pdf)
+
+[camera trouble shooting](Rockchip_Trouble_Shooting_Linux4.4_Camera_CN.pdf)
+
+[camera development](Rockchip_Developer_Guide_Linux4.4_Camera_CN.pdf)
+
+## terminology
+
+- 3A: AF自动对焦,AE自动曝光,AWB自动白平衡
+- bayer raw(或raw bayer): 指sensort或isp输出的rggb, bggr, gbrg, grbg等帧格式
+- iq(Image Quality): 指为bayer raw camera调试iq xml 用于3A tuning
+- FCC: FourCC(Four Character Codes): 用四个字符来命名图像格式,存储在内存中的格式
+	命令 v4l2-ctl --device=/dev/video8 --list-formats-ext 列出的就是FCC
+- mbus-code (Media Bus Pixel Codes): 在物理总线上传输的格式,区别于FCC
+	通过命令 media-ctl -d /dev/media0 -p 查看到
+	entity 48: m00_b_imx415 4-001a (1 pad, 1 link)
+		pad0: Source
+			[fmt:SGBRG10_1X10/3864x2192@10000/300000 //这里就是mbus-code简写
+
+	命令media-ctl --known-mbus-fmts 可以列出所有支持的mbus-code,
+
+- 各种vdd
+	dvdd : Digital core power
+	dovdd : Digital I/O power
+	avdd : Analog power
+
 ## basic(下列节点分别在rk3588s.dtsi和rk3588.dtsi)
 
 ### rk3588的mipi phy 有 dcphy 和 dphy
@@ -19,7 +47,7 @@ rk3588支持两个dphy,节点为csi2_dphy0_hw/csi2_dphy1_hw
 每一个mipi phy都需要一个csi2模块来解析mipi协议
 节点为mipi0_csi2~mipi5_csi2共6个
 
-### vicap
+### vicap(VI, VIP: Video Input Processor)
 
 - rk3588所有camera数据都要通过vicap在连接到isp
 - rk3588只有一个vicap硬件
@@ -33,7 +61,7 @@ rk3588支持两个dphy,节点为csi2_dphy0_hw/csi2_dphy1_hw
 - 回读：指数据经过vicap采集到ddr,应用获取到数据后,将buffer的地址推送到isp
 		isp再从ddr中获取数据
 
-## sensor
+## sensor(drivers/media/i2c/imx415.c)
 
 &i2c4 {
 	status = "okay";
@@ -47,6 +75,8 @@ rk3588支持两个dphy,节点为csi2_dphy0_hw/csi2_dphy1_hw
 		};
 	};
 };
+
+通过 media-ctl 获取拓扑如果看到sensor有注册entity说明注册成功
 
 ## dphy
 
@@ -110,7 +140,7 @@ rk3588支持两个dphy,节点为csi2_dphy0_hw/csi2_dphy1_hw
 		};
 	};
 };
-&rkcif {
+&rkcif { //将sensor数据保存到ddr中,仅转存数据
 	status = "okay";
 };
 &rkcif_mmu {
@@ -140,7 +170,8 @@ rk3588支持两个dphy,节点为csi2_dphy0_hw/csi2_dphy1_hw
 
 ## 最终连接情况
 
-	i2c4->csi2_dphy0->mipi2_csi2->rkcif_mipi_lvds2->rkcif_mipi_lvds2_sditf->rkisp0_vir0
+	i2c4->csi2_dphy0->mipi2_csi2->rkcif_mipi_lvds2->rkcif_mipi_lvds2_sditf->rkisp0_vir2
+	i2c5->csi2_dcphy0->mipi0_csi2->rkcif_mipi_lvds->rkcif_mipi_lvds_sditf->rkisp0_vir0
 
 ## debug(使用工具查看连接情况)
 
@@ -186,7 +217,7 @@ rk3588支持两个dphy,节点为csi2_dphy0_hw/csi2_dphy1_hw
 			/dev/video14
 			/dev/media1
 
-列出指定的设备
+列出指定的设备(rkisp有两个视频输出设备mainpath,selfpath都能输出图像)
 
 	media-ctl -d /dev/media1 -e "rkisp_mainpath"
 	/dev/video8
