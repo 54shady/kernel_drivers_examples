@@ -230,6 +230,38 @@ rk3588支持两个dphy,节点为csi2_dphy0_hw/csi2_dphy1_hw
 	v4l2-ctl --device=/dev/video8 --list-formats-ext
 	v4l2-ctl --device=/dev/video8 --list-ctrls
 
+通过命令 media-ctl -d /dev/media1 -p 查询到sensor对应的设备(/dev/v4l-subdev2)
+
+	entity 48: m00_b_imx415 4-001a (1 pad, 1 link)
+				 type V4L2 subdev subtype Sensor flags 0
+				 device node name /dev/v4l-subdev2
+
+查看该设备的参数如下
+
+	v4l2-ctl -d /dev/v4l-subdev2 -l
+
+	User Controls
+
+						   exposure 0x00980911 (int)    : min=4 max=2242 step=1 default=2242 value=203
+					horizontal_flip 0x00980914 (bool)   : default=0 value=0
+					  vertical_flip 0x00980915 (bool)   : default=0 value=0
+
+	Image Source Controls
+
+				  vertical_blanking 0x009e0901 (int)    : min=58 max=30575 step=1 default=58 value=58
+				horizontal_blanking 0x009e0902 (int)    : min=4936 max=4936 step=1 default=4936 value=4936 flags=read-only
+					  analogue_gain 0x009e0903 (int)    : min=0 max=240 step=1 default=0 value=0
+
+	Image Processing Controls
+
+					 link_frequency 0x009f0901 (intmenu): min=0 max=3 default=0 value=1
+						 pixel_rate 0x009f0902 (int64)  : min=0 max=712800000 step=1 default=356800000 value=356800000 flags=read-only
+
+获取并设置参数
+
+	v4l2-ctl -d /dev/v4l-subdev2 --get-ctrl exposure
+	v4l2-ctl -d /dev/v4l-subdev2 --set-ctrl exposure=2000
+
 ### 使用media-ctl来输出dot文件,后绘图
 
 media0是sensor到vicap的pipeline
