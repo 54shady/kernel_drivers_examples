@@ -13,6 +13,7 @@
 - 3A: AF自动对焦,AE自动曝光,AWB自动白平衡
 - bayer raw(或raw bayer): 指sensort或isp输出的rggb, bggr, gbrg, grbg等帧格式
 - iq(Image Quality): 指为bayer raw camera调试iq xml 用于3A tuning
+	linux sdk:/etc/iqfiles/imx415_CMK-OT2022-PX1_IR0147-50IRC-8M-F20.json
 - FCC: FourCC(Four Character Codes): 用四个字符来命名图像格式,存储在内存中的格式
 	命令 v4l2-ctl --device=/dev/video8 --list-formats-ext 列出的就是FCC
 - mbus-code (Media Bus Pixel Codes): 在物理总线上传输的格式,区别于FCC
@@ -217,7 +218,7 @@ rk3588支持两个dphy,节点为csi2_dphy0_hw/csi2_dphy1_hw
 			/dev/video14
 			/dev/media1
 
-列出指定的设备(rkisp有两个视频输出设备mainpath,selfpath都能输出图像)
+列出拍照设备MP/SP(rkisp有两个视频输出设备mainpath,selfpath都能输出图像)
 
 	media-ctl -d /dev/media1 -e "rkisp_mainpath"
 	/dev/video8
@@ -276,3 +277,19 @@ media1是vicap到isp的pipeline
 
 	dot -Tpng media0.dot -o media0.png
 	dot -Tpng media1.dot -o media1.png
+
+### 拍照测试
+
+在板上拍照
+
+	v4l2-ctl --verbose -d /dev/video8 \
+		--set-fmt-video=width=1920,height=1080,pixelformat='NV12' \
+		--stream-mmap=4 \
+		--set-selection=target=crop,flags=0,top=0,left=0,width=1920,height=1080 \
+		--stream-count=10 \
+		--stream-to=/data/out.yuv
+
+在x86host上显示
+
+	ffplay -f rawvideo -video_size 1920x1080 -pix_fmt nv12 out.yuv
+	W=1920;H=1080; mplayer out.yuv -loop 0 -demuxer rawvideo -fps 30 -rawvideo w=${W}:h=${H}:size=$((${W}*${H}*2)):format=NV12
