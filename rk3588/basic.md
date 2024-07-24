@@ -121,3 +121,16 @@ convert on board device tree
 		}
 
 OPP[rockchip cpufreq](https://github.com/54shady/qop_kernel/blob/master/Documentation/devicetree/bindings/cpufreq/cpufreq-rockchip.txt)
+
+## RKMPI
+
+[IPC（网络摄像机）应用框架](https://wiki.luckfox.com/zh/Luckfox-Pico/RKMPI-example)
+
+![ipc](./ipc.png)
+
+- VI 模块捕获视频图像，做剪切、缩放等处理，可以输出多路不同分辩率的图像数据。
+- VPSS(视频处理子系统) 模块接收 VI 模块传输的图像
+	可对图像进行裁剪、缩放、旋转、像素格式转换等处理。
+- VENC 模块可以直接接收 VI 模块捕获的图像或 VPSS 处理后输出的图像数据,
+	可叠加用户通过 RGN 模块设置的 OSD 图像，然后按不同协议进行编码并输出相应码流。
+- 各个模块通道之间进行绑定，处理后的数据流会直接传输到绑定的下一个多媒体模块。
