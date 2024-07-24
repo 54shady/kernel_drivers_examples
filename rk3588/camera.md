@@ -8,12 +8,41 @@
 
 [camera development](Rockchip_Developer_Guide_Linux4.4_Camera_CN.pdf)
 
+[参考： 图像格式](https://blog.csdn.net/weixin_36389889/article/details/134135914)
+
 ## terminology
 
+- packed/unpacked
+	一个像素点占n个bit,如果n不是8的倍数就存在packed/unpacked的概念
+	比如一个像素10bit(raw10)
+		对于unpacked：实际占用空间就是16bit,前10bit是图像数据,后6bit是占位0
+		对于packed：实际占用空间就是10bit,没有占位
+- raw ： 一般采用bayer格式,一个像素只有一种(R/G/B)颜色
+	由于人眼对绿色更加敏感,因此增加对绿光的采样,主要有如下四种排序
+		RGGB
+		BGGR
+		GRBG
+		GBRG
+- RGB : 每个像素由三原色组成
+	相比raw, raw是每个像素只有一个三原色
+- YUV : 是用一个亮度分量Y和两个色度分量U和V 来描述一个颜色.只有Y的话就是灰度图像
+	YUV的内存分布按Y、U、V三个分量的排列顺序，可分为如下
+		Planar，三个分量分开存放
+		Semi-Planar，Y分量单独存放，UV分量交错一起存放
+		Packed/Interleaved，三个分量交错一起存放
+	常用格式分类：
+		YUV420，4个Y共用一套UV，数据个数1.5*w*h
+		YUV422，2个Y共用一套UV，数据个数2*w*h
+		YUV444，不共用，1个Y一套UV，数据个数3*w*h
+	比如:
+	  UYVY（属于YUV422 Interleaved）
+	  NV12（属于YUV420 Semi-Planar）:总数据个数w*h+0.5*w*h=1.5*w*h
+		1920*1080的NV12 8bit图像,占内存为
+			1.5*1920*1080 = 3,110,400 Bytes ≈ 3MB，这就是3MB图像的由来
 - 3A: AF自动对焦,AE自动曝光,AWB自动白平衡
 - bayer raw(或raw bayer): 指sensort或isp输出的rggb, bggr, gbrg, grbg等帧格式
 - iq(Image Quality): 指为bayer raw camera调试iq xml 用于3A tuning
-	linux sdk:/etc/iqfiles/imx415_CMK-OT2022-PX1_IR0147-50IRC-8M-F20.json
+	iq文件/etc/iqfiles/imx415_CMK-OT2022-PX1_IR0147-50IRC-8M-F20.json
 - FCC: FourCC(Four Character Codes): 用四个字符来命名图像格式,存储在内存中的格式
 	命令 v4l2-ctl --device=/dev/video8 --list-formats-ext 列出的就是FCC
 - mbus-code (Media Bus Pixel Codes): 在物理总线上传输的格式,区别于FCC
@@ -30,6 +59,12 @@
 	avdd : Analog power
 
 ## basic(下列节点分别在rk3588s.dtsi和rk3588.dtsi)
+
+rk3588上使用的是isp30
+
+[isp30 color optimization](Rockchip_Color_Optimization_Guide_ISP30_CN_v3.0.0.pdf)
+
+raw sensor需要isp去调试效果
 
 ### rk3588的mipi phy 有 dcphy 和 dphy
 
@@ -286,10 +321,27 @@ media1是vicap到isp的pipeline
 		--set-fmt-video=width=1920,height=1080,pixelformat='NV12' \
 		--stream-mmap=4 \
 		--set-selection=target=crop,flags=0,top=0,left=0,width=1920,height=1080 \
-		--stream-count=10 \
+		--stream-count=30 \
+		--stream-skip=3 \
 		--stream-to=/data/out.yuv
 
 在x86host上显示
 
-	ffplay -f rawvideo -video_size 1920x1080 -pix_fmt nv12 out.yuv
+使用ffplay 10fps来播放
+
+	ffplay -f rawvideo -video_size 1920x1080 -pix_fmt nv12 -framerate 10 out.yuv
+
+使用ffplay 30fps来播放
+
+	ffplay -f rawvideo -video_size 1920x1080 -pix_fmt nv12 -framerate 30 out.yuv
+
+使用mplayer来播放
+
 	W=1920;H=1080; mplayer out.yuv -loop 0 -demuxer rawvideo -fps 30 -rawvideo w=${W}:h=${H}:size=$((${W}*${H}*2)):format=NV12
+
+convert to mp4 format and using mpv to play(转raw为mp4)
+
+	ffmpeg -f rawvideo -pixel_format nv12 \
+		-video_size 1920x1080 -framerate 30 \
+		-i out.yuv -c:v libx264 out.mp4
+	mpv out.mp4
