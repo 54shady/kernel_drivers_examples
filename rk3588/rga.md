@@ -2,7 +2,11 @@
 
 [rk rga developer](Rockchip_Developer_Guide_RGA_CN.pdf)
 
+[rk media](https://wiki.t-firefly.com/en/CORE-1109-JD4/Rkmedia.html)
+
 ## basic usage
+
+![rkmedia](./rkmedia.png)
 
 Download code
 
