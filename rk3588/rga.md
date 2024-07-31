@@ -4,6 +4,14 @@
 
 [rk media](https://wiki.t-firefly.com/en/CORE-1109-JD4/Rkmedia.html)
 
+
+## why rga
+
+	ISP输出的图像在像素、格式是固定的，有时无法满足后端算法的要求
+	这时需要对图像进行裁剪、缩放或格式转换等二次处理.
+	RGA (Raster Graphic Acceleration Unit)官方提供的独立的2D硬件加速器
+	可用于加速点/线绘制、执行图像缩放、旋转、格式转换等常见的2D图形操作，且其不占用CPU计算资源，因此可用于图像的二次处理
+
 ## basic usage
 
 ![rkmedia](./rkmedia.png)
