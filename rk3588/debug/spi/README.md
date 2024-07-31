@@ -10,7 +10,7 @@
 		pinctrl-0 = <&spi4m2_cs0  &spi4m2_pins &gpio_mcu_in>;
 		dma-names = "tx","rx";
 		spi_test@0 {
-			//多个compatible字符串,可以匹配不通的驱动
+			//多个compatible字符串,可以匹配不同的驱动
 			compatible = "rockchip,spi_test_bus4_cs0", "rockchip,spidev";
 			gpio_mcu = <&gpio3 RK_PB1 IRQ_TYPE_EDGE_FALLING>;
 			id = <0>;
@@ -36,7 +36,7 @@
 
 	insmod spidev.ko
 
-使用内核代码中带的测试代码[spidev_test.c](tools/spi/spidev_test.c)
+使用内核代码中带的测试代码[spidev_test.c](linux/tools/spi/spidev_test.c)
 
 	./spidev_test -D /dev/spidev4.0 -v
 
