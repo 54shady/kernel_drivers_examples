@@ -68,6 +68,10 @@ computer vision (CNN) and generative AI (LLM)
 	mkdir -p /etc/OpenCL/vendors
 	echo "/usr/lib/libmali-valhall-g610-g6p0-x11-wayland-gbm.so" | sudo tee /etc/OpenCL/vendors/mali.icd
 
+对于旧版本SDK没有更新上面库文件和固件可以按下面操作
+
+	echo "/usr/lib/aarch64-linux-gnu/libmali-valhall-g610-g6p0-wayland.so" | tee /etc/OpenCL/vendors/mali.icd
+
 多了一个平台名为 ARM Platform的(该platorm有device)
 
 	root@3588:~# clinfo -l
