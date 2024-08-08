@@ -2,6 +2,16 @@
 
 ## Basic
 
+### VPU
+
+[HWA Tutorial On Rockchip VPU](https://jellyfin.org/docs/general/administration/hardware-acceleration/rockchip/)
+
+VPU : is responsible for decoding and encoding video
+GPU : is only responsible for graphics and computes, used for OpenCL-based HDR tone-mapping.
+RGA : is Rockchip's 2D post-processing unit, used for video scaling, pixel format conversion, subtitle burn-in, etc.
+
+### DeviceTree
+
 device tree on bard
 
 	ls /sys/firmware/devicetree/base/
