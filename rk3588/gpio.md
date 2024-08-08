@@ -1,6 +1,6 @@
 # GPIO
 
-## sysfs gpio
+## sysfs gpio(CONFIG_GPIO_SYSFS)
 
 以gpio1c6为例(计算该gpio的pin number)
 
