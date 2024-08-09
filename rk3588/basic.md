@@ -144,3 +144,18 @@ OPP[rockchip cpufreq](https://github.com/54shady/qop_kernel/blob/master/Document
 - VENC 模块可以直接接收 VI 模块捕获的图像或 VPSS 处理后输出的图像数据,
 	可叠加用户通过 RGN 模块设置的 OSD 图像，然后按不同协议进行编码并输出相应码流。
 - 各个模块通道之间进行绑定，处理后的数据流会直接传输到绑定的下一个多媒体模块。
+
+## MISC
+
+查看脏页达到系统内存多少比例时才刷入磁盘
+
+	cat /proc/sys/vm/dirty_background_bytes
+	10
+
+对于系统内存是4G的话
+
+	4 * 10% = 400MB 当脏页达到400MB时才会将缓存刷入存储介质
+
+	比如在使用dd 测试是可以添加conv=fsync来将缓存刷入存储介质
+
+所以测试磁盘读写速度是需要测试的文件比较大,否则测试的速度只是写入到缓存
